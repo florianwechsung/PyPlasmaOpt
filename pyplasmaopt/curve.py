@@ -22,7 +22,7 @@ class Curve():
         """ Curvature at `points`. """
         dgamma = self.dgamma_by_dphi(points)[:, 0, :]
         d2gamma = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
-        return np.linalg.norm(np.cross(dgamma, d2gamma), axis=1)/np.linalg.norm(dgamma, axis=1)**3
+        return (np.linalg.norm(np.cross(dgamma, d2gamma), axis=1)/np.linalg.norm(dgamma, axis=1)**3).reshape(len(points),1)
 
     def dgamma_by_dcoeff(self, points):
         raise NotImplementedError
@@ -53,6 +53,51 @@ class Curve():
                 - norm(numerator) * 3 * denominator * inner(dgamma_by_dphi, dgamma_by_dphidcoeff[:, i, :])
             )/denominator**6
         return res
+
+    def incremental_arclength(self, points):
+        return np.linalg.norm(self.dgamma_by_dphi(points)[:, 0, :], axis=1).reshape((len(points), 1))
+
+    def dincremental_arclength_by_dcoeff(self, points):
+        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
+        dgamma_by_dphidcoeff = self.d2gamma_by_dphidcoeff(points)[:, 0, :, :]
+        num_coeff = dgamma_by_dphidcoeff.shape[1]
+        res = np.zeros((len(points), num_coeff, 1))
+        norm = lambda a: np.linalg.norm(a, axis=1)
+        inner = lambda a, b: np.sum(a*b, axis=1)
+        for i in range(num_coeff):
+            res[:, i, 0] = inner(dgamma_by_dphi, dgamma_by_dphidcoeff[:, i, :])/norm(dgamma_by_dphi)
+        return res
+
+    def dincremental_arclength_by_dphi(self, points):
+        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
+        dgamma_by_dphidphi = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
+        res = np.zeros((len(points), 1, 1))
+        norm = lambda a: np.linalg.norm(a, axis=1)
+        inner = lambda a, b: np.sum(a*b, axis=1)
+        res[:, 0, 0] = inner(dgamma_by_dphi, dgamma_by_dphidphi)/norm(dgamma_by_dphi)
+        return res
+
+    def frenet_frame(self, points):
+        """
+        Returns the (t, n, b) Frenet frame.
+        """
+        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
+        d2gamma_by_dphidphi = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
+        norm = lambda a: np.linalg.norm(a, axis=1)
+        inner = lambda a, b: np.sum(a*b, axis=1)
+        l = self.incremental_arclength(points)
+        dl_by_dphi = self.dincremental_arclength_by_dphi(points)[:, 0, 0]
+
+        t = (1./norm(dgamma_by_dphi))[:, None] * dgamma_by_dphi
+
+        tdash = (1/norm(dgamma_by_dphi)**2)[:, None] * (
+            norm(dgamma_by_dphi)[:, None] * d2gamma_by_dphidphi
+            - (inner(dgamma_by_dphi, d2gamma_by_dphidphi)/norm(dgamma_by_dphi))[:, None] *  dgamma_by_dphi
+        )
+        kappa = self.kappa(points)
+        n = (1./norm(tdash))[:, None] * tdash
+        b = np.cross(t, n, axis=1)
+        return (t, n, b)
 
     def plot(self, resolution=100, ax=None, show=True, plot_derivative=False):
         import matplotlib.pyplot as plt

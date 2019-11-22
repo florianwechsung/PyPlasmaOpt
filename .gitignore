@@ -1,3 +1,8 @@
 PyPlasmaOpt.egg-info/
 *.pyc
 .DS_Store
+*.eggs/
+var/
+PlasmaOpt.egg-info/
+build/
+*.so

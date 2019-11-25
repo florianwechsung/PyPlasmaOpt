@@ -1,6 +1,7 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
+import os
 import setuptools
 
 __version__ = '0.0.1'
@@ -20,14 +21,35 @@ class get_pybind_include(object):
         return pybind11.get_include(self.user)
 
 
+class get_numpy_include(object):
+    """Helper class to determine the numpy include path
+
+    The purpose of this class is to postpone importing numpy
+    until it is actually installed, so that the ``get_include()``
+    method can be invoked. """
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        import numpy as np
+        return np.get_include()
+
+
 ext_modules = [
     Extension(
         'cppplasmaopt',
         ['cppplasmaopt/main.cpp'],
         include_dirs=[
             # Path to pybind11 headers
-            get_pybind_include(),
-            get_pybind_include(user=True)
+            get_numpy_include(),
+            os.path.join(sys.prefix, 'include'),
+            os.path.join(sys.prefix, 'Library', 'include'),
+            os.path.join('.', 'pybind11', 'include'),
+            os.path.join('.', 'xtl', 'include'),
+            os.path.join('.', 'xtensor', 'include'),
+            os.path.join('.', 'xtensor-python', 'include'),
+            os.path.join('.', 'blaze'),
         ],
         language='c++'
     ),
@@ -51,16 +73,13 @@ def has_flag(compiler, flagname):
 
 
 def cpp_flag(compiler):
-    """Return the -std=c++[11/14] compiler flag.
-    The newer version is prefered over c++11 (when it is available).
+    """Return the -std=c++14 compiler flag  and errors when the flag is
+    no available.
     """
-    flags = ['-std=c++14', '-std=c++11']
-
-    for flag in flags:
-        if has_flag(compiler, flag): return flag
-
-    raise RuntimeError('Unsupported compiler -- at least C++11 support '
-                       'is needed!')
+    if has_flag(compiler, '-std=c++14'):
+        return '-std=c++14'
+    else:
+        raise RuntimeError('C++14 support is required by cppplasmaopt!')
 
 
 class BuildExt(build_ext):
@@ -75,9 +94,14 @@ class BuildExt(build_ext):
     }
 
     if sys.platform == 'darwin':
-        darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.7']
-        c_opts['unix'] += darwin_opts
-        l_opts['unix'] += darwin_opts
+        if 'CC' in os.environ and 'GCC' in os.environ['CC'].upper():
+            c_opts['unix'] += ['-fopenmp']
+            l_opts['unix'] += ['-fopenmp']
+        else:
+            darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+            c_opts['unix'] += darwin_opts
+            l_opts['unix'] += darwin_opts
+        
 
     def build_extensions(self):
         ct = self.compiler.compiler_type

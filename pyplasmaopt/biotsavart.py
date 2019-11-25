@@ -1,5 +1,6 @@
 import numpy as np
 from math import pi
+import cppplasmaopt as cpp
 
 
 class BiotSavart():
@@ -11,16 +12,19 @@ class BiotSavart():
         self.coil_quadrature_points = np.linspace(0, 1, num_coil_quadrature_points, endpoint=False)
         self.num_coil_quadrature_points = num_coil_quadrature_points
 
-    def B(self, points):
+    def B(self, points, use_cpp=True):
         res = np.zeros((len(points), 3))
         for coil, current in zip(self.coils, self.coil_currents):
             gamma = coil.gamma(self.coil_quadrature_points)
             dgamma_by_dphi = coil.dgamma_by_dphi(self.coil_quadrature_points)[:, 0, :]
-            for i, point in enumerate(points):
-                diff = point-gamma
-                res[i, :] += current * np.sum(
-                    (1./np.linalg.norm(diff, axis=1)**3)[:, None] * np.cross(dgamma_by_dphi, diff, axis=1),
-                    axis=0)
+            if use_cpp:
+                res += current * cpp.biot_savart_B(points, gamma, dgamma_by_dphi)
+            else:
+                for i, point in enumerate(points):
+                    diff = point-gamma
+                    res[i, :] += current * np.sum(
+                        (1./np.linalg.norm(diff, axis=1)**3)[:, None] * np.cross(dgamma_by_dphi, diff, axis=1),
+                        axis=0)
         mu = 4 * pi * 1e-7
         res *= mu/(4*pi*self.num_coil_quadrature_points)
         return res

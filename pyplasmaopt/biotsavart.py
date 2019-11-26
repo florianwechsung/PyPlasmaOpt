@@ -35,7 +35,7 @@ class BiotSavart():
             gamma = coil.gamma(self.coil_quadrature_points)
             dgamma_by_dphi = coil.dgamma_by_dphi(self.coil_quadrature_points)[:, 0, :]
             if use_cpp:
-                res += current * cpp.biot_savart_dB_by_dX(points, gamma, dgamma_by_dphi);
+                res += current * cpp.biot_savart_dB_by_dX(points, gamma, dgamma_by_dphi)
             else:
                 for i, point in enumerate(points):
                     diff = point-gamma
@@ -52,61 +52,74 @@ class BiotSavart():
         res *= mu/(4*pi*self.num_coil_quadrature_points)
         return res
 
-    def dB_by_dcoilcoeff(self, points):
+    def dB_by_dcoilcoeff(self, points, use_cpp=True):
         res = []
         for coil, current in zip(self.coils, self.coil_currents):
             gamma = coil.gamma(self.coil_quadrature_points)
             dgamma_by_dphi = coil.dgamma_by_dphi(self.coil_quadrature_points)[:, 0, :]
             dgamma_by_dcoeff = coil.dgamma_by_dcoeff(self.coil_quadrature_points)
             d2gamma_by_dphidcoeff = coil.d2gamma_by_dphidcoeff(self.coil_quadrature_points)[:, 0, :, :]
-            num_coil_coeffs = dgamma_by_dcoeff.shape[1]
-            res_coil = np.zeros((len(points), num_coil_coeffs, 3))
-            for i, point in enumerate(points):
-                diff = point-gamma
-                norm_diff = np.linalg.norm(diff, axis=1)
-                norm_diff_3_inv = (1./norm_diff**3)[:, None]
-                norm_diff_5_inv = (1./norm_diff**5)[:, None]
-                dgamma_by_dphi_cross_diff = np.cross(dgamma_by_dphi, diff, axis=1)
-                for j in range(num_coil_coeffs):
-                    term1 = norm_diff_3_inv * np.cross(d2gamma_by_dphidcoeff[:, j, :], diff, axis=1)
-                    term2 = norm_diff_3_inv * np.cross(dgamma_by_dphi, dgamma_by_dcoeff[:, j, :], axis=1)
-                    term3 = norm_diff_5_inv * np.sum(dgamma_by_dcoeff[:, j, :] * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
-                    res_coil[i, j, :] += current * np.sum(term1-term2+term3, axis=0)
+            if use_cpp:
+                res_coil = current * cpp.biot_savart_dB_by_dcoilcoeff(points, gamma, dgamma_by_dphi, dgamma_by_dcoeff, d2gamma_by_dphidcoeff)
+                pass
+            else:
+                num_coil_coeffs = dgamma_by_dcoeff.shape[1]
+                res_coil = np.zeros((len(points), num_coil_coeffs, 3))
+                for i, point in enumerate(points):
+                    diff = point-gamma
+                    norm_diff = np.linalg.norm(diff, axis=1)
+                    norm_diff_3_inv = (1./norm_diff**3)[:, None]
+                    norm_diff_5_inv = (1./norm_diff**5)[:, None]
+                    dgamma_by_dphi_cross_diff = np.cross(dgamma_by_dphi, diff, axis=1)
+                    for j in range(num_coil_coeffs):
+                        term1 = norm_diff_3_inv * np.cross(d2gamma_by_dphidcoeff[:, j, :], diff, axis=1)
+                        term2 = norm_diff_3_inv * np.cross(dgamma_by_dphi, dgamma_by_dcoeff[:, j, :], axis=1)
+                        term3 = norm_diff_5_inv * np.sum(dgamma_by_dcoeff[:, j, :] * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
+                        res_coil[i, j, :] += current * np.sum(term1-term2+term3, axis=0)
             mu = 4 * pi * 1e-7
             res_coil *= mu/(4*pi*self.num_coil_quadrature_points)
             res.append(res_coil)
         return res
 
-    def dB_by_dcoilcoeff_via_chainrule(self, points):
+    def dB_by_dcoilcoeff_via_chainrule(self, points, use_cpp=True):
         res = []
         for coil, current in zip(self.coils, self.coil_currents):
-            res_coil_gamma     = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
-            res_coil_gammadash = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
             gamma = coil.gamma(self.coil_quadrature_points)
             dgamma_by_dphi = coil.dgamma_by_dphi(self.coil_quadrature_points)[:, 0, :]
-            for i, point in enumerate(points):
-                diff = point-gamma
-                norm_diff = np.linalg.norm(diff, axis=1)
-                norm_diff_3_inv = (1./norm_diff**3)[:, None]
-                norm_diff_5_inv = (1./norm_diff**5)[:, None]
-                dgamma_by_dphi_cross_diff = np.cross(dgamma_by_dphi, diff, axis=1)
-                for k in range(3):
-                    ek = np.zeros((len(self.coil_quadrature_points), 3))
-                    ek[:, k] = 1.
-                    term1 = norm_diff_3_inv * np.cross(ek, diff, axis=1)
-                    term2 = norm_diff_3_inv * np.cross(dgamma_by_dphi, ek, axis=1)
-                    term3 = norm_diff_5_inv * np.sum(ek * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
-                    res_coil_gamma[i, :, k, :] = current * (-term2 + term3)
-                    res_coil_gammadash[i, :, k, :] = current * term1
-
+            if use_cpp:
+                res_coil_gamma, res_coil_gammadash = cpp.biot_savart_dB_by_dcoilcoeff_via_chainrule(points, gamma, dgamma_by_dphi)
+            else:
+                res_coil_gamma     = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
+                res_coil_gammadash = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
+                for i, point in enumerate(points):
+                    diff = point-gamma
+                    norm_diff = np.linalg.norm(diff, axis=1)
+                    norm_diff_3_inv = (1./norm_diff**3)[:, None]
+                    norm_diff_5_inv = (1./norm_diff**5)[:, None]
+                    dgamma_by_dphi_cross_diff = np.cross(dgamma_by_dphi, diff, axis=1)
+                    for k in range(3):
+                        ek = np.zeros((len(self.coil_quadrature_points), 3))
+                        ek[:, k] = 1.
+                        term1 = norm_diff_3_inv * np.cross(ek, diff, axis=1)
+                        term2 = norm_diff_3_inv * np.cross(dgamma_by_dphi, ek, axis=1)
+                        term3 = norm_diff_5_inv * np.sum(ek * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
+                        res_coil_gamma[i, :, k, :] = (-term2 + term3)
+                        res_coil_gammadash[i, :, k, :] = term1
+            res_coil_gamma *= current
+            res_coil_gammadash *= current
             dgamma_by_dcoeff = coil.dgamma_by_dcoeff(self.coil_quadrature_points)
             d2gamma_by_dphidcoeff = coil.d2gamma_by_dphidcoeff(self.coil_quadrature_points)[:, 0, :, :]
             num_coil_coeffs = dgamma_by_dcoeff.shape[1]
             res_coil = np.zeros((len(points), num_coil_coeffs, 3))
+
+            # for the following matrix-matrix products having a column-based layout is actually quicker
+            res_coil_gamma        = np.asfortranarray(res_coil_gamma)
+            res_coil_gammadash    = np.asfortranarray(res_coil_gammadash)
+            dgamma_by_dcoeff      = np.asfortranarray(dgamma_by_dcoeff)
+            d2gamma_by_dphidcoeff = np.asfortranarray(d2gamma_by_dphidcoeff)
             for i in range(3):
                 for j in range(3):
-                    res_coil[:, :, i] += res_coil_gamma[:, :, j, i] @ dgamma_by_dcoeff[:, :, j]
-                    res_coil[:, :, i] += res_coil_gammadash[:, :, j, i] @ d2gamma_by_dphidcoeff[:, :, j]
+                    res_coil[:, :, i] += res_coil_gamma[:, :, j, i] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[:, :, j, i] @ d2gamma_by_dphidcoeff[:, :, j]
             mu = 4 * pi * 1e-7
             res_coil *= mu/(4*pi*self.num_coil_quadrature_points)
             res.append(res_coil)

@@ -11,7 +11,8 @@ add_subdirectory(pybind11)
 
 
 
-pybind11_add_module(${PROJECT_NAME} cppplasmaopt/main.cpp cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp)
+pybind11_add_module(${PROJECT_NAME} 
+    cppplasmaopt/main.cpp cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp cppplasmaopt/biot_savart_dB_by_dcoilcoeff.cpp cppplasmaopt/biot_savart_dB_by_dcoilcoeff_via_chainrule.cpp)
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
     CXX_STANDARD 14
@@ -19,7 +20,8 @@ set_target_properties(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE "xtensor/include" "xtensor-python/include" "xtl/include" "blaze" "cppplasmaopt" ${Python3_NumPy_INCLUDE_DIRS})
 
 
-add_executable(profiling_biot_savart profiling/profile_biot_savart.cpp cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp)
+add_executable(profiling_biot_savart
+    profiling/profile_biot_savart.cpp cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp cppplasmaopt/biot_savart_dB_by_dcoilcoeff.cpp cppplasmaopt/biot_savart_dB_by_dcoilcoeff_via_chainrule.cpp)
 set_target_properties(profiling_biot_savart
     PROPERTIES
     CXX_STANDARD 14

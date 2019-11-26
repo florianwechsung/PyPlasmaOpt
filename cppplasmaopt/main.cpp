@@ -1,4 +1,5 @@
 #include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 #include "xtensor/xmath.hpp"              // xtensor import for the C++ universal functions
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pyarray.hpp"     // Numpy bindings
@@ -21,6 +22,9 @@ PYBIND11_MODULE(cppplasmaopt, m) {
 
     m.def("biot_savart_B", &biot_savart_B);
     m.def("biot_savart_dB_by_dX", &biot_savart_dB_by_dX);
+    m.def("biot_savart_dB_by_dcoilcoeff", &biot_savart_dB_by_dcoilcoeff);
+    m.def("biot_savart_dB_by_dcoilcoeff_via_chainrule", &biot_savart_dB_by_dcoilcoeff_via_chainrule);
+
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

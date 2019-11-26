@@ -1,7 +1,7 @@
 import numpy as np
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve
 
-coil = CartesianFourierCurve(3)
+coil = CartesianFourierCurve(10)
 coil.coefficients[1][0] = 1.
 coil.coefficients[1][1] = 0.5
 coil.coefficients[2][2] = 0.5
@@ -29,3 +29,19 @@ for i in range(3):
     bs.dB_by_dX(points, use_cpp=True)
 end = time.time()
 print('Time for dB_by_dX', (end-start)*1000)
+
+
+
+
+
+points = ma.gamma(np.linspace(0., 1., 1000))
+start = time.time()
+for i in range(3):
+    bs.dB_by_dcoilcoeff(points, use_cpp=True)
+end = time.time()
+print('Time for dB_by_dcoilcoeff', (end-start)*1000)
+start = time.time()
+for i in range(3):
+    bs.dB_by_dcoilcoeff_via_chainrule(points, use_cpp=True)
+end = time.time()
+print('Time for dB_by_dcoilcoeff_via_chainrule', (end-start)*1000)

@@ -9,60 +9,67 @@ def get_coil():
     coil.coefficients[2][2] = 0.5
     return coil
 
-def test_biotsavart_exponential_convergence():
+@pytest.mark.parametrize("use_cpp", [True, False])
+def test_biotsavart_exponential_convergence(use_cpp):
     coil = get_coil()
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    btrue   = BiotSavart([coil], [1e4], 1e3).B(points)
-    bcoarse = BiotSavart([coil], [1e4], 10 ).B(points)
-    bfine   = BiotSavart([coil], [1e4], 20 ).B(points)
+    btrue   = BiotSavart([coil], [1e4], 1000).B(points, use_cpp=use_cpp)
+    bcoarse = BiotSavart([coil], [1e4], 10 ).B(points, use_cpp=use_cpp)
+    bfine   = BiotSavart([coil], [1e4], 20 ).B(points, use_cpp=use_cpp)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
-    dbtrue   = BiotSavart([coil], [1e4], 1e3).dB_by_dX(points)
-    dbcoarse = BiotSavart([coil], [1e4], 10 ).dB_by_dX(points)
-    dbfine   = BiotSavart([coil], [1e4], 20 ).dB_by_dX(points)
+    dbtrue   = BiotSavart([coil], [1e4], 1000).dB_by_dX(points, use_cpp=use_cpp)
+    dbcoarse = BiotSavart([coil], [1e4], 10 ).dB_by_dX(points, use_cpp=use_cpp)
+    dbfine   = BiotSavart([coil], [1e4], 20 ).dB_by_dX(points, use_cpp=use_cpp)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
-def test_biotsavart_dBdX_taylortest():
+@pytest.mark.parametrize("use_cpp", [True, False])
+def test_biotsavart_dBdX_taylortest(use_cpp):
     coil = get_coil()
     bs = BiotSavart([coil], [1e4], 100)
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    dB = bs.dB_by_dX(points)
-    B0 = bs.B(points)
+    dB = bs.dB_by_dX(points, use_cpp=use_cpp)
+    B0 = bs.B(points, use_cpp=use_cpp)
     for direction in [np.asarray((1., 0, 0)), np.asarray((0, 1., 0)), np.asarray((0, 0, 1.))]:
         deriv = dB[0].dot(direction)
         err = 1e6
         for i in range(5, 10):
             eps = 0.5**i
-            Beps = bs.B(points + eps * direction)
+            Beps = bs.B(points + eps * direction, use_cpp=use_cpp)
             deriv_est = (Beps-B0)/(eps)
             new_err = np.linalg.norm(deriv-deriv_est)
             assert new_err < 0.55 * err
             err = new_err
 
-def test_biotsavart_gradient_symmetric_and_divergence_free():
+@pytest.mark.parametrize("use_cpp", [True, False])
+def test_biotsavart_gradient_symmetric_and_divergence_free(use_cpp):
     coil = get_coil()
     bs = BiotSavart([coil], [1e4], 100)
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    dB = bs.dB_by_dX(points)
+    dB = bs.dB_by_dX(points, use_cpp=use_cpp)
     assert abs(dB[0][0, 0] + dB[0][1, 1] + dB[0][2, 2]) < 1e-14
     assert np.allclose(dB[0], dB[0].T)
 
-def test_dB_by_dcoilcoeff_taylortest():
+@pytest.mark.parametrize("use_cpp", [True, False])
+@pytest.mark.parametrize("by_chainrule", [True, False])
+def test_dB_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
     coil = get_coil()
     bs = BiotSavart([coil], [1e4], 100)
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
 
     coil_dofs = coil.get_dofs()
-    B0 = bs.B(points)[0]
+    B0 = bs.B(points, use_cpp=use_cpp)[0]
 
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    # dB_dh = h @ bs.dB_by_dcoilcoeff(points)[0][0,:,:]
-    dB_dh = h @ bs.dB_by_dcoilcoeff_via_chainrule(points)[0][0,:,:]
+    if by_chainrule:
+        dB_dh = h @ bs.dB_by_dcoilcoeff_via_chainrule(points, use_cpp=use_cpp)[0][0,:,:]
+    else:
+        dB_dh = h @ bs.dB_by_dcoilcoeff(points, use_cpp=use_cpp)[0][0,:,:]
     err = 1e6
     for i in range(5, 10):
         eps = 0.5**i
         coil.set_dofs(coil_dofs + eps * h)
-        Bh = bs.B(points)[0]
+        Bh = bs.B(points, use_cpp=use_cpp)[0]
         deriv_est = (Bh-B0)/eps
         err_new = np.linalg.norm(deriv_est-dB_dh)
         print("err_new %s" % (err_new))

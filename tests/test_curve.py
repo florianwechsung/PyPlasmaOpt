@@ -51,6 +51,14 @@ def test_coil_coefficient_derivative():
         return cfc.dgamma_by_dcoeff(x)
     taylor_test(f, df, coeffs)
 
+    def f(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.dgamma_by_dphi(x)[:, 0, :]
+    def df(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.d2gamma_by_dphidcoeff(x)[:, 0, :, :]
+    taylor_test(f, df, coeffs)
+
 def test_coil_curvature_derivative():
     # This implicitly also tests the higher order derivatives of gamma as these
     # are needed to compute the derivative of the curvature.
@@ -98,6 +106,7 @@ def test_magnetic_axis_coefficient_derivative():
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_curvature_derivative():
+    # import IPython; IPython.embed()
     # This implicitly also tests the higher order derivatives of gamma as these
     # are needed to compute the derivative of the curvature.
     ma = get_magnetic_axis()
@@ -149,5 +158,3 @@ if __name__ == "__main__":
     ax.quiver(x[:, 0], x[:, 1], x[:, 2], b[:, 0], b[:, 1], b[:, 2], arrow_length_ratio=0.3, color="y", length=0.2)
     import matplotlib.pyplot as plt
     plt.show()
-
-

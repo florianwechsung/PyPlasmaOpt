@@ -17,16 +17,16 @@ def test_biotsavart_exponential_convergence():
     bfine   = BiotSavart([coil], [1e4], 20 ).B(points)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
-    dbtrue   = BiotSavart([coil], [1e4], 1e3).dB_dX(points)
-    dbcoarse = BiotSavart([coil], [1e4], 10 ).dB_dX(points)
-    dbfine   = BiotSavart([coil], [1e4], 20 ).dB_dX(points)
+    dbtrue   = BiotSavart([coil], [1e4], 1e3).dB_by_dX(points)
+    dbcoarse = BiotSavart([coil], [1e4], 10 ).dB_by_dX(points)
+    dbfine   = BiotSavart([coil], [1e4], 20 ).dB_by_dX(points)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
 def test_biotsavart_dBdX_taylortest():
     coil = get_coil()
     bs = BiotSavart([coil], [1e4], 100)
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    dB = bs.dB_dX(points)
+    dB = bs.dB_by_dX(points)
     B0 = bs.B(points)
     for direction in [np.asarray((1., 0, 0)), np.asarray((0, 1., 0)), np.asarray((0, 0, 1.))]:
         deriv = dB[0].dot(direction)
@@ -43,7 +43,7 @@ def test_biotsavart_gradient_symmetric_and_divergence_free():
     coil = get_coil()
     bs = BiotSavart([coil], [1e4], 100)
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    dB = bs.dB_dX(points)
+    dB = bs.dB_by_dX(points)
     assert abs(dB[0][0, 0] + dB[0][1, 1] + dB[0][2, 2]) < 1e-14
     assert np.allclose(dB[0], dB[0].T)
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     bs = BiotSavart([coil], [1], 100)
     points = ma.gamma(np.linspace(0., 1., 1000))
     B = bs.B(points)
-    dB = bs.dB_dX(points)
+    dB = bs.dB_by_dX(points)
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D

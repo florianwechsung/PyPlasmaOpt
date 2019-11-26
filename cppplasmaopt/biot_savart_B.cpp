@@ -1,9 +1,4 @@
-#include "xtensor/xio.hpp"
-#include "blaze/Blaze.h"
-
-#define BLOCK_SIZE 4
-typedef blaze::StaticVector<double,3UL> Vec3d;
-typedef xt::pyarray<double> Array;
+#include "biot_savart.h"
 
 Array biot_savart_B(Array& points, Array& gamma, Array& dgamma_by_dphi) {
     int num_points = points.shape(0);
@@ -16,7 +11,8 @@ Array biot_savart_B(Array& points, Array& gamma, Array& dgamma_by_dphi) {
             auto gamma_j = Vec3d(3, &gamma.at(j, 0));
             auto dgamma_by_dphi_j = Vec3d(3, &dgamma_by_dphi.at(j, 0));
             auto diff = point - gamma_j;
-            auto temp = cross(dgamma_by_dphi_j, diff) / std::pow(norm(diff), 3);
+            double norm_diff = norm(diff);
+            auto temp = cross(dgamma_by_dphi_j, diff) / (norm_diff * norm_diff * norm_diff);
             res.at(i, 0) += temp[0];
             res.at(i, 1) += temp[1];
             res.at(i, 2) += temp[2];

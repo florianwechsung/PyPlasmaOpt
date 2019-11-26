@@ -3,7 +3,7 @@
 #define FORCE_IMPORT_ARRAY
 #include "xtensor-python/pyarray.hpp"     // Numpy bindings
 
-#include "biot_savart_B.h"
+#include "biot_savart.h"
 
 int add(int i, int j) {
     return i + j;
@@ -20,7 +20,7 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     )pbdoc");
 
     m.def("biot_savart_B", &biot_savart_B);
-
+    m.def("biot_savart_dB_by_dX", &biot_savart_dB_by_dX);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

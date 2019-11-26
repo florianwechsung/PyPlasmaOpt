@@ -47,6 +47,27 @@ def test_biotsavart_gradient_symmetric_and_divergence_free():
     assert abs(dB[0][0, 0] + dB[0][1, 1] + dB[0][2, 2]) < 1e-14
     assert np.allclose(dB[0], dB[0].T)
 
+def test_dB_by_dcoilcoeff_taylortest():
+    coil = get_coil()
+    bs = BiotSavart([coil], [1e4], 100)
+    points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+
+    coil_dofs = coil.get_dofs()
+    B0 = bs.B(points)[0]
+
+    h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    dB_dh = h @ bs.dB_by_dcoilcoeff(points)[0][0,:,:]
+    err = 1e6
+    for i in range(5, 10):
+        eps = 0.5**i
+        coil.set_dofs(coil_dofs + eps * h)
+        Bh = bs.B(points)[0]
+        deriv_est = (Bh-B0)/eps
+        err_new = np.linalg.norm(deriv_est-dB_dh)
+        assert err_new < 0.55 * err
+        err = err_new
+
+
 if __name__ == "__main__":
     coil = CartesianFourierCurve(3)
     coil.coefficients[1][0] = 1.

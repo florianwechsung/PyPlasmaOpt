@@ -56,7 +56,8 @@ def test_dB_by_dcoilcoeff_taylortest():
     B0 = bs.B(points)[0]
 
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dB_dh = h @ bs.dB_by_dcoilcoeff(points)[0][0,:,:]
+    # dB_dh = h @ bs.dB_by_dcoilcoeff(points)[0][0,:,:]
+    dB_dh = h @ bs.dB_by_dcoilcoeff_via_chainrule(points)[0][0,:,:]
     err = 1e6
     for i in range(5, 10):
         eps = 0.5**i
@@ -64,6 +65,7 @@ def test_dB_by_dcoilcoeff_taylortest():
         Bh = bs.B(points)[0]
         deriv_est = (Bh-B0)/eps
         err_new = np.linalg.norm(deriv_est-dB_dh)
+        print("err_new %s" % (err_new))
         assert err_new < 0.55 * err
         err = err_new
 

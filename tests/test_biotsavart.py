@@ -76,6 +76,26 @@ def test_dB_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
         assert err_new < 0.55 * err
         err = err_new
 
+def test_dB_dX_by_dcoilcoeff_taylortest():
+    coil = get_coil()
+    bs = BiotSavart([coil], [1e4], 100)
+    points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+
+    coil_dofs = coil.get_dofs()
+    dB_dX0 = bs.dB_by_dX(points, use_cpp=False)[0]
+
+    h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    dB_dXdh = np.einsum('i,ijk->jk', h, bs.d2B_by_dXdcoilcoeff(points)[0][0,:,:,:])
+    err = 1e6
+    for i in range(5, 10):
+        eps = 0.5**i
+        coil.set_dofs(coil_dofs + eps * h)
+        dB_dXh = bs.dB_by_dX(points, use_cpp=False)[0]
+        deriv_est = (dB_dXh-dB_dX0)/eps
+        err_new = np.linalg.norm(deriv_est-dB_dXdh)
+        print("err_new %s" % (err_new))
+        assert err_new < 0.55 * err
+        err = err_new
 
 if __name__ == "__main__":
     coil = CartesianFourierCurve(3)

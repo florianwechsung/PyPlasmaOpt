@@ -5,8 +5,8 @@
 std::pair<Array, Array> biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi) {
     int num_points      = points.shape(0);
     int num_quad_points = gamma.shape(0);
-    Array res_coil_gamma     = xt::zeros<double>({num_points, num_quad_points, 3, 3});
-    Array res_coil_gammadash = xt::zeros<double>({num_points, num_quad_points, 3, 3});
+    Array res_coil_gamma     = xt::zeros<double>({3, 3, num_points, num_quad_points});
+    Array res_coil_gammadash = xt::zeros<double>({3, 3, num_points, num_quad_points});
 
     #pragma omp parallel for
     for (int i = 0; i < num_points; ++i) {
@@ -25,12 +25,12 @@ std::pair<Array, Array> biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points
                 auto term1 = norm_diff_3_inv * cross(ek, diff);
                 auto term2 = norm_diff_3_inv * cross(dgamma_j_by_dphi, ek);
                 auto term3 = norm_diff_5_inv * inner(ek, diff) * three_dgamma_by_dphi_cross_diff;
-                res_coil_gamma.at(i, j, k, 0) = (-term2 + term3).at(0);
-                res_coil_gamma.at(i, j, k, 1) = (-term2 + term3).at(1);
-                res_coil_gamma.at(i, j, k, 2) = (-term2 + term3).at(2);
-                res_coil_gammadash.at(i, j, k, 0) = term1.at(0);
-                res_coil_gammadash.at(i, j, k, 1) = term1.at(1);
-                res_coil_gammadash.at(i, j, k, 2) = term1.at(2);
+                res_coil_gamma.at(k, 0, i, j) = (-term2 + term3).at(0);
+                res_coil_gamma.at(k, 1, i, j) = (-term2 + term3).at(1);
+                res_coil_gamma.at(k, 2, i, j) = (-term2 + term3).at(2);
+                res_coil_gammadash.at(k, 0, i, j) = term1.at(0);
+                res_coil_gammadash.at(k, 1, i, j) = term1.at(1);
+                res_coil_gammadash.at(k, 2, i, j) = term1.at(2);
             }
         }
     }

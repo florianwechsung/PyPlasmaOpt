@@ -113,13 +113,13 @@ class BiotSavart():
             res_coil = np.zeros((len(points), num_coil_coeffs, 3))
 
             # for the following matrix-matrix products having a column-based layout is actually quicker
-            res_coil_gamma        = np.asfortranarray(res_coil_gamma)
-            res_coil_gammadash    = np.asfortranarray(res_coil_gammadash)
+            # res_coil_gamma        = np.asfortranarray(res_coil_gamma)
+            # res_coil_gammadash    = np.asfortranarray(res_coil_gammadash)
             dgamma_by_dcoeff      = np.asfortranarray(dgamma_by_dcoeff)
             d2gamma_by_dphidcoeff = np.asfortranarray(d2gamma_by_dphidcoeff)
             for i in range(3):
                 for j in range(3):
-                    res_coil[:, :, i] += res_coil_gamma[:, :, j, i] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[:, :, j, i] @ d2gamma_by_dphidcoeff[:, :, j]
+                    res_coil[:, :, i] += res_coil_gamma[j, i, :, :] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[j, i, :, :] @ d2gamma_by_dphidcoeff[:, :, j]
             mu = 4 * pi * 1e-7
             res_coil *= mu/(4*pi*self.num_coil_quadrature_points)
             res.append(res_coil)

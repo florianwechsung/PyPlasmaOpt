@@ -45,3 +45,8 @@ for i in range(3):
     bs.dB_by_dcoilcoeff_via_chainrule(points, use_cpp=True)
 end = time.time()
 print('Time for dB_by_dcoilcoeff_via_chainrule', (end-start)*1000)
+start = time.time()
+for i in range(3):
+    bs.d2B_by_dXdcoilcoeff(points, use_cpp=True)
+end = time.time()
+print('Time for d2B_by_dXdcoilcoeff', (end-start)*1000)

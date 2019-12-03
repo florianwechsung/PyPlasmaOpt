@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, RotatedCurve
+from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, RotatedCurve, SquaredMagneticFieldGradientNormOnCurve
 from math import pi
 import os 
 
@@ -88,6 +88,11 @@ def test_biot_savart_same_results_as_matlab():
     J = SquaredMagneticFieldNormOnCurve(ma, bs, 80)
     J0 = J.J()
     assert abs(0.5 * J0 - 0.007179654002556) < 1e-10
+
+    J = SquaredMagneticFieldGradientNormOnCurve(ma, bs, 80)
+    J0 = J.J()
+    assert abs(0.5 * J0 - 0.014329772542444) < 1e-10
+    
 
     if __name__ == "__main__":
         ax = None

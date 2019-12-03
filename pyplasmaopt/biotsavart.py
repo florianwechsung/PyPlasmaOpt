@@ -46,7 +46,7 @@ class BiotSavart():
                         ek[j] = 1.
                         numerator1 = norm_diff[:, None] * np.cross(dgamma_by_dphi, ek)
                         numerator2 = (3.*diff[:, j]/norm_diff)[:, None] * dgamma_by_dphi_cross_diff
-                        res[i, :, j] += current * np.sum((1./norm_diff**4)[:, None]*(numerator1-numerator2),
+                        res[i, j, :] += current * np.sum((1./norm_diff**4)[:, None]*(numerator1-numerator2),
                             axis=0)
         mu = 4 * pi * 1e-7
         res *= mu/(4*pi*self.num_coil_quadrature_points)

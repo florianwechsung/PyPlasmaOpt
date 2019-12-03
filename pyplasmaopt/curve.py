@@ -333,3 +333,19 @@ class RotatedCurve(Curve):
     def dgamma_by_dphi(self, points):
         dgamma_by_dphi = self.curve.dgamma_by_dphi(points)
         return dgamma_by_dphi @ self.rotmat
+
+    def d2gamma_by_dphidphi(self, points):
+        d2gamma_by_dphidphi = self.curve.d2gamma_by_dphidphi(points)
+        return d2gamma_by_dphidphi @ self.rotmat
+
+    def dgamma_by_dcoeff(self, points):
+        dgamma_by_dcoeff = self.curve.dgamma_by_dcoeff(points)
+        return dgamma_by_dcoeff @ self.rotmat
+
+    def d2gamma_by_dphidcoeff(self, points):
+        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff(points)
+        return d2gamma_by_dphidcoeff @ self.rotmat
+
+    def d3gamma_by_dphidphidcoeff(self, points):
+        d3gamma_by_dphidphidcoeff = self.curve.d3gamma_by_dphidphidcoeff(points)
+        return d3gamma_by_dphidphidcoeff @ self.rotmat

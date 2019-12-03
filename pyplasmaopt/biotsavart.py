@@ -88,8 +88,9 @@ class BiotSavart():
             if use_cpp:
                 res_coil_gamma, res_coil_gammadash = cpp.biot_savart_dB_by_dcoilcoeff_via_chainrule(points, gamma, dgamma_by_dphi)
             else:
-                res_coil_gamma     = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
-                res_coil_gammadash = np.zeros((len(points), len(self.coil_quadrature_points), 3, 3))
+                # this ordering is a bit different from what we usually do, but it turns out to have better performance for the matrix-matrix multiplication later on
+                res_coil_gamma     = np.zeros((3, 3, len(points), len(self.coil_quadrature_points)))
+                res_coil_gammadash = np.zeros((3, 3, len(points), len(self.coil_quadrature_points)))
                 for i, point in enumerate(points):
                     diff = point-gamma
                     norm_diff = np.linalg.norm(diff, axis=1)
@@ -102,8 +103,8 @@ class BiotSavart():
                         term1 = norm_diff_3_inv * np.cross(ek, diff, axis=1)
                         term2 = norm_diff_3_inv * np.cross(dgamma_by_dphi, ek, axis=1)
                         term3 = norm_diff_5_inv * np.sum(ek * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
-                        res_coil_gamma[i, :, k, :] = (-term2 + term3)
-                        res_coil_gammadash[i, :, k, :] = term1
+                        res_coil_gamma[k, :, i, :] = (-term2 + term3).T
+                        res_coil_gammadash[k, :, i, :] = term1.T
             res_coil_gamma *= current
             res_coil_gammadash *= current
             dgamma_by_dcoeff = coil.dgamma_by_dcoeff(self.coil_quadrature_points)

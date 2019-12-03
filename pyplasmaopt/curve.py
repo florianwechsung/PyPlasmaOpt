@@ -313,3 +313,23 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
         for i in range(1, self.order+1):
             res[:, 0, 0, self.order + i, 2] = -(nfp * 2 * pi * i)**2 * np.sin(nfp * 2 * pi * i * points)
         return res
+
+class RotatedCurve(Curve):
+
+    def __init__(self, curve, theta, flip):
+        self.rotmat = np.asarray([
+            [cos(theta), -sin(theta), 0],
+            [sin(theta), cos(theta), 0],
+            [0, 0, 1]
+        ]).T
+        if flip:
+            self.rotmat = self.rotmat @ np.asarray([[1,0,0],[0,-1,0],[0,0,-1]])
+        self.curve = curve
+
+    def gamma(self, points):
+        gamma = self.curve.gamma(points)
+        return gamma @ self.rotmat
+
+    def dgamma_by_dphi(self, points):
+        dgamma_by_dphi = self.curve.dgamma_by_dphi(points)
+        return dgamma_by_dphi @ self.rotmat

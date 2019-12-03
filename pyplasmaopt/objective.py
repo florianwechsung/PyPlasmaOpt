@@ -34,11 +34,7 @@ class SquaredMagneticFieldNormOnCurve(object):
         dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff(quadrature_points)
         res = []
         for dB in dB_by_dcoilcoeff:
-            temp = np.zeros((dB.shape[1],))
-            for i in range(dB.shape[1]):
-                for k in range(3):
-                    temp[i] += np.sum(B[:, k] * dB[:, i, k] * arc_length *2 )
-            res.append(temp/self.num_quadrature_points)
+            res.append(np.einsum('ij,ikj,i->k', B, dB, arc_length) * 2 / self.num_quadrature_points)
         return res
 
     def dJ_by_dcurvecoefficients(self):
@@ -101,12 +97,7 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff(quadrature_points)
         res = []
         for dB in d2B_by_dXdcoilcoeff:
-            temp = np.zeros((dB.shape[1],))
-            for i in range(dB.shape[1]):
-                for k1 in range(3):
-                    for k2 in range(3):
-                        temp[i] += np.sum(dB_by_dX[:, k1, k2] * dB[:, i, k1, k2] * arc_length*2)
-            res.append(temp/self.num_quadrature_points)
+            res.append(np.einsum('ijk,iljk,i->l', dB_by_dX, dB, arc_length) * 2 / self.num_quadrature_points)
         return res
 
     def dJ_by_dcurvecoefficients(self):

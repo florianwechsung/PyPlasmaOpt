@@ -98,6 +98,37 @@ def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp):
         assert err_new < 0.55 * err
         err = err_new
 
+def test_d2B_by_dXdX_is_symmetric(use_cpp=False):
+    coil = get_coil()
+    bs = BiotSavart([coil], [1e4], 100)
+    points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+    d2B_by_dXdX = bs.d2B_by_dXdX(points, use_cpp=use_cpp)
+    for i in range(3):
+        assert np.allclose(d2B_by_dXdX[0, :, :, i], d2B_by_dXdX[0, :, :, i].T)
+
+
+@pytest.mark.parametrize("use_cpp", [True, False])
+def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp):
+    coil = get_coil()
+    bs = BiotSavart([coil], [1e4], 100)
+    points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+    dB_by_dX = bs.dB_by_dX(points, use_cpp=use_cpp)
+    d2B_by_dXdX = bs.d2B_by_dXdX(points, use_cpp=use_cpp)
+    B0 = bs.B(points, use_cpp=use_cpp)
+    for direction in [np.asarray((1., 0, 0)), np.asarray((0, 1., 0)), np.asarray((0, 0, 1.))]:
+        first_deriv = dB_by_dX[0].dot(direction)
+        second_deriv = np.einsum('ijk,i,j->k', d2B_by_dXdX[0], direction, direction)
+        err = 1e6
+        for i in range(5, 10):
+            eps = 0.5**i
+            Beps = bs.B(points + eps * direction, use_cpp=use_cpp)
+            deriv_est = (Beps-B0)/(eps)
+            second_deriv_est = 2*(deriv_est - first_deriv)/eps
+            new_err = np.linalg.norm(second_deriv-second_deriv_est)
+            assert new_err < 0.55 * err
+            err = new_err
+
+
 if __name__ == "__main__":
     coil = CartesianFourierCurve(3)
     coil.coefficients[1][0] = 1.

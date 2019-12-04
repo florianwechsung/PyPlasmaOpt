@@ -121,3 +121,54 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
             res[i] += np.sum((1/arc_length) * np.sum(np.sum(dB_by_dX**2, axis=1), axis=1) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
         res *= 1/gamma.shape[0]
         return res
+
+class CurveLength():
+
+    r"""
+    J = \int_{curve} 1 ds
+    """
+
+    def __init__(self, curve):
+        self.curve = curve
+
+    def J(self):
+        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        return np.mean(arc_length)
+
+    def dJ_dcoefficients(self):
+        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
+        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
+        num_coeff = d2gamma_by_dphidcoeff.shape[1]
+        res = np.zeros((num_coeff, ))
+        arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
+        for i in range(num_coeff):
+            res[i] = np.mean((1/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
+        return res
+
+class CurveCurvature():
+
+    r"""
+    J = \int_{curve} \kappa ds
+    """
+
+    def __init__(self, curve):
+        self.curve = curve
+
+    def J(self):
+        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        kappa = self.curve.kappa[:, 0]
+        return np.mean(kappa**2 * arc_length)
+
+    def dJ_dcoefficients(self):
+        kappa                 = self.curve.kappa[:,0]
+        dkappa_by_dcoeff      = self.curve.dkappa_by_dcoeff[:,:,0]
+        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
+        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
+        arc_length            = np.linalg.norm(dgamma_by_dphi, axis=1)
+
+        num_coeff = d2gamma_by_dphidcoeff.shape[1]
+        res       = np.zeros((num_coeff, ))
+        for i in range(num_coeff):
+            res[i]  = np.mean((kappa**2/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(2*kappa * dkappa_by_dcoeff[:,i] * arc_length)
+        return res

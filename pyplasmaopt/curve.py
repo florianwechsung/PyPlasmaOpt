@@ -1,3 +1,4 @@
+from cached_property import cached_property
 import numpy as np
 from math import pi, sin, cos
 
@@ -6,38 +7,87 @@ class Curve():
     A periodic curve \Gamma : [0, 1) \to R^3, \phi\mapsto\Gamma(\phi).
     """
 
-    def gamma(self, points):
+    def __init__(self, points):
+        self.points = points
+
+    def clear_cache(self):
+        for prop in ["gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi",
+                     "d2gamma_by_dphidphi", "kappa", "dgamma_by_dcoeff",
+                     "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff",
+                     "dkappa_by_dcoeff", "incremental_arclength",
+                     "dincremental_arclength_by_dcoeff",
+                     "dincremental_arclength_by_dphi", "frenet_frame"]:
+            if prop in self.__dict__:
+                del self.__dict__[prop]
+
+
+    def gamma_impl(self, points):
         """ Evaluate the curve at `points`. """
         raise NotImplementedError
 
-    def dgamma_by_dphi(self, points):
+    @cached_property
+    def gamma(self):
+        return self.gamma_impl(self.points)
+
+
+    def dgamma_by_dphi_impl(self, points):
         """ Return the derivative of the curve. """
         raise NotImplementedError
 
-    def d2gamma_by_dphidphi(self, points):
+    @cached_property
+    def dgamma_by_dphi(self):
+        return self.dgamma_by_dphi_impl(self.points)
+
+
+    def d2gamma_by_dphidphi_impl(self):
         """ Return the second derivative of the curve. """
         raise NotImplementedError
 
-    def kappa(self, points):
+    @cached_property
+    def d2gamma_by_dphidphi(self):
+        return self.d2gamma_by_dphidphi_impl(self.points)
+
+
+    def kappa_impl(self, points):
         """ Curvature at `points`. """
-        dgamma = self.dgamma_by_dphi(points)[:, 0, :]
-        d2gamma = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
+        dgamma = self.dgamma_by_dphi_impl(points)[:, 0, :]
+        d2gamma = self.d2gamma_by_dphidphi_impl(points)[:, 0, 0, :]
         return (np.linalg.norm(np.cross(dgamma, d2gamma), axis=1)/np.linalg.norm(dgamma, axis=1)**3).reshape(len(points),1)
 
-    def dgamma_by_dcoeff(self, points):
+    @cached_property
+    def kappa(self):
+        return self.kappa_impl(self.points)
+
+
+    def dgamma_by_dcoeff_impl(self, points):
         raise NotImplementedError
 
-    def d2gamma_by_dphidcoeff(self, points):
+    @cached_property
+    def dgamma_by_dcoeff(self):
+        return self.dgamma_by_dcoeff_impl(self.points)
+
+
+    def d2gamma_by_dphidcoeff_impl(self, points):
         raise NotImplementedError
 
-    def d3gamma_by_dphidphidcoeff(self, points):
+    @cached_property
+    def d2gamma_by_dphidcoeff(self):
+        return self.d2gamma_by_dphidcoeff_impl(self.points)
+
+
+    def d3gamma_by_dphidphidcoeff_impl(self, points):
         raise NotImplementedError
 
-    def dkappa_by_dcoeff(self, points):
-        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
-        dgamma_by_dphidphi = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
-        dgamma_by_dphidcoeff = self.d2gamma_by_dphidcoeff(points)[:, 0, :, :]
-        dgamma_by_dphidphidcoeff = self.d3gamma_by_dphidphidcoeff(points)[:, 0, 0, :, :]
+    @cached_property
+    def d3gamma_by_dphidphidcoeff(self):
+        return self.d3gamma_by_dphidphidcoeff_impl(self.points)
+
+
+    def dkappa_by_dcoeff_impl(self, points):
+        dgamma_by_dphi = self.dgamma_by_dphi_impl(points)[:, 0, :]
+        dgamma_by_dphidphi = self.d2gamma_by_dphidphi_impl(points)[:, 0, 0, :]
+        dgamma_by_dphidcoeff = self.d2gamma_by_dphidcoeff_impl(points)[:, 0, :, :]
+        dgamma_by_dphidphidcoeff = self.d3gamma_by_dphidphidcoeff_impl(points)[:, 0, 0, :, :]
         num_coeff = dgamma_by_dphidcoeff.shape[1]
         res = np.zeros((len(points), num_coeff, 1))
         norm = lambda a: np.linalg.norm(a, axis=1)
@@ -54,12 +104,22 @@ class Curve():
             )/denominator**6
         return res
 
-    def incremental_arclength(self, points):
-        return np.linalg.norm(self.dgamma_by_dphi(points)[:, 0, :], axis=1).reshape((len(points), 1))
+    @cached_property
+    def dkappa_by_dcoeff(self):
+        return self.dkappa_by_dcoeff_impl(self.points)
 
-    def dincremental_arclength_by_dcoeff(self, points):
-        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
-        dgamma_by_dphidcoeff = self.d2gamma_by_dphidcoeff(points)[:, 0, :, :]
+
+    def incremental_arclength_impl(self, points):
+        return np.linalg.norm(self.dgamma_by_dphi_impl(points)[:, 0, :], axis=1).reshape((len(points), 1))
+
+    @cached_property
+    def incremental_arclength(self):
+        return self.incremental_arclength_impl(self.points)
+
+
+    def dincremental_arclength_by_dcoeff_impl(self, points):
+        dgamma_by_dphi = self.dgamma_by_dphi_impl(points)[:, 0, :]
+        dgamma_by_dphidcoeff = self.d2gamma_by_dphidcoeff_impl(points)[:, 0, :, :]
         num_coeff = dgamma_by_dphidcoeff.shape[1]
         res = np.zeros((len(points), num_coeff, 1))
         norm = lambda a: np.linalg.norm(a, axis=1)
@@ -68,25 +128,35 @@ class Curve():
             res[:, i, 0] = inner(dgamma_by_dphi, dgamma_by_dphidcoeff[:, i, :])/norm(dgamma_by_dphi)
         return res
 
-    def dincremental_arclength_by_dphi(self, points):
-        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
-        dgamma_by_dphidphi = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
+    @cached_property
+    def dincremental_arclength_by_dcoeff(self):
+        return self.dincremental_arclength_by_dcoeff_impl(self.points)
+
+
+    def dincremental_arclength_by_dphi_impl(self, points):
+        dgamma_by_dphi = self.dgamma_by_dphi_impl(points)[:, 0, :]
+        dgamma_by_dphidphi = self.d2gamma_by_dphidphi_impl(points)[:, 0, 0, :]
         res = np.zeros((len(points), 1, 1))
         norm = lambda a: np.linalg.norm(a, axis=1)
         inner = lambda a, b: np.sum(a*b, axis=1)
         res[:, 0, 0] = inner(dgamma_by_dphi, dgamma_by_dphidphi)/norm(dgamma_by_dphi)
         return res
 
-    def frenet_frame(self, points):
+    @cached_property
+    def dincremental_arclength_by_dphi(self):
+        return self.dincremental_arclength_by_dphi_impl(self.points)
+
+
+    def frenet_frame_impl(self, points):
         """
         Returns the (t, n, b) Frenet frame.
         """
-        dgamma_by_dphi = self.dgamma_by_dphi(points)[:, 0, :]
-        d2gamma_by_dphidphi = self.d2gamma_by_dphidphi(points)[:, 0, 0, :]
+        dgamma_by_dphi = self.dgamma_by_dphi_impl(points)[:, 0, :]
+        d2gamma_by_dphidphi = self.d2gamma_by_dphidphi_impl(points)[:, 0, 0, :]
+        l = self.incremental_arclength_impl(points)
+        dl_by_dphi = self.dincremental_arclength_by_dphi_impl(points)[:, 0, 0]
         norm = lambda a: np.linalg.norm(a, axis=1)
         inner = lambda a, b: np.sum(a*b, axis=1)
-        l = self.incremental_arclength(points)
-        dl_by_dphi = self.dincremental_arclength_by_dphi(points)[:, 0, 0]
 
         t = (1./norm(dgamma_by_dphi))[:, None] * dgamma_by_dphi
 
@@ -94,23 +164,28 @@ class Curve():
             norm(dgamma_by_dphi)[:, None] * d2gamma_by_dphidphi
             - (inner(dgamma_by_dphi, d2gamma_by_dphidphi)/norm(dgamma_by_dphi))[:, None] *  dgamma_by_dphi
         )
-        kappa = self.kappa(points)
+        kappa = self.kappa_impl(points)
         n = (1./norm(tdash))[:, None] * tdash
         b = np.cross(t, n, axis=1)
         return (t, n, b)
+
+    @cached_property
+    def frenet_frame(self):
+        return self.frenet_frame_impl(self.points)
+
 
     def plot(self, resolution=100, ax=None, show=True, plot_derivative=False):
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
 
         phis = np.linspace(0, 1, resolution)
-        gammas = np.stack(self.gamma(phis))
+        gammas = np.stack(self.gamma_impl(phis))
         if ax is None:
             fig = plt.figure()
             ax = fig.gca(projection='3d')
         ax.plot(gammas[:, 0], gammas[:, 1], gammas[:, 2])
         if plot_derivative:
-            dgamma_by_dphi = self.dgamma_by_dphi(phis)[:, 0, :]
+            dgamma_by_dphi = self.dgamma_by_dphi_impl(phis)[:, 0, :]
             ax.quiver(gammas[:, 0], gammas[:, 1], gammas[:, 2], 0.1 * dgamma_by_dphi[:, 0], 0.1 * dgamma_by_dphi[:, 1], 0.1 * dgamma_by_dphi[:, 2], arrow_length_ratio=0.1, color="r")
         if show:
             plt.show()
@@ -125,7 +200,8 @@ with
     x_i(\phi) = coeff[i][0] + \sum_{j=1}^terms coeff[i][2*j-1] * sin(2*pi*j*\phi) + coeff[i][2*j] * cos(2*pi*j*\phi)
     """
 
-    def __init__(self, order):
+    def __init__(self, order, *args):
+        super().__init__(*args)
         self.coefficients = [np.zeros((2*order+1,)), np.zeros((2*order+1,)), np.zeros((2*order+1,))]
         self.order = order
 
@@ -136,6 +212,7 @@ with
         return np.concatenate(self.coefficients)
 
     def set_dofs(self, dofs):
+        self.clear_cache()
         counter = 0
         for i in range(3):
             self.coefficients[i][0] = dofs[counter]
@@ -146,7 +223,7 @@ with
                 self.coefficients[i][2*j] = dofs[counter]
                 counter += 1
 
-    def gamma(self, points):
+    def gamma_impl(self, points):
         res = np.zeros((len(points), 3))
         coeffs = self.coefficients
         for i in range(3):
@@ -156,7 +233,7 @@ with
                 res[:, i] += coeffs[i][2*j]   * np.cos(2*pi*j*points)
         return res
 
-    def dgamma_by_dcoeff(self, points):
+    def dgamma_by_dcoeff_impl(self, points):
         res = np.zeros((len(points), self.num_coeff(), 3))
         for i in range(3):
             res[:, i*(2*self.order+1), i] = 1
@@ -165,7 +242,7 @@ with
                 res[:, i*(2*self.order+1) + 2*j  , i] = np.cos(2*pi*j*points)
         return res
 
-    def dgamma_by_dphi(self, points):
+    def dgamma_by_dphi_impl(self, points):
         res = np.zeros((len(points), 1, 3))
         coeffs = self.coefficients
         for i in range(3):
@@ -174,7 +251,7 @@ with
                 res[:, 0, i] += -coeffs[i][2*j] * 2*pi*j*np.sin(2*pi*j*points)
         return res
 
-    def d2gamma_by_dphidcoeff(self, points):
+    def d2gamma_by_dphidcoeff_impl(self, points):
         res = np.zeros((len(points), 1, self.num_coeff(), 3))
         for i in range(3):
             for j in range(1, self.order+1):
@@ -182,7 +259,7 @@ with
                 res[:, 0, i*(2*self.order+1) + 2*j  , i] = -2*pi*j*np.sin(2*pi*j*points)
         return res
 
-    def d2gamma_by_dphidphi(self, points):
+    def d2gamma_by_dphidphi_impl(self, points):
         res = np.zeros((len(points), 1, 1, 3))
         coeffs = self.coefficients
         for i in range(3):
@@ -191,7 +268,7 @@ with
                 res[:, 0, 0, i] += -coeffs[i][2*j]   * (2*pi*j)**2*np.cos(2*pi*j*points)
         return res
 
-    def d3gamma_by_dphidphidcoeff(self, points):
+    def d3gamma_by_dphidphidcoeff_impl(self, points):
         res = np.zeros((len(points), 1, 1, self.num_coeff(), 3))
         for i in range(3):
             for j in range(1, self.order+1):
@@ -203,7 +280,8 @@ with
 
 class StelleratorSymmetricCylindricalFourierCurve(Curve):
 
-    def __init__(self, order, nfp):
+    def __init__(self, order, nfp, *args):
+        super().__init__(*args)
         self.coefficients = [np.zeros((order+1,)), np.zeros((order,))]
         self.nfp = nfp
         self.order = order
@@ -215,13 +293,14 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
         return np.concatenate(self.coefficients)
 
     def set_dofs(self, dofs):
+        self.clear_cache()
         counter = 0
         for i in range(self.order+1):
             self.coefficients[0][i] = dofs[i]
         for i in range(self.order):
             self.coefficients[1][i] = dofs[self.order + 1 + i]
 
-    def gamma(self, points):
+    def gamma_impl(self, points):
         res = np.zeros((len(points), 3))
         nfp = self.nfp
         for i in range(self.order+1):
@@ -231,7 +310,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
             res[:, 2] += self.coefficients[1][i-1] * np.sin(nfp * 2 * pi * i * points)
         return res
 
-    def dgamma_by_dcoeff(self, points):
+    def dgamma_by_dcoeff_impl(self, points):
         res = np.zeros((len(points), self.num_coeff(), 3))
         nfp = self.nfp
         for i in range(self.order+1):
@@ -241,7 +320,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
             res[:, self.order + i, 2] = np.sin(nfp * 2 * pi * i * points)
         return res
 
-    def dgamma_by_dphi(self, points):
+    def dgamma_by_dphi_impl(self, points):
         res = np.zeros((len(points), 1, 3))
         nfp = self.nfp
         for i in range(self.order+1):
@@ -257,7 +336,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
             res[:, 0, 2] += self.coefficients[1][i-1] * (nfp * 2 * pi * i) * np.cos(nfp * 2 * pi * i * points)
         return res
 
-    def d2gamma_by_dphidcoeff(self, points):
+    def d2gamma_by_dphidcoeff_impl(self, points):
         res = np.zeros((len(points), 1, self.num_coeff(), 3))
         nfp = self.nfp
         for i in range(self.order+1):
@@ -273,7 +352,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
             res[:, 0, self.order + i, 2] = (nfp * 2 * pi * i) * np.cos(nfp * 2 * pi * i * points)
         return res
 
-    def d2gamma_by_dphidphi(self, points):
+    def d2gamma_by_dphidphi_impl(self, points):
         res = np.zeros((len(points), 1, 1, 3))
         coeffs = self.coefficients
         nfp = self.nfp
@@ -294,7 +373,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
             res[:, 0, 0, 2] -= self.coefficients[1][i-1] * (nfp * 2 * pi * i)**2 * np.sin(nfp * 2 * pi * i * points)
         return res
 
-    def d3gamma_by_dphidphidcoeff(self, points):
+    def d3gamma_by_dphidphidcoeff_impl(self, points):
         res = np.zeros((len(points), 1, 1, self.num_coeff(), 3))
         nfp = self.nfp
         for i in range(self.order+1):
@@ -317,6 +396,7 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
 class RotatedCurve(Curve):
 
     def __init__(self, curve, theta, flip):
+        super().__init__(curve.points)
         self.rotmat = np.asarray([
             [cos(theta), -sin(theta), 0],
             [sin(theta), cos(theta), 0],
@@ -326,26 +406,26 @@ class RotatedCurve(Curve):
             self.rotmat = self.rotmat @ np.asarray([[1,0,0],[0,-1,0],[0,0,-1]])
         self.curve = curve
 
-    def gamma(self, points):
-        gamma = self.curve.gamma(points)
+    def gamma_impl(self, points):
+        gamma = self.curve.gamma_impl(points)
         return gamma @ self.rotmat
 
-    def dgamma_by_dphi(self, points):
-        dgamma_by_dphi = self.curve.dgamma_by_dphi(points)
+    def dgamma_by_dphi_impl(self, points):
+        dgamma_by_dphi = self.curve.dgamma_by_dphi_impl(points)
         return dgamma_by_dphi @ self.rotmat
 
-    def d2gamma_by_dphidphi(self, points):
-        d2gamma_by_dphidphi = self.curve.d2gamma_by_dphidphi(points)
+    def d2gamma_by_dphidphi_impl(self, points):
+        d2gamma_by_dphidphi = self.curve.d2gamma_by_dphidphi_impl(points)
         return d2gamma_by_dphidphi @ self.rotmat
 
-    def dgamma_by_dcoeff(self, points):
-        dgamma_by_dcoeff = self.curve.dgamma_by_dcoeff(points)
+    def dgamma_by_dcoeff_impl(self, points):
+        dgamma_by_dcoeff = self.curve.dgamma_by_dcoeff_impl(points)
         return dgamma_by_dcoeff @ self.rotmat
 
-    def d2gamma_by_dphidcoeff(self, points):
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff(points)
+    def d2gamma_by_dphidcoeff_impl(self, points):
+        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff_impl(points)
         return d2gamma_by_dphidcoeff @ self.rotmat
 
-    def d3gamma_by_dphidphidcoeff(self, points):
-        d3gamma_by_dphidphidcoeff = self.curve.d3gamma_by_dphidphidcoeff(points)
+    def d3gamma_by_dphidphidcoeff_impl(self, points):
+        d3gamma_by_dphidphidcoeff = self.curve.d3gamma_by_dphidphidcoeff_impl(points)
         return d3gamma_by_dphidphidcoeff @ self.rotmat

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve
 
-def get_coil():
-    coil = CartesianFourierCurve(3)
+def get_coil(num_quadrature_points=200):
+    coil = CartesianFourierCurve(3, np.linspace(0, 1, num_quadrature_points, endpoint=False))
     coil.coefficients[1][0] = 1.
     coil.coefficients[1][1] = 0.5
     coil.coefficients[2][2] = 0.5
@@ -13,20 +13,20 @@ def get_coil():
 def test_biotsavart_exponential_convergence(use_cpp):
     coil = get_coil()
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
-    btrue   = BiotSavart([coil], [1e4], 1000).B(points, use_cpp=use_cpp)
-    bcoarse = BiotSavart([coil], [1e4], 10 ).B(points, use_cpp=use_cpp)
-    bfine   = BiotSavart([coil], [1e4], 20 ).B(points, use_cpp=use_cpp)
+    btrue   = BiotSavart([get_coil(1000)], [1e4]).B(points, use_cpp=use_cpp)
+    bcoarse = BiotSavart([get_coil(10)]  , [1e4]).B(points, use_cpp=use_cpp)
+    bfine   = BiotSavart([get_coil(20)]  , [1e4]).B(points, use_cpp=use_cpp)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
-    dbtrue   = BiotSavart([coil], [1e4], 1000).dB_by_dX(points, use_cpp=use_cpp)
-    dbcoarse = BiotSavart([coil], [1e4], 10 ).dB_by_dX(points, use_cpp=use_cpp)
-    dbfine   = BiotSavart([coil], [1e4], 20 ).dB_by_dX(points, use_cpp=use_cpp)
+    dbtrue   = BiotSavart([get_coil(1000)], [1e4]).dB_by_dX(points, use_cpp=use_cpp)
+    dbcoarse = BiotSavart([get_coil(10)]  , [1e4]).dB_by_dX(points, use_cpp=use_cpp)
+    dbfine   = BiotSavart([get_coil(20)]  , [1e4]).dB_by_dX(points, use_cpp=use_cpp)
     assert np.linalg.norm(btrue-bfine) < 1e-4 * np.linalg.norm(bcoarse-bfine)
 
 @pytest.mark.parametrize("use_cpp", [True, False])
 def test_biotsavart_dBdX_taylortest(use_cpp):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     dB = bs.dB_by_dX(points, use_cpp=use_cpp)
     B0 = bs.B(points, use_cpp=use_cpp)
@@ -44,7 +44,7 @@ def test_biotsavart_dBdX_taylortest(use_cpp):
 @pytest.mark.parametrize("use_cpp", [True, False])
 def test_biotsavart_gradient_symmetric_and_divergence_free(use_cpp):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     dB = bs.dB_by_dX(points, use_cpp=use_cpp)
     assert abs(dB[0][0, 0] + dB[0][1, 1] + dB[0][2, 2]) < 1e-14
@@ -54,7 +54,7 @@ def test_biotsavart_gradient_symmetric_and_divergence_free(use_cpp):
 @pytest.mark.parametrize("by_chainrule", [True, False])
 def test_dB_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
 
     coil_dofs = coil.get_dofs()
@@ -79,7 +79,7 @@ def test_dB_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
 @pytest.mark.parametrize("use_cpp", [True, False])
 def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
 
     coil_dofs = coil.get_dofs()
@@ -100,7 +100,7 @@ def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp):
 
 def test_d2B_by_dXdX_is_symmetric(use_cpp=False):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     d2B_by_dXdX = bs.d2B_by_dXdX(points, use_cpp=use_cpp)
     for i in range(3):
@@ -110,7 +110,7 @@ def test_d2B_by_dXdX_is_symmetric(use_cpp=False):
 @pytest.mark.parametrize("use_cpp", [True, False])
 def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp):
     coil = get_coil()
-    bs = BiotSavart([coil], [1e4], 100)
+    bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     dB_by_dX = bs.dB_by_dX(points, use_cpp=use_cpp)
     d2B_by_dXdX = bs.d2B_by_dXdX(points, use_cpp=use_cpp)
@@ -130,6 +130,9 @@ def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp):
 
 
 if __name__ == "__main__":
+    test_dB_by_dcoilcoeff_taylortest(False, True)
+    import sys
+    sys.exit()
     coil = CartesianFourierCurve(3)
     coil.coefficients[1][0] = 1.
     coil.coefficients[1][1] = 0.5
@@ -140,7 +143,7 @@ if __name__ == "__main__":
     ma.coefficients[0][1] = 0.1
     ma.coefficients[1][0] = 0.1
 
-    bs = BiotSavart([coil], [1], 100)
+    bs = BiotSavart([coil], [1])
     points = ma.gamma(np.linspace(0., 1., 1000))
     B = bs.B(points)
     dB = bs.dB_by_dX(points)

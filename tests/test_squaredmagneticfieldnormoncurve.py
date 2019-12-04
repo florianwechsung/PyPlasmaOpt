@@ -3,14 +3,14 @@ import pytest
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve
 
 def get_coil():
-    coil = CartesianFourierCurve(3)
+    coil = CartesianFourierCurve(3, np.linspace(0, 1, 20, endpoint=False))
     coil.coefficients[1][0] = 1.
     coil.coefficients[1][1] = 0.5
     coil.coefficients[2][2] = 0.5
     return coil
 
 def get_magnetic_axis():
-    ma = StelleratorSymmetricCylindricalFourierCurve(3, 2)
+    ma = StelleratorSymmetricCylindricalFourierCurve(3, 2, np.linspace(0, 1, 20, endpoint=False))
     ma.coefficients[0][0] = 1.
     ma.coefficients[0][1] = 0.1
     ma.coefficients[1][0] = 0.1
@@ -21,11 +21,11 @@ def test_magnetic_field_objective_by_dcoilcoeffs(gradient):
     coils = [get_coil()]
     currents = [1e4]
     ma = get_magnetic_axis()
-    bs = BiotSavart(coils, currents, 20)
+    bs = BiotSavart(coils, currents)
     if gradient:
-        J = SquaredMagneticFieldGradientNormOnCurve(ma, bs, 20)
+        J = SquaredMagneticFieldGradientNormOnCurve(ma, bs)
     else:
-        J = SquaredMagneticFieldNormOnCurve(ma, bs, 20)
+        J = SquaredMagneticFieldNormOnCurve(ma, bs)
     J0 = J.J()
     coil_dofs = coils[0].get_dofs()
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
@@ -47,11 +47,11 @@ def test_magnetic_field_objective_by_dcurvecoeffs(gradient):
     coils = [get_coil()]
     currents = [1e4]
     ma = get_magnetic_axis()
-    bs = BiotSavart(coils, currents, 20)
+    bs = BiotSavart(coils, currents)
     if gradient:
-        J = SquaredMagneticFieldGradientNormOnCurve(ma, bs, 20)
+        J = SquaredMagneticFieldGradientNormOnCurve(ma, bs)
     else:
-        J = SquaredMagneticFieldNormOnCurve(ma, bs, 20)
+        J = SquaredMagneticFieldNormOnCurve(ma, bs)
     J0 = J.J()
     curve_dofs = ma.get_dofs()
     h = 1e-1 * np.random.rand(len(curve_dofs)).reshape(curve_dofs.shape)

@@ -38,7 +38,7 @@ def test_biot_savart_same_results_as_matlab():
 
     outcoils_matt = np.loadtxt(os.path.join(dir_path, "..", "data", "outcoils_matt.dat"), delimiter=',')
     num_coils = 6
-    coils = [CartesianFourierCurve(6) for i in range(num_coils)]
+    coils = [CartesianFourierCurve(6, np.linspace(0, 1, 80, endpoint=False)) for i in range(num_coils)]
     Nt = 4
     nfp = 2
     for ic in range(num_coils):
@@ -53,7 +53,7 @@ def test_biot_savart_same_results_as_matlab():
             coils[ic].coefficients[2][2*io+1] = outcoils_matt[io+1, 6*ic + 4]
             coils[ic].coefficients[2][2*io+2] = outcoils_matt[io+1, 6*ic + 5]
 
-    ma = StelleratorSymmetricCylindricalFourierCurve(4, nfp)
+    ma = StelleratorSymmetricCylindricalFourierCurve(4, nfp, np.linspace(0, 1, 80, endpoint=False))
     ma.coefficients[0][0] = 1.
     ma.coefficients[0][1] = 0.076574
     ma.coefficients[0][2] = 0.0032607
@@ -74,7 +74,7 @@ def test_biot_savart_same_results_as_matlab():
                 rotcoil = RotatedCurve(coil, 2*pi*i/nfp, flip)
                 coils.append(rotcoil)
                 currents.append(-1e4 if flip else 1e4)
-    bs = BiotSavart(coils, currents, 80)
+    bs = BiotSavart(coils, currents)
     points = np.asarray([
         [1.079860105000000,                0., 0.],
         [1.078778093231020, 0.041861502907184, -0.006392709264512],
@@ -85,14 +85,14 @@ def test_biot_savart_same_results_as_matlab():
     ])
     assert np.allclose(bs.B(points, use_cpp=False), matlab_res)
 
-    J = SquaredMagneticFieldNormOnCurve(ma, bs, 80)
+    J = SquaredMagneticFieldNormOnCurve(ma, bs)
     J0 = J.J()
     assert abs(0.5 * J0 - 0.007179654002556) < 1e-10
 
-    J = SquaredMagneticFieldGradientNormOnCurve(ma, bs, 80)
+    J = SquaredMagneticFieldGradientNormOnCurve(ma, bs)
     J0 = J.J()
     assert abs(0.5 * J0 - 0.014329772542444) < 1e-10
-    
+
 
     if __name__ == "__main__":
         ax = None

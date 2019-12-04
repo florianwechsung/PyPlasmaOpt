@@ -27,8 +27,8 @@ Array biot_savart_d2B_by_dXdcoilcoeff(Array& points, Array& gamma, Array& dgamma
                 Vec3d d2gamma_j_by_dphi_dcoeff_k_cross_diff       = cross(d2gamma_j_by_dphi_dcoeff_k, diff);
                 Vec3d dgamma_j_by_dphi_cross_dgamma_j_by_dcoeff_k = cross(dgamma_j_by_dphi, dgamma_j_by_dcoeff_k);
                 for (int l = 0; l < 3; ++l) {
-                    auto el = Vec3d{0., 0., 0.};
-                    el[l]   = 1.0;
+                    auto el  = Vec3d{0., 0., 0.};
+                    el.at(l) = 1.0;
                     auto term1 = norm_diff_3_inv * cross(d2gamma_j_by_dphi_dcoeff_k, el);
                     auto term2 = 3 * diff_inner_dgamma_j_by_dcoeff_k * norm_diff_5_inv * cross(dgamma_j_by_dphi, el);
                     auto term3 = -15 * diff_inner_dgamma_j_by_dcoeff_k * diff.at(l) * norm_diff_7_inv * dgamma_by_dphi_cross_diff;
@@ -36,9 +36,9 @@ Array biot_savart_d2B_by_dXdcoilcoeff(Array& points, Array& gamma, Array& dgamma
                     auto term5 = -3 * diff.at(l) * norm_diff_5_inv * d2gamma_j_by_dphi_dcoeff_k_cross_diff;
                     auto term6 = 3 * diff.at(l) * norm_diff_5_inv * dgamma_j_by_dphi_cross_dgamma_j_by_dcoeff_k;
                     auto temp = term1 + term2 + term3 + term4 + term5 + term6;
-                    res.at(i, k, 0, l) += temp[0];
-                    res.at(i, k, 1, l) += temp[1];
-                    res.at(i, k, 2, l) += temp[2];
+                    res.at(i, k, 0, l) += temp.at(0);
+                    res.at(i, k, 1, l) += temp.at(1);
+                    res.at(i, k, 2, l) += temp.at(2);
                 }
             }
         }

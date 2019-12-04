@@ -9,16 +9,18 @@ class Curve():
 
     def __init__(self, points):
         self.points = points
+        self.dependencies = []
 
     def clear_cache(self):
-        for prop in ["gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi",
-                     "d2gamma_by_dphidphi", "kappa", "dgamma_by_dcoeff",
-                     "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff",
-                     "dkappa_by_dcoeff", "incremental_arclength",
-                     "dincremental_arclength_by_dcoeff",
-                     "dincremental_arclength_by_dphi", "frenet_frame"]:
-            if prop in self.__dict__:
-                del self.__dict__[prop]
+        for obj in [self] + self.dependencies:
+            for prop in ["gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi",
+                         "d2gamma_by_dphidphi", "kappa", "dgamma_by_dcoeff",
+                         "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff",
+                         "dkappa_by_dcoeff", "incremental_arclength",
+                         "dincremental_arclength_by_dcoeff",
+                         "dincremental_arclength_by_dphi", "frenet_frame"]:
+                if prop in obj.__dict__:
+                    del obj.__dict__[prop]
 
 
     def gamma_impl(self, points):
@@ -405,6 +407,7 @@ class RotatedCurve(Curve):
         if flip:
             self.rotmat = self.rotmat @ np.asarray([[1,0,0],[0,-1,0],[0,0,-1]])
         self.curve = curve
+        curve.dependencies.append(self)
 
     def gamma_impl(self, points):
         gamma = self.curve.gamma_impl(points)

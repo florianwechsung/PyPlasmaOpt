@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, RotatedCurve, SquaredMagneticFieldGradientNormOnCurve
+from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, RotatedCurve, SquaredMagneticFieldGradientNormOnCurve, CoilCollection
 from math import pi
 import os 
 
@@ -64,17 +64,8 @@ def test_biot_savart_same_results_as_matlab():
     ma.coefficients[1][2] = -3.1852e-05
 
     currents = num_coils * [1e4]
-    for i in range(num_coils):
-        coil = coils[i]
-        rotcoil = RotatedCurve(coil, 0, True)
-        coils.append(rotcoil)
-        currents.append(-1e4)
-        for i in range(1, nfp):
-            for flip in [True, False]:
-                rotcoil = RotatedCurve(coil, 2*pi*i/nfp, flip)
-                coils.append(rotcoil)
-                currents.append(-1e4 if flip else 1e4)
-    bs = BiotSavart(coils, currents)
+    coil_collection = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(coil_collection.coils, coil_collection.currents)
     points = np.asarray([
         [1.079860105000000,                0., 0.],
         [1.078778093231020, 0.041861502907184, -0.006392709264512],
@@ -83,6 +74,7 @@ def test_biot_savart_same_results_as_matlab():
         [0,                 -0.044495549447737, 0.005009283509639],
         [0.002147564148695, -0.044454924339257, 0.004992777089330],
     ])
+    print(bs.B(points, use_cpp=False), "\n", matlab_res)
     assert np.allclose(bs.B(points, use_cpp=False), matlab_res)
 
     J = SquaredMagneticFieldNormOnCurve(ma, bs)

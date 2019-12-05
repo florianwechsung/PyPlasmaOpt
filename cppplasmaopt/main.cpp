@@ -26,7 +26,7 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     m.def("biot_savart_dB_by_dcoilcoeff_via_chainrule", &biot_savart_dB_by_dcoilcoeff_via_chainrule);
     m.def("biot_savart_d2B_by_dXdcoilcoeff", &biot_savart_d2B_by_dXdcoilcoeff);
     m.def("biot_savart_d2B_by_dXdX", &biot_savart_d2B_by_dXdX);
-
+    m.def("biot_savart_d2B_by_dXdcoilcoeff_via_chainrule", &biot_savart_d2B_by_dXdcoilcoeff_via_chainrule);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

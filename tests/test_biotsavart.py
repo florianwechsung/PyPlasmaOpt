@@ -77,7 +77,10 @@ def test_dB_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
         err = err_new
 
 @pytest.mark.parametrize("use_cpp", [True, False])
-def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp):
+@pytest.mark.parametrize("by_chainrule", [True, False])
+def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp, by_chainrule):
+    if not use_cpp and by_chainrule:
+        return
     coil = get_coil()
     bs = BiotSavart([coil], [1e4])
     points = np.asarray([[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
@@ -86,7 +89,10 @@ def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp):
     dB_dX0 = bs.dB_by_dX(points, use_cpp=use_cpp)[0]
 
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dB_dXdh = np.einsum('i,ijk->jk', h, bs.d2B_by_dXdcoilcoeff(points, use_cpp=use_cpp)[0][0,:,:,:])
+    if by_chainrule:
+        dB_dXdh = np.einsum('i,ijk->jk', h, bs.d2B_by_dXdcoilcoeff_via_chainrule(points, use_cpp=use_cpp)[0][0,:,:,:])
+    else:
+        dB_dXdh = np.einsum('i,ijk->jk', h, bs.d2B_by_dXdcoilcoeff(points, use_cpp=use_cpp)[0][0,:,:,:])
     err = 1e6
     for i in range(5, 10):
         eps = 0.5**i

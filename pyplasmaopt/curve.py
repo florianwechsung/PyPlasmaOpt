@@ -16,7 +16,7 @@ class Curve():
         for obj in [self] + self.dependencies:
             for prop in ["gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi",
                          "d2gamma_by_dphidphi", "kappa", "dgamma_by_dcoeff",
-                         "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff",
+                         # "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff",
                          "dkappa_by_dcoeff", "incremental_arclength",
                          "dincremental_arclength_by_dcoeff",
                          "dincremental_arclength_by_dphi", "frenet_frame"]:
@@ -97,14 +97,10 @@ class Curve():
         inner = lambda a, b: np.sum(a*b, axis=1)
         numerator = np.cross(dgamma_by_dphi, dgamma_by_dphidphi)
         denominator = norm(dgamma_by_dphi)
-        for i in range(num_coeff):
-            res[:, i, 0] = (
-                +inner(
-                    numerator, 
-                    np.cross(dgamma_by_dphidcoeff[:, i,:], dgamma_by_dphidphi) + np.cross(dgamma_by_dphi, dgamma_by_dphidphidcoeff[:, i, :])
-                ) * denominator**3 / norm(numerator)
-                - norm(numerator) * 3 * denominator * inner(dgamma_by_dphi, dgamma_by_dphidcoeff[:, i, :])
-            )/denominator**6
+        res[:, :, 0] = (1 / (denominator**3*norm(numerator)))[:, None] * np.sum(numerator[:, None, :] * (
+            np.cross(dgamma_by_dphidcoeff[:, :, :], dgamma_by_dphidphi[:, None, :], axis=2) +
+            np.cross(dgamma_by_dphi[:, None, :], dgamma_by_dphidphidcoeff[:, :, :], axis=2)) , axis=2) \
+            - (norm(numerator) * 3 / denominator**5)[:, None] * np.sum(dgamma_by_dphi[:, None, :] * dgamma_by_dphidcoeff[:, :, :], axis=2)
         return res
 
     @cached_property

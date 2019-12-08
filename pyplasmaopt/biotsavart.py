@@ -118,8 +118,14 @@ class BiotSavart():
             gamma = coil.gamma
             dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
             num_coil_quadrature_points = gamma.shape[0]
+
+            dgamma_by_dcoeff = coil.dgamma_by_dcoeff
+            d2gamma_by_dphidcoeff = coil.d2gamma_by_dphidcoeff[:, 0, :, :]
+            dgamma_by_dcoeff      = np.asfortranarray(dgamma_by_dcoeff)
+            d2gamma_by_dphidcoeff = np.asfortranarray(d2gamma_by_dphidcoeff)
             if use_cpp:
-                res_coil_gamma, res_coil_gammadash = cpp.biot_savart_dB_by_dcoilcoeff_via_chainrule(points, gamma, dgamma_by_dphi)
+                res_coil = cpp.biot_savart_dB_by_dcoilcoeff_via_chainrule(points, gamma, dgamma_by_dphi, dgamma_by_dcoeff, d2gamma_by_dphidcoeff)
+                res_coil *= current
             else:
                 # this ordering is a bit different from what we usually do, but it turns out to have better performance for the matrix-matrix multiplication later on
                 res_coil_gamma     = np.zeros((3, 3, len(points), gamma.shape[0]))
@@ -138,19 +144,15 @@ class BiotSavart():
                         term3 = norm_diff_5_inv * np.sum(ek * diff, axis=1)[:, None] * dgamma_by_dphi_cross_diff * 3
                         res_coil_gamma[k, :, i, :] = (-term2 + term3).T
                         res_coil_gammadash[k, :, i, :] = term1.T
-            res_coil_gamma *= current
-            res_coil_gammadash *= current
-            dgamma_by_dcoeff = coil.dgamma_by_dcoeff
-            d2gamma_by_dphidcoeff = coil.d2gamma_by_dphidcoeff[:, 0, :, :]
-            num_coil_coeffs = dgamma_by_dcoeff.shape[1]
-            res_coil = np.zeros((len(points), num_coil_coeffs, 3))
+                res_coil_gamma *= current
+                res_coil_gammadash *= current
 
-            # for the following matrix-matrix products having a column-based layout is actually quicker
-            dgamma_by_dcoeff      = np.asfortranarray(dgamma_by_dcoeff)
-            d2gamma_by_dphidcoeff = np.asfortranarray(d2gamma_by_dphidcoeff)
-            for i in range(3):
-                for j in range(3):
-                    res_coil[:, :, i] += res_coil_gamma[j, i, :, :] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[j, i, :, :] @ d2gamma_by_dphidcoeff[:, :, j]
+                num_coil_coeffs = dgamma_by_dcoeff.shape[1]
+                res_coil = np.zeros((len(points), num_coil_coeffs, 3))
+                # for the following matrix-matrix products having a column-based layout is actually quicker
+                for i in range(3):
+                    for j in range(3):
+                        res_coil[:, :, i] += res_coil_gamma[j, i, :, :] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[j, i, :, :] @ d2gamma_by_dphidcoeff[:, :, j]
             mu = 4 * pi * 1e-7
             res_coil *= mu/(4*pi*num_coil_quadrature_points)
             res.append(res_coil)
@@ -217,6 +219,7 @@ class BiotSavart():
                 for j in range(3):
                     for k in range(3):
                         res_coil[:, :, k, i] += res_coil_gamma[j, k, i, :, :] @ dgamma_by_dcoeff[:, :, j] + res_coil_gammadash[j, k, i, :, :] @ d2gamma_by_dphidcoeff[:, :, j]
+            # res_coil = np.tensordot(res_coil_gamma, dgamma_by_dcoeff, axes=([0, 3],[2, 0])) + np.tensordot(res_coil_gammadash, d2gamma_by_dphidcoeff, axes=([0, 3],[2, 0]))
             mu = 4 * pi * 1e-7
             res_coil *= mu/(4*pi*num_coil_quadrature_points)
             res.append(res_coil)

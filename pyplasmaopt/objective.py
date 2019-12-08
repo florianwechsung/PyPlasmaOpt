@@ -28,8 +28,8 @@ class SquaredMagneticFieldNormOnCurve(object):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
 
         B = self.biotsavart.B(quadrature_points)
-        dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff(quadrature_points)
-        # dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff_via_chainrule(quadrature_points)
+        # dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff(quadrature_points)
+        dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff_via_chainrule(quadrature_points)
         res = []
         for dB in dB_by_dcoilcoeff:
             res.append(np.einsum('ij,ikj,i->k', B, dB, arc_length) * 2 / quadrature_points.shape[0])

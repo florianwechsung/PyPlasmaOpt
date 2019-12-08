@@ -1,10 +1,16 @@
 #include "biot_savart.h"
 #include <tuple>
+using blaze::DynamicMatrix;
+using blaze::rowMajor;
+using blaze::columnMajor;
 
+typedef DynamicMatrix<double,rowMajor> RowMat;
+typedef DynamicMatrix<double,columnMajor> ColMat;
 
-std::pair<Array, Array> biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi) {
+Array biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff) {
     int num_points      = points.shape(0);
     int num_quad_points = gamma.shape(0);
+    int num_coeffs      = dgamma_by_dcoeff.shape(1);
     Array res_coil_gamma     = xt::zeros<double>({3, 3, num_points, num_quad_points});
     Array res_coil_gammadash = xt::zeros<double>({3, 3, num_points, num_quad_points});
 
@@ -34,5 +40,26 @@ std::pair<Array, Array> biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points
             }
         }
     }
-    return std::make_pair(res_coil_gamma, res_coil_gammadash);
+    RowMat res_coil_0(num_points, num_coeffs);
+    RowMat res_coil_1(num_points, num_coeffs);
+    RowMat res_coil_2(num_points, num_coeffs);
+    int j = 0;
+    res_coil_0 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_1 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_2 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    for (j = 1; j < 3; ++j) {
+        res_coil_0 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_1 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_2 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    }
+    Array res = xt::zeros<double>({num_points, num_coeffs, 3});
+    #pragma omp parallel for
+    for (int i = 0; i < num_points; ++i) {
+        for (int j = 0; j < num_coeffs; ++j) {
+           res.at(i, j, 0) = res_coil_0(i, j); 
+           res.at(i, j, 1) = res_coil_1(i, j); 
+           res.at(i, j, 2) = res_coil_2(i, j); 
+        }
+    }
+    return res;
 }

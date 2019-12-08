@@ -1,4 +1,5 @@
 from cached_property import cached_property
+from sympy import *
 import numpy as np
 from math import pi, sin, cos
 
@@ -176,19 +177,23 @@ class Curve():
         return self.frenet_frame_impl(self.points)
 
 
-    def plot(self, resolution=100, ax=None, show=True, plot_derivative=False):
+    def plot(self, resolution=None, ax=None, show=True, plot_derivative=False):
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
 
-        phis = np.linspace(0, 1, resolution)
-        gammas = np.stack(self.gamma_impl(phis))
+        if resolution is None:
+            gamma = self.gamma
+            dgamma_by_dphi = self.dgamma_by_dphi
+        else:
+            phis = np.linspace(0, 1, resolution)
+            gamma = np.stack(self.gamma_impl(phis))
+            dgamma_by_dphi = self.dgamma_by_dphi_impl(phis)[:, 0, :]
         if ax is None:
             fig = plt.figure()
             ax = fig.gca(projection='3d')
-        ax.plot(gammas[:, 0], gammas[:, 1], gammas[:, 2])
+        ax.plot(gamma[:, 0], gamma[:, 1], gamma[:, 2])
         if plot_derivative:
-            dgamma_by_dphi = self.dgamma_by_dphi_impl(phis)[:, 0, :]
-            ax.quiver(gammas[:, 0], gammas[:, 1], gammas[:, 2], 0.1 * dgamma_by_dphi[:, 0], 0.1 * dgamma_by_dphi[:, 1], 0.1 * dgamma_by_dphi[:, 2], arrow_length_ratio=0.1, color="r")
+            ax.quiver(gamma[:, 0], gamma[:, 1], gamma[:, 2], 0.1 * dgamma_by_dphi[:, 0], 0.1 * dgamma_by_dphi[:, 1], 0.1 * dgamma_by_dphi[:, 2], arrow_length_ratio=0.1, color="r")
         if show:
             plt.show()
         return ax
@@ -432,3 +437,42 @@ class RotatedCurve(Curve):
     def d3gamma_by_dphidphidcoeff_impl(self, points):
         d3gamma_by_dphidphidcoeff = self.curve.d3gamma_by_dphidphidcoeff_impl(points)
         return d3gamma_by_dphidphidcoeff @ self.rotmat
+
+class GaussianCurve(Curve):
+
+    def __init__(self, points, sigma, length_scale):
+        super().__init__(points)
+        xs = self.points
+        n = len(xs)
+        n_derivs = 2
+        cov_mat = np.zeros((n*(n_derivs+1), n*(n_derivs+1)))
+        def kernel(x, y):
+            return sigma**2*exp(-(x-y)**2/length_scale**2)
+        for ii in range(n_derivs+1):
+            for jj in range(n_derivs+1):
+                if ii + jj == 0:
+                    lam = kernel
+                else:
+                    x = Symbol("x")
+                    y = Symbol("y")
+                    f = kernel(x, y)
+                    lam = lambdify((x, y), f.diff(*(ii * [x] + jj * [y])))
+                for i in range(n):
+                    for j in range(n):
+                        x = xs[i]
+                        y = xs[j]
+                        if abs(x-y)>0.5:
+                            if y>0.5:
+                                y -= 1
+                            else:
+                                x-= 1
+                        cov_mat[ii*n + i, jj*n + j] = lam(x, y)
+
+        from scipy.linalg import sqrtm
+        L = np.real(sqrtm(cov_mat))
+        z = np.random.normal(size=(n*(n_derivs+1), 3))
+        curve_and_derivs = L@z
+
+        self.gamma = curve_and_derivs[0:n,:]
+        self.dgamma_by_dphi = curve_and_derivs[n:2*n,:]
+        self.d2gamma_by_dphidphi = curve_and_derivs[2*n:3*n,:]

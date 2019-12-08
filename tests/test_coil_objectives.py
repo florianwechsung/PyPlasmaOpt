@@ -15,7 +15,7 @@ def test_curve_length_taylor_test():
     J0 = J.J()
     coil_dofs = coil.get_dofs()
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dJ = J.dJ_dcoefficients()
+    dJ = J.dJ_by_dcoefficients()
     deriv = np.sum(dJ * h)
     err = 1e6
     for i in range(5, 10):
@@ -35,7 +35,7 @@ def test_curve_curvature_taylor_test():
     J0 = J.J()
     coil_dofs = coil.get_dofs()
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dJ = J.dJ_dcoefficients()
+    dJ = J.dJ_by_dcoefficients()
     deriv = np.sum(dJ * h)
     err = 1e6
     for i in range(5, 10):

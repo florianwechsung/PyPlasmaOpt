@@ -135,7 +135,7 @@ class CurveLength():
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         return np.mean(arc_length)
 
-    def dJ_dcoefficients(self):
+    def dJ_by_dcoefficients(self):
         dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
         d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
@@ -159,7 +159,7 @@ class CurveCurvature():
         kappa = self.curve.kappa[:, 0]
         return np.mean(kappa**2 * arc_length)
 
-    def dJ_dcoefficients(self):
+    def dJ_by_dcoefficients(self):
         kappa                 = self.curve.kappa[:,0]
         dkappa_by_dcoeff      = self.curve.dkappa_by_dcoeff[:,:,0]
         dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]

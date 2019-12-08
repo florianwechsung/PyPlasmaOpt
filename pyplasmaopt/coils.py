@@ -45,7 +45,7 @@ class CoilCollection():
         Add derivatives for all those coils that were obtained by rotation and
         reflection of the initial coils.
         """
-        assert len(derivatives) == len(self.coils)
+        assert len(derivatives) == len(self.coils) or len(derivatives) == len(self.__base_coils)
         res = len(self.__base_coils) * [None]
         for i in range(len(derivatives)):
             if res[self.map[i]] is None:

@@ -157,7 +157,7 @@ class Curve():
         d1gamma = self.dgamma_by_dphi[:, 0, :]
         d2gamma = self.d2gamma_by_dphidphi[:, 0, 0, :]
         d3gamma = self.d3gamma_by_dphidphidphi[:, 0, 0, 0, :]
-        res[:, 0] = np.sum(np.cross(d1gamma, d2gamma, axis=1) * d3gamma, axis=1) / np.sum(d2gamma * d3gamma, axis=1)
+        res[:, 0] = np.sum(np.cross(d1gamma, d2gamma, axis=1) * d3gamma, axis=1) / np.sum(np.cross(d1gamma, d2gamma, axis=1)**2, axis=1)
         
     def frenet_frame_impl(self):
         """

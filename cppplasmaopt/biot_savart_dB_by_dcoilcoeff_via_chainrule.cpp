@@ -1,11 +1,5 @@
 #include "biot_savart.h"
 #include <tuple>
-using blaze::DynamicMatrix;
-using blaze::rowMajor;
-using blaze::columnMajor;
-
-typedef DynamicMatrix<double,rowMajor> RowMat;
-typedef DynamicMatrix<double,columnMajor> ColMat;
 
 Array biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff) {
     int num_points      = points.shape(0);

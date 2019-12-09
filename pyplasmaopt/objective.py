@@ -88,7 +88,8 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
 
         dB_by_dX = self.biotsavart.dB_by_dX(quadrature_points)
-        d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff(quadrature_points)
+        # d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff(quadrature_points)
+        d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff_via_chainrule(quadrature_points)
         res = []
         for dB in d2B_by_dXdcoilcoeff:
             res.append(np.einsum('ijk,iljk,i->l', dB_by_dX, dB, arc_length) * 2 / quadrature_points.shape[0])

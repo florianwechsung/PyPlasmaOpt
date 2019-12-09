@@ -1,9 +1,10 @@
 #include "biot_savart.h"
 #include <tuple>
 
-std::pair<Array, Array> biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi) {
+Array biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff) {
     int num_points = points.shape(0);
     int num_quad_points = gamma.shape(0);
+    int num_coeffs      = dgamma_by_dcoeff.shape(1);
     Array res_coil_gamma     = xt::zeros<double>({3, 3, 3, num_points, num_quad_points});
     Array res_coil_gammadash = xt::zeros<double>({3, 3, 3, num_points, num_quad_points});
     #pragma omp parallel for
@@ -43,5 +44,50 @@ std::pair<Array, Array> biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& poi
             }
         }
     }
-    return std::make_pair(res_coil_gamma, res_coil_gammadash);
+    RowMat res_coil_00(num_points, num_coeffs);
+    RowMat res_coil_10(num_points, num_coeffs);
+    RowMat res_coil_20(num_points, num_coeffs);
+    RowMat res_coil_01(num_points, num_coeffs);
+    RowMat res_coil_11(num_points, num_coeffs);
+    RowMat res_coil_21(num_points, num_coeffs);
+    RowMat res_coil_02(num_points, num_coeffs);
+    RowMat res_coil_12(num_points, num_coeffs);
+    RowMat res_coil_22(num_points, num_coeffs);
+    int j = 0;
+    res_coil_00 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_10 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_20 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_01 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_11 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_21 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_02 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_12 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    res_coil_22 = RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    for (j = 1; j < 3; ++j) {
+        res_coil_00 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_10 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_20 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 0, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 0, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_01 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_11 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_21 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_02 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 0, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_12 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+        res_coil_22 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
+    }
+    Array res = xt::zeros<double>({num_points, num_coeffs, 3, 3});
+    #pragma omp parallel for
+    for (int i = 0; i < num_points; ++i) {
+        for (int j = 0; j < num_coeffs; ++j) {
+           res.at(i, j, 0, 0) = res_coil_00(i, j); 
+           res.at(i, j, 1, 0) = res_coil_10(i, j); 
+           res.at(i, j, 2, 0) = res_coil_20(i, j); 
+           res.at(i, j, 0, 1) = res_coil_01(i, j); 
+           res.at(i, j, 1, 1) = res_coil_11(i, j); 
+           res.at(i, j, 2, 1) = res_coil_21(i, j); 
+           res.at(i, j, 0, 2) = res_coil_02(i, j); 
+           res.at(i, j, 1, 2) = res_coil_12(i, j); 
+           res.at(i, j, 2, 2) = res_coil_22(i, j); 
+        }
+    }
+    return res;
 }

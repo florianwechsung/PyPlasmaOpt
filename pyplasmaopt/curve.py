@@ -170,11 +170,11 @@ class Curve():
         norm = lambda a: np.linalg.norm(a, axis=1)
         inner = lambda a, b: np.sum(a*b, axis=1)
         t, n, b = self.frenet_frame
-        t[:,:] = (1./norm(dgamma_by_dphi))[:, None] * dgamma_by_dphi
+        t[:,:] = (1./self.incremental_arclength) * dgamma_by_dphi
 
-        tdash = (1/norm(dgamma_by_dphi)**2)[:, None] * (
-            norm(dgamma_by_dphi)[:, None] * d2gamma_by_dphidphi
-            - (inner(dgamma_by_dphi, d2gamma_by_dphidphi)/norm(dgamma_by_dphi))[:, None] *  dgamma_by_dphi
+        tdash = (1./self.incremental_arclength)**2 * (
+            self.incremental_arclength * d2gamma_by_dphidphi
+            - (inner(dgamma_by_dphi, d2gamma_by_dphidphi)/self.incremental_arclength[:, 0])[:, None] *  dgamma_by_dphi
         )
         kappa = self.kappa
         n[:,:] = (1./norm(tdash))[:, None] * tdash

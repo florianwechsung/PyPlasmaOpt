@@ -44,6 +44,36 @@ def test_coil_first_derivative():
         assert err < 0.55 * err_old
         err_old = err
 
+def test_coil_second_derivative():
+    h = 0.1
+    epss = [0.5**i for i in range(5, 10)] 
+    x = np.asarray([1] + [1 + eps for eps in epss])
+    cfc = get_coil(x)
+    f0 = cfc.dgamma_by_dphi[0, 0, :]
+    deriv = cfc.d2gamma_by_dphidphi[0, 0, 0, :]
+    err_old = 1e6
+    for i in range(len(epss)):
+        fh = cfc.dgamma_by_dphi[i+1, 0, :]
+        deriv_est = (fh-f0)/epss[i]
+        err = np.linalg.norm(deriv_est-deriv)
+        assert err < 0.55 * err_old
+        err_old = err
+
+def test_coil_third_derivative():
+    h = 0.1
+    epss = [0.5**i for i in range(5, 10)] 
+    x = np.asarray([1] + [1 + eps for eps in epss])
+    cfc = get_coil(x)
+    f0 = cfc.d2gamma_by_dphidphi[0, 0, 0, :]
+    deriv = cfc.d3gamma_by_dphidphidphi[0, 0, 0, 0, :]
+    err_old = 1e6
+    for i in range(len(epss)):
+        fh = cfc.d2gamma_by_dphidphi[i+1, 0, 0, :]
+        deriv_est = (fh-f0)/epss[i]
+        err = np.linalg.norm(deriv_est-deriv)
+        assert err < 0.55 * err_old
+        err_old = err
+
 def test_coil_dof_numbering():
     cfc = get_coil()
     coeffs = cfc.get_dofs()
@@ -102,6 +132,36 @@ def test_magnetic_axis_first_derivative():
     err_old = 1e6
     for i in range(len(epss)):
         fh = ma.gamma[i+1]
+        deriv_est = (fh-f0)/epss[i]
+        err = np.linalg.norm(deriv_est-deriv)
+        assert err < 0.55 * err_old
+        err_old = err
+
+def test_magnetic_axis_second_derivative():
+    h = 0.1
+    epss = [0.5**i for i in range(5, 10)] 
+    x = np.asarray([1] + [1 + eps for eps in epss])
+    ma = get_magnetic_axis(x)
+    f0 = ma.dgamma_by_dphi[0, 0, :]
+    deriv = ma.d2gamma_by_dphidphi[0, 0, 0, :]
+    err_old = 1e6
+    for i in range(len(epss)):
+        fh = ma.dgamma_by_dphi[i+1, 0, :]
+        deriv_est = (fh-f0)/epss[i]
+        err = np.linalg.norm(deriv_est-deriv)
+        assert err < 0.55 * err_old
+        err_old = err
+
+def test_magnetic_axis_third_derivative():
+    h = 0.1
+    epss = [0.5**i for i in range(5, 10)] 
+    x = np.asarray([1] + [1 + eps for eps in epss])
+    ma = get_magnetic_axis(x)
+    f0 = ma.d2gamma_by_dphidphi[0, 0, 0, :]
+    deriv = ma.d3gamma_by_dphidphidphi[0, 0, 0, 0, :]
+    err_old = 1e6
+    for i in range(len(epss)):
+        fh = ma.d2gamma_by_dphidphi[i+1, 0, 0, :]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old

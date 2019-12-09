@@ -19,6 +19,7 @@ def get_matt_data(Nt=4, nfp=2, ppp=10):
             coils[ic].coefficients[1][2*io+2] = outcoils_matt[io+1, 6*ic + 3]
             coils[ic].coefficients[2][2*io+1] = outcoils_matt[io+1, 6*ic + 4]
             coils[ic].coefficients[2][2*io+2] = outcoils_matt[io+1, 6*ic + 5]
+        coils[ic].update()
 
     ma = StelleratorSymmetricCylindricalFourierCurve(4, nfp, np.linspace(0, 1, Nt*ppp, endpoint=False))
     ma.coefficients[0][0] = 1.
@@ -29,4 +30,5 @@ def get_matt_data(Nt=4, nfp=2, ppp=10):
     ma.coefficients[1][0] = -0.07605
     ma.coefficients[1][1] = -0.0031845
     ma.coefficients[1][2] = -3.1852e-05
+    ma.update()
     return (coils, ma)

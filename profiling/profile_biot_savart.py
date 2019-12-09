@@ -1,18 +1,20 @@
 import numpy as np
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve
 
-coil = CartesianFourierCurve(10)
+coil = CartesianFourierCurve(10, np.linspace(0, 1, 80, endpoint=False))
 coil.coefficients[1][0] = 1.
 coil.coefficients[1][1] = 0.5
 coil.coefficients[2][2] = 0.5
+coil.update()
 
 
-ma = StelleratorSymmetricCylindricalFourierCurve(3, 2)
+ma = StelleratorSymmetricCylindricalFourierCurve(3, 2, np.linspace(0, 1, 80, endpoint=False))
 ma.coefficients[0][0] = 1.
 ma.coefficients[0][1] = 0.1
 ma.coefficients[1][0] = 0.1
+ma.update()
 
-bs = BiotSavart([coil], [1], 100)
+bs = BiotSavart([coil], [1])
 
 points = ma.gamma(np.linspace(0., 1., 10000))
 

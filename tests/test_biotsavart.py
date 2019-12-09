@@ -7,6 +7,7 @@ def get_coil(num_quadrature_points=200):
     coil.coefficients[1][0] = 1.
     coil.coefficients[1][1] = 0.5
     coil.coefficients[2][2] = 0.5
+    coil.update()
     return coil
 
 @pytest.mark.parametrize("use_cpp", [True, False])

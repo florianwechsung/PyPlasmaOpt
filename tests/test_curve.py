@@ -140,7 +140,7 @@ def test_magnetic_axis_first_derivative():
 def test_magnetic_axis_second_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
     ma = get_magnetic_axis(x)
     f0 = ma.dgamma_by_dphi[0, 0, :]
     deriv = ma.d2gamma_by_dphidphi[0, 0, 0, :]
@@ -155,7 +155,7 @@ def test_magnetic_axis_second_derivative():
 def test_magnetic_axis_third_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
     ma = get_magnetic_axis(x)
     f0 = ma.d2gamma_by_dphidphi[0, 0, 0, :]
     deriv = ma.d3gamma_by_dphidphidphi[0, 0, 0, 0, :]

@@ -393,13 +393,13 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
                 +2*(nfp * 2 * pi * i)**2*(2 * pi) *       np.cos(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
                 +2*(nfp * 2 * pi * i)*(2 * pi)**2 *       np.sin(nfp * 2 * pi * i * points) * np.cos(2 * pi * points)
                 +((nfp * 2 * pi * i)**2 + (2*pi)**2)*(nfp * 2 * pi * i)* np.sin(nfp * 2 * pi * i * points) * np.cos(2 * pi * points)
-                +((nfp * 2 * pi * i)**2 + (2*pi)**2)*(2 * pi)*           np.sin(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
+                +((nfp * 2 * pi * i)**2 + (2*pi)**2)*(2 * pi)*           np.cos(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
             )
             res[:, 0, 0, 0, 1] += self.coefficients[0][i] * (
                 -2*(nfp * 2 * pi * i)**2 * (2 * pi) *     np.cos(nfp * 2 * pi * i * points) * np.cos(2 * pi * points)
-                +2*(nfp * 2 * pi * i) * (2 * pi)**2 *     np.cos(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
+                +2*(nfp * 2 * pi * i) * (2 * pi)**2 *     np.sin(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
                 +((nfp * 2 * pi * i)**2 + (2*pi)**2) * (nfp * 2 * pi * i) * np.sin(nfp * 2 * pi * i * points) * np.sin(2 * pi * points)
-                -((nfp * 2 * pi * i)**2 + (2*pi)**2) * (2 * pi) * np.cos(nfp * 2 * pi * i * points) * np.cos(2 * pi * points)
+                -((nfp * 2 * pi * i)**2 + (2*pi)**2) * (2 * pi) *           np.cos(nfp * 2 * pi * i * points) * np.cos(2 * pi * points)
             )
         for i in range(1, self.order+1):
             res[:, 0, 0, 0, 2] -= self.coefficients[1][i-1] * (nfp * 2 * pi * i)**3 * np.cos(nfp * 2 * pi * i * points)

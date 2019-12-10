@@ -167,6 +167,23 @@ def test_magnetic_axis_third_derivative():
         assert err < 0.55 * err_old
         err_old = err
 
+def test_magnetic_axis_kappa_first_derivative():
+    h = 0.1
+    epss = [0.5**i for i in range(5, 10)] 
+    x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
+    ma = get_magnetic_axis(x)
+    f0 = ma.kappa[0]
+    deriv = ma.dkappa_by_dphi[0, 0]
+    err_old = 1e6
+    print(deriv)
+    for i in range(len(epss)):
+        fh = ma.kappa[i+1]
+        deriv_est = (fh-f0)/epss[i]
+        print(deriv_est)
+        err = np.linalg.norm(deriv_est-deriv)
+        assert err < 0.55 * err_old
+        err_old = err
+
 def test_magnetic_axis_dof_numbering():
     ma = get_magnetic_axis()
     coeffs = ma.get_dofs()

@@ -18,6 +18,7 @@ class Curve():
         self.d2gamma_by_dphidphi = None
         self.d3gamma_by_dphidphidphi = None
         self.kappa = None
+        self.dkappa_by_dphi = None
         self.dgamma_by_dcoeff = None
         self.d2gamma_by_dphidcoeff = None
         self.d3gamma_by_dphidphidcoeff = None
@@ -41,6 +42,8 @@ class Curve():
             self.d3gamma_by_dphidphidphi = np.zeros((num_points, 1, 1, 1, 3))
         if self.kappa is None:
             self.kappa = np.zeros((num_points, 1))
+        if self.dkappa_by_dphi is None:
+            self.dkappa_by_dphi = np.zeros((num_points, 1, 1))
         if self.dgamma_by_dcoeff is None:
             self.dgamma_by_dcoeff = np.zeros((num_points, num_coeffs, 3))
         if self.d2gamma_by_dphidcoeff is None:
@@ -71,6 +74,7 @@ class Curve():
         self.dincremental_arclength_by_dphi_impl()
         self.dincremental_arclength_by_dcoeff_impl()
         self.kappa_impl()
+        self.dkappa_by_dphi_impl()
         self.dkappa_by_dcoeff_impl()
         self.frenet_frame_impl()
         self.torsion_impl()
@@ -108,6 +112,18 @@ class Curve():
         dgamma = self.dgamma_by_dphi[:, 0, :]
         d2gamma = self.d2gamma_by_dphidphi[:, 0, 0, :]
         self.kappa[:, :] = (np.linalg.norm(np.cross(dgamma, d2gamma), axis=1)/np.linalg.norm(dgamma, axis=1)**3).reshape(len(points),1)
+
+    def dkappa_by_dphi_impl(self):
+        """ Curvature at `points`. """
+        points = self.points
+        dgamma = self.dgamma_by_dphi[:, 0, :]
+        d2gamma = self.d2gamma_by_dphidphi[:, 0, 0, :]
+        d3gamma = self.d3gamma_by_dphidphidphi[:, 0, 0, 0, :]
+        norm = lambda a: np.linalg.norm(a, axis=1)
+        inner = lambda a, b: np.sum(a*b, axis=1)
+        cross = lambda a, b: np.cross(a, b, axis=1)
+        self.dkappa_by_dphi[:, 0, 0] = inner(cross(dgamma, d2gamma), cross(dgamma, d3gamma))/(norm(cross(dgamma, d2gamma)) * norm(dgamma)**3) \
+            - 3 * inner(dgamma, d2gamma) * norm(cross(dgamma, d2gamma))/norm(dgamma)**5
 
     def dgamma_by_dcoeff_impl(self):
         raise NotImplementedError

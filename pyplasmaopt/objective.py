@@ -1,6 +1,32 @@
 import numpy as np
 
 
+class BiotSavartQuasiSymmetricFieldDifference():
+
+    def __init__(self, quasi_symmetric_field, biotsavart):
+        self.quasi_symmetric_field = quasi_symmetric_field
+        self.biotsavart = biotsavart
+
+    def update(self):
+        ma = self.quasi_symmetric_field.magnetic_axis
+        quadrature_points = ma.gamma
+
+        self.Bbs = self.biotsavart.B(quadrature_points)
+        self.dBbs_by_dX = self.biotsavart.dB_by_dX(quadrature_points)
+        self.Bqs = self.quasi_symmetric_field.B()
+        self.dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX()
+
+    def J_L2(self):
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        print(self.Bbs.shape)
+        print(self.Bqs.shape)
+        return np.sum(arc_length[:, None] * (self.Bbs-self.Bqs)**2)/len(arc_length)
+
+    def J_H1(self):
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        return np.sum(arc_length[:, None, None] * (self.dBbs_by_dX-self.dBqs_by_dX)**2)/len(arc_length)
+
+
 class SquaredMagneticFieldNormOnCurve(object):
 
     r"""
@@ -123,6 +149,7 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         res *= 1/gamma.shape[0]
         return res
 
+
 class CurveLength():
 
     r"""
@@ -145,6 +172,7 @@ class CurveLength():
         for i in range(num_coeff):
             res[i] = np.mean((1/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
         return res
+
 
 class CurveCurvature():
 

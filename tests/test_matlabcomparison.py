@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, SquaredMagneticFieldNormOnCurve, RotatedCurve, SquaredMagneticFieldGradientNormOnCurve, CoilCollection, get_matt_data
+from pyplasmaopt import BiotSavart, SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve, get_matt_data, BiotSavartQuasiSymmetricFieldDifference, QuasiSymmetricField, CoilCollection
 from math import pi
 import os 
 
@@ -66,3 +66,21 @@ def test_biot_savart_same_results_as_matlab():
             ax = coils[i].plot(ax=ax, show=False)
         ma.plot(ax=ax)
 
+def test_quasi_symmetric_difference_same_results_as_matlab():
+    num_coils = 6
+    nfp = 2
+    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=200)
+    currents = num_coils * [1e4]
+    coil_collection = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(coil_collection.coils, coil_collection.currents)
+    qsf = QuasiSymmetricField(-2.25, ma)
+    sigma, iota = qsf.solve_state()
+    J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
+    J.update()
+    print(0.5 * J.J_L2())
+    print(0.5 * J.J_H1())
+    assert abs(3.486875802492926 - 0.5 * J.J_L2()) < 1e-5
+    assert abs(8.296004257157044 - 0.5 * J.J_H1()) < 1e-5
+
+if __name__ == "__main__":
+    test_quasi_symmetric_difference_same_results_as_matlab()

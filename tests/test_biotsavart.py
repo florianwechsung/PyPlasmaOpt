@@ -137,7 +137,7 @@ def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp):
 
 
 if __name__ == "__main__":
-    test_dB_by_dcoilcoeff_taylortest(False, True)
+    test_dB_dX_by_dcoilcoeff_taylortest(True, True)
     import sys
     sys.exit()
     coil = CartesianFourierCurve(3)

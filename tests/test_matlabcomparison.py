@@ -34,8 +34,6 @@ index 9cffb47..22d03d1 100644
 
 
 def test_biot_savart_same_results_as_matlab():
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-
     num_coils = 6
     nfp = 2
     coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)

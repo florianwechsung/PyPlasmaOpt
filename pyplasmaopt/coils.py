@@ -16,6 +16,7 @@ class CoilCollection():
         self.currents = []
         flip_list = [False, True] if stellerator_symmetrie else [False] 
         self.map = []
+        self.current_sign = []
         for k in range(0, nfp):
             for flip in flip_list:
                 for i in range(len(coils)):
@@ -27,6 +28,7 @@ class CoilCollection():
                         self.coils.append(rotcoil)
                         self.currents.append(-self.__base_currents[i] if flip else currents[i])
                     self.map.append(i)
+                    self.current_sign.append(-1 if flip else +1)
         dof_ranges = [(0, len(self.__base_coils[0].get_dofs()))]
         for i in range(1, len(self.__base_coils)):
             dof_ranges.append((dof_ranges[-1][1], dof_ranges[-1][1] + len(self.__base_coils[i].get_dofs())))
@@ -39,8 +41,16 @@ class CoilCollection():
 
     def get_dofs(self):
         return np.concatenate([coil.get_dofs() for coil in self.__base_coils])
+    
+    def set_currents(self, currents):
+        self.__base_currents = currents
+        for i in range(len(self.currents)):
+            self.currents[i] = self.current_sign[i] * currents[self.map[i]]
 
-    def reduce_derivatives(self, derivatives, axis=0):
+    def get_currents(self):
+        return np.asarray(self.__base_currents)
+
+    def reduce_coefficient_derivatives(self, derivatives, axis=0):
         """
         Add derivatives for all those coils that were obtained by rotation and
         reflection of the initial coils.
@@ -53,3 +63,17 @@ class CoilCollection():
             else:
                 res[self.map[i]] += derivatives[i]
         return np.concatenate(res, axis=axis)
+
+    def reduce_current_derivatives(self, derivatives):
+        """
+        Combine derivatives with respect to current for all those coils that
+        were obtained by rotation and reflection of the initial coils.
+        """
+        assert len(derivatives) == len(self.coils) or len(derivatives) == len(self.__base_coils)
+        res = len(self.__base_coils) * [None]
+        for i in range(len(derivatives)):
+            if res[self.map[i]] is None:
+                res[self.map[i]]  = self.current_sign[i] * derivatives[i]
+            else:
+                res[self.map[i]] += self.current_sign[i] * derivatives[i]
+        return np.asarray(res)

@@ -19,6 +19,8 @@ class BiotSavartQuasiSymmetricFieldDifference():
 
         self.dBbs_by_dcoilcoeff    = self.biotsavart.dB_by_dcoilcoeff_via_chainrule(quadrature_points)
         self.d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff_via_chainrule(quadrature_points)
+        self.dBbs_by_dcoilcurrents    = self.biotsavart.dB_by_dcoilcurrents(quadrature_points)
+        self.d2Bbs_by_dXdcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents(quadrature_points)
 
         qsf = self.quasi_symmetric_field
         (self.dBqs_by_dcoeffs, self.d2Bqs_by_dcoeffsdX, self.diota_by_dcoeffs) = qsf.by_dcoefficients()
@@ -32,6 +34,13 @@ class BiotSavartQuasiSymmetricFieldDifference():
         res = []
         for dB in self.dBbs_by_dcoilcoeff:
             res.append(np.einsum('ij,ikj,i->k', self.Bbs-self.Bqs, dB, arc_length) * 2 / len(arc_length))
+        return res
+
+    def dJ_L2_by_dcoilcurrents(self):
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        res = []
+        for dB in self.dBbs_by_dcoilcurrents:
+            res.append(np.einsum('ij,ij,i', self.Bbs-self.Bqs, dB, arc_length) * 2 / len(arc_length))
         return res
 
     def dJ_L2_by_dmagneticaxiscoefficients(self):
@@ -68,6 +77,13 @@ class BiotSavartQuasiSymmetricFieldDifference():
         res = []
         for dB in self.d2Bbs_by_dXdcoilcoeff:
             res.append(np.einsum('ijk,iljk,i->l', self.dBbs_by_dX-self.dBqs_by_dX, dB, arc_length) * 2 / len(arc_length))
+        return res
+
+    def dJ_H1_by_dcoilcurrents(self):
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        res = []
+        for dB in self.d2Bbs_by_dXdcoilcurrents:
+            res.append(np.einsum('ijk,ijk,i', self.dBbs_by_dX-self.dBqs_by_dX, dB, arc_length) * 2 / len(arc_length))
         return res
 
     def dJ_H1_by_dmagneticaxiscoefficients(self):

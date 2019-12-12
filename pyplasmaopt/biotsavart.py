@@ -212,3 +212,51 @@ class BiotSavart():
             res_coil *= mu/(4*pi*num_coil_quadrature_points)
             res.append(res_coil)
         return res
+
+    def dB_by_dcoilcurrents(self, points, use_cpp=True):
+        res = []
+        for c in range(len(self.coils)):
+            res_coil = np.zeros((len(points), 3))
+            coil = self.coils[c]
+            gamma = coil.gamma
+            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
+            num_coil_quadrature_points = gamma.shape[0]
+            if use_cpp:
+                res_coil = cpp.biot_savart_B(points, gamma, dgamma_by_dphi)
+            else:
+                for i, point in enumerate(points):
+                    diff = point-gamma
+                    res_coil[i, :] = np.sum(
+                        (1./np.linalg.norm(diff, axis=1)**3)[:, None] * np.cross(dgamma_by_dphi, diff, axis=1),
+                        axis=0)
+            mu = 4 * pi * 1e-7
+            res_coil *= mu/(4*pi*num_coil_quadrature_points)
+            res.append(res_coil)
+        return res
+
+    def d2B_by_dXdcoilcurrents(self, points, use_cpp=True):
+        res = []
+        for c in range(len(self.coils)):
+            res_coil = np.zeros((len(points), 3, 3))
+            coil = self.coils[c]
+            gamma = coil.gamma
+            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
+            num_coil_quadrature_points = gamma.shape[0]
+            if use_cpp:
+                res_coil = cpp.biot_savart_dB_by_dX(points, gamma, dgamma_by_dphi)
+            else:
+                for i, point in enumerate(points):
+                    diff = point-gamma
+                    norm_diff = np.linalg.norm(diff, axis=1)
+                    dgamma_by_dphi_cross_diff = np.cross(dgamma_by_dphi, diff, axis=1)
+                    for j in range(3):
+                        ek = np.zeros((3,))
+                        ek[j] = 1.
+                        numerator1 = norm_diff[:, None] * np.cross(dgamma_by_dphi, ek)
+                        numerator2 = (3.*diff[:, j]/norm_diff)[:, None] * dgamma_by_dphi_cross_diff
+                        res_coil[i, j, :] = np.sum((1./norm_diff**4)[:, None]*(numerator1-numerator2),
+                            axis=0)
+            mu = 4 * pi * 1e-7
+            res_coil *= mu/(4*pi*num_coil_quadrature_points)
+            res.append(res_coil)
+        return res

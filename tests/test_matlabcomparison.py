@@ -69,7 +69,7 @@ def test_biot_savart_same_results_as_matlab():
 def test_quasi_symmetric_difference_same_results_as_matlab():
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=200)
+    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     coil_collection = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)

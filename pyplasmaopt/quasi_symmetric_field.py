@@ -13,76 +13,72 @@ class QuasiSymmetricField():
         self.eta_bar = eta_bar
         self.magnetic_axis = magnetic_axis
         self.n = len(magnetic_axis.points)
-        self.state = np.zeros((self.n+2,))
+        self.state = np.zeros((self.n+1,))
+        import scipy
+        n = self.n
+        points = self.magnetic_axis.points.reshape((n, 1))
+        oneton = np.asarray(range(0, n)).reshape((n, 1))
+        fak = (2 * pi) / (points[-1] - points[0] + (points[1]-points[0]))
+        dists = fak * scipy.spatial.distance.cdist(points, points, lambda a, b: a-b)
+        np.fill_diagonal(dists, 1e-10) # to shut up the warning
+        if n % 2 == 0:
+            D = 0.5 \
+                * np.power(-1, scipy.spatial.distance.cdist(oneton, -oneton)) \
+                / np.tan(0.5 * dists)
+        else:
+            D = 0.5 \
+                * np.power(-1, scipy.spatial.distance.cdist(oneton, -oneton)) \
+                / np.sin(0.5 * dists)
+        
+        np.fill_diagonal(D, 0)
+        D *=  fak
+        self.D = D
 
     def solve_state(self):
-
+        n = self.n
         ldash = self.magnetic_axis.incremental_arclength[:, 0]
         kappa = self.magnetic_axis.kappa[:, 0]
 
         G_0  = np.mean(ldash) * self.s_G * self.B_0/(2*pi)
         fak1 = abs(G_0)/self.B_0
         fak2 = 2 * G_0 * self.eta_bar**2 / (self.s_Psi * self.B_0)
-
-        ldash_padded = np.append(ldash, ldash[0])
-        kappa_padded = np.append(kappa, kappa[0])
         torsion = self.magnetic_axis.torsion[:, 0]
-        torsion_padded = np.append(torsion, torsion[0])
-        h = self.magnetic_axis.points[1] - self.magnetic_axis.points[0]
 
         def build_residual(x):
             sigma = x[:-1]
             iota = x[-1]
-            residual = np.zeros(x.shape)
-            residual[0] = x[0]
-            for i in range(1, self.n):
-                residual[i] = (fak1/ldash_padded[i]) * (sigma[i+1] - sigma[i-1])/(2*h) \
-                    + iota * ((self.eta_bar/kappa_padded[i])**4 + 1 + sigma[i]**2) \
-                    + fak2 * torsion_padded[i] / kappa_padded[i]**2
-            i = self.n
-            residual[i] = (fak1/ldash_padded[i]) * (sigma[1] - sigma[i-1])/(2*h) \
-                + iota * ((self.eta_bar/kappa_padded[i])**4 + 1 + sigma[i]**2) \
-                + fak2 * torsion_padded[i] / kappa_padded[i]**2
-            residual[self.n+1] = x[self.n]-x[0]
+            residual = np.zeros((n+1, ))
+            residual[:n] = (fak1/ldash)*(self.D@sigma) + iota * ((self.eta_bar/kappa)**4 + 1 + sigma**2) + fak2 * torsion / kappa**2
+            residual[-1] = sigma[0]
             return residual
 
         def build_jacobian(x):
-            jacobian = np.zeros((self.n+2, self.n+2))
             sigma = x[:-1]
             iota = x[-1]
-            jacobian[0, 0] = 1
-            for i in range(1, self.n):
-                jacobian[i, i+1] = (fak1/ldash_padded[i])*1/(2*h)
-                jacobian[i, i]   = 2 * iota * sigma[i]
-                jacobian[i, i-1] = -(fak1/ldash_padded[i])*1/(2*h)
-                jacobian[i, self.n+1] = ((self.eta_bar/kappa_padded[i])**4 + 1 + sigma[i]**2)
-            i = self.n
-            jacobian[i, 1] = (fak1/ldash_padded[i])*1/(2*h)
-            jacobian[i, i]   = 2 * iota * sigma[i]
-            jacobian[i, i-1] = -(fak1/ldash_padded[i])*1/(2*h)
-            jacobian[i, self.n+1] = ((self.eta_bar/kappa_padded[i])**4 + 1 + sigma[i]**2)
-            jacobian[self.n+1, self.n] = 1
-            jacobian[self.n+1, 0] = -1
+            jacobian = np.zeros((n+1, n+1))
+            jacobian[:n, :n] = np.diag(fak1/ldash)@self.D + np.diag(2 * sigma * iota)
+            jacobian[:n, n] = ((self.eta_bar/kappa)**4 + 1 + sigma**2)
+            jacobian[-1, 0] = 1
             return jacobian
 
         # x = np.random.rand(*self.state.shape)
         # jac = build_jacobian(x)
         # jac_est = np.zeros(jac.shape)
         # f0 = build_residual(x)
-        # eps = 1e-6
-        # for i in range(self.n+2):
+        # eps = 1e-4
+        # for i in range(self.n+1):
         #     x[i] += eps
         #     fx = build_residual(x)
-        #     x[i] -= eps
-        #     jac_est[:, i] = (fx-f0)/eps
+        #     x[i] -= 2*eps
+        #     fy = build_residual(x)
+        #     x[i] += eps
+        #     jac_est[:, i] = (fx-fy)/(2*eps)
         # np.set_printoptions(linewidth=1000, precision=4)
-        # # print(np.round(jac_est, 2))
-        # # print(np.round(jac, 2))
         # print(np.linalg.norm(jac-jac_est))
         res = fsolve(build_residual, self.state, fprime=build_jacobian, xtol=1e-10)
         self.state[:] = res[:]
-        sigma = res[:-2]
-        self.dsigma_by_dphi = np.asarray([(sigma[(i+1)%self.n]-sigma[i-1])/(2*h) for i in range(self.n)])
+        sigma = res[:-1]
+        self.dsigma_by_dphi = self.D @ sigma
         return (sigma, res[-1])
 
     def B(self):
@@ -101,7 +97,7 @@ class QuasiSymmetricField():
         G_0 = np.mean(ldash) * self.s_G * self.B_0/(2*pi)
         eta_bar = self.eta_bar
         iota = self.state[-1]
-        sigma = self.state[:-2]
+        sigma = self.state[:-1]
         dsigma_dphi = self.dsigma_by_dphi
         X1c = eta_bar/kappa
         Y1s = s_G * s_Psi * kappa / eta_bar
@@ -122,3 +118,34 @@ class QuasiSymmetricField():
             tterm = kappa * s_G * B_0 * n[:, j]
             res[:, j, :] = s_Psi * (B_0**2/abs(G_0)) * (nterm[:, None] * n + bterm[:, None] * b) + tterm[:, None] * t
         return res
+
+    def by_dcoefficients(self):
+        ma = self.magnetic_axis
+        numpoints = len(ma.points)
+        eps = 1e-4
+        x0 = ma.get_dofs()
+        state0 = self.state
+        numcoeffs = len(x0)
+        dBqs_by_dcoeffs = np.zeros((numpoints, numcoeffs, 3))
+        d2Bqs_by_dcoeffsdX = np.zeros((numpoints, numcoeffs, 3, 3))
+        diota_by_dcoeffs = np.zeros((numcoeffs, 1)) 
+        for i in range(numcoeffs):
+            x = x0.copy()
+            x[i] += eps
+            ma.set_dofs(x)
+            self.solve_state()
+            dBqs_by_dcoeffs[:, i, :] = self.B()
+            d2Bqs_by_dcoeffsdX[:, i, :, :] = self.dB_by_dX()
+            diota_by_dcoeffs[i, 0] = self.state[-1]
+            x[i] -= 2*eps
+            ma.set_dofs(x)
+            self.solve_state()
+            dBqs_by_dcoeffs[:, i, :] -= self.B()
+            dBqs_by_dcoeffs[:, i, :] *= 1/(2*eps)
+            d2Bqs_by_dcoeffsdX[:, i, :, :] -= self.dB_by_dX()
+            d2Bqs_by_dcoeffsdX[:, i, :, :] *= 1/(2*eps)
+            diota_by_dcoeffs[i, 0] -= self.state[-1]
+            diota_by_dcoeffs[i, 0] *= 1/(2*eps)
+        ma.set_dofs(x0)
+        self.solve_state()
+        return (dBqs_by_dcoeffs, d2Bqs_by_dcoeffsdX, diota_by_dcoeffs)

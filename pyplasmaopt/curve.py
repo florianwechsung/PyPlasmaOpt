@@ -22,12 +22,14 @@ class Curve():
         self.dgamma_by_dcoeff = None
         self.d2gamma_by_dphidcoeff = None
         self.d3gamma_by_dphidphidcoeff = None
+        self.d4gamma_by_dphidphidphidcoeff = None
         self.dkappa_by_dcoeff = None
         self.incremental_arclength = None
         self.dincremental_arclength_by_dcoeff = None
         self.dincremental_arclength_by_dphi = None
         self.frenet_frame = None
         self.torsion = None
+        self.dtorsion_by_dcoeff = None
 
     def update(self):
         num_points = len(self.points)
@@ -50,6 +52,8 @@ class Curve():
             self.d2gamma_by_dphidcoeff = np.zeros((num_points, 1, num_coeffs, 3))
         if self.d3gamma_by_dphidphidcoeff is None:
             self.d3gamma_by_dphidphidcoeff = np.zeros((num_points, 1, 1, num_coeffs, 3))
+        if self.d4gamma_by_dphidphidphidcoeff is None:
+            self.d4gamma_by_dphidphidphidcoeff = np.zeros((num_points, 1, 1, 1, num_coeffs, 3))
         if self.dkappa_by_dcoeff is None:
             self.dkappa_by_dcoeff = np.zeros((num_points, num_coeffs, 1))
         if self.incremental_arclength is None:
@@ -62,6 +66,8 @@ class Curve():
             self.frenet_frame = (np.zeros((num_points, 3)), np.zeros((num_points, 3)), np.zeros((num_points, 3)))
         if self.torsion is None:
             self.torsion = np.zeros((num_points, 1))
+        if self.dtorsion_by_dcoeff is None:
+            self.dtorsion_by_dcoeff = np.zeros((num_points, num_coeffs, 1))
 
         self.gamma_impl()
         self.dgamma_by_dphi_impl()
@@ -70,6 +76,7 @@ class Curve():
         self.dgamma_by_dcoeff_impl()
         self.d2gamma_by_dphidcoeff_impl()
         self.d3gamma_by_dphidphidcoeff_impl()
+        self.d4gamma_by_dphidphidphidcoeff_impl()
         self.incremental_arclength_impl()
         self.dincremental_arclength_by_dphi_impl()
         self.dincremental_arclength_by_dcoeff_impl()
@@ -78,6 +85,7 @@ class Curve():
         self.dkappa_by_dcoeff_impl()
         self.frenet_frame_impl()
         self.torsion_impl()
+        self.dtorsion_by_coeff_impl()
         for obj in self.dependencies:
             obj.update()
 
@@ -174,6 +182,20 @@ class Curve():
         d2gamma = self.d2gamma_by_dphidphi[:, 0, 0, :]
         d3gamma = self.d3gamma_by_dphidphidphi[:, 0, 0, 0, :]
         res[:, 0] = np.sum(np.cross(d1gamma, d2gamma, axis=1) * d3gamma, axis=1) / np.sum(np.cross(d1gamma, d2gamma, axis=1)**2, axis=1)
+
+    def dtorsion_by_coeff_impl(self):
+        res = self.dtorsion_by_dcoeff
+        d1gamma = self.dgamma_by_dphi[:, 0, :]
+        d2gamma = self.d2gamma_by_dphidphi[:, 0, 0, :]
+        d3gamma = self.d3gamma_by_dphidphidphi[:, 0, 0, 0, :]
+        d1gammadcoeff = self.d2gamma_by_dphidcoeff[:, 0, :]
+        d2gammadcoeff = self.d3gamma_by_dphidphidcoeff[:, 0, 0, :, :]
+        d3gammadcoeff = self.d4gamma_by_dphidphidphidcoeff[:, 0, 0, 0, :, :]
+        res[:, :, 0] = (
+              np.sum(np.cross(d1gamma, d2gamma, axis=1)[:, None, :] * d3gammadcoeff, axis=2)
+            + np.sum((np.cross(d1gammadcoeff, d2gamma[:, None, :], axis=2) +  np.cross(d1gamma[:, None, :], d2gammadcoeff, axis=2)) * d3gamma[:, None, :], axis=2)
+        )/np.sum(np.cross(d1gamma, d2gamma, axis=1)**2, axis=1)[:, None]
+        res[:, :, 0] -= np.sum(np.cross(d1gamma, d2gamma, axis=1) * d3gamma, axis=1)[:, None] * np.sum(2 * np.cross(d1gamma, d2gamma, axis=1)[:, None, :] * (np.cross(d1gammadcoeff, d2gamma[:, None, :], axis=2) + np.cross(d1gamma[:, None, :], d2gammadcoeff, axis=2)), axis=2)/np.sum(np.cross(d1gamma, d2gamma, axis=1)**2, axis=1)[:, None]**2
         
     def frenet_frame_impl(self):
         """
@@ -307,6 +329,13 @@ with
             for j in range(1, self.order+1):
                 self.d3gamma_by_dphidphidphi[:, 0, 0, 0, i] += -coeffs[i][2*j-1] * (2*pi*j)**3*np.cos(2*pi*j*points)
                 self.d3gamma_by_dphidphidphi[:, 0, 0, 0, i] += +coeffs[i][2*j]   * (2*pi*j)**3*np.sin(2*pi*j*points)
+
+    def d4gamma_by_dphidphidphidcoeff_impl(self):
+        points = self.points
+        for i in range(3):
+            for j in range(1, self.order+1):
+                self.d4gamma_by_dphidphidphidcoeff[:, 0, 0, 0, i*(2*self.order+1) + 2*j-1, i] = -(2*pi*j)**3*np.cos(2*pi*j*points)
+                self.d4gamma_by_dphidphidphidcoeff[:, 0, 0, 0, i*(2*self.order+1) + 2*j  , i] = +(2*pi*j)**3*np.sin(2*pi*j*points)
 
 
 class StelleratorSymmetricCylindricalFourierCurve(Curve):
@@ -445,6 +474,9 @@ class StelleratorSymmetricCylindricalFourierCurve(Curve):
         for i in range(1, self.order+1):
             res[:, 0, 0, self.order + i, 2] = -(nfp * 2 * pi * i)**2 * np.sin(nfp * 2 * pi * i * points)
 
+    def d4gamma_by_dphidphidphidcoeff_impl(self):
+        pass
+
 class RotatedCurve(Curve):
 
     def __init__(self, curve, theta, flip):
@@ -486,6 +518,9 @@ class RotatedCurve(Curve):
     def d3gamma_by_dphidphidcoeff_impl(self):
         d3gamma_by_dphidphidcoeff = self.curve.d3gamma_by_dphidphidcoeff
         self.d3gamma_by_dphidphidcoeff[:, :, :] = d3gamma_by_dphidphidcoeff @ self.rotmat
+
+    def d4gamma_by_dphidphidphidcoeff_impl(self):
+        pass
 
 class GaussianCurve(Curve):
 

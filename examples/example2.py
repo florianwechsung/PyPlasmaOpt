@@ -1,11 +1,11 @@
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, \
     BiotSavartQuasiSymmetricFieldDifference, get_matt_data, CoilCollection, \
-    CurveLength, CurveCurvature, QuasiSymmetricField
+    CurveLength, CurveCurvature, QuasiSymmetricField, CurveTorsion
 import numpy as np
 import matplotlib.pyplot as plt
 
 nfp = 2
-(coils, ma) = get_matt_data(nfp=nfp, ppp=20, at_optimum=False)
+(coils, ma) = get_matt_data(nfp=nfp, ppp=20, at_optimum=True)
 currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
 stellerator = CoilCollection(coils, currents, nfp, True)
 bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -18,7 +18,9 @@ J_BSvsQS.update()
 J_coil_lengths    = [CurveLength(coil) for coil in coils]
 J_axis_length     = CurveLength(ma)
 J_coil_curvatures = [CurveCurvature(coil) for coil in coils]
-curv_fak = 1e-6
+J_coil_torsions   = [CurveTorsion(coil) for coil in coils]
+curvature_scale = 1e-6
+torsion_scale   = 1e-4
 
 coil_length_target = 4.398229715025710
 magnetic_axis_length_target = 6.356206812106860
@@ -39,13 +41,15 @@ def J(x, info=None):
     res2 = sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
     res3 =  (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
     res4 = (1/iota_target**2) * (qsf.state[-1]-iota_target)**2
-    res5 = sum(curv_fak * J.J() for J in J_coil_curvatures)
+    res5 = sum(curvature_scale * J.J() for J in J_coil_curvatures)
+    res6 = sum(torsion_scale * J.J() for J in J_coil_torsions)
 
     dres1coil = stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) + stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
     dres2coil = stellerator.reduce_coefficient_derivatives([
         2 * (1/coil_length_target)**2 * (J_coil_lengths[i].J()-coil_length_target) * J_coil_lengths[i].dJ_by_dcoefficients() for i in range(len(J_coil_lengths))
     ])
-    dres5coil = curv_fak * stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+    dres5coil = curvature_scale * stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+    dres6coil = torsion_scale * stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
 
     dres1current = current_fak * (
         stellerator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + stellerator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
@@ -54,8 +58,8 @@ def J(x, info=None):
     dres3ma = 2 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
     dres4ma = 2 * (1/iota_target**2) * (qsf.state[-1] - iota_target) * J_BSvsQS.diota_by_dcoeffs[:,0]
 
-    dres = np.concatenate((dres1ma + dres3ma + dres4ma, dres1current, dres1coil + dres2coil + dres5coil))
-    res = res1 + res2 + res3 + res4 + res5
+    res = res1 + res2 + res3 + res4 + res5 + res6
+    dres = np.concatenate((dres1ma + dres3ma + dres4ma, dres1current, dres1coil + dres2coil + dres5coil + dres6coil))
     # if False:
     if info is not None:
         if info['Nfeval'] % 10 == 0:
@@ -71,8 +75,8 @@ def J(x, info=None):
             plt.close()
             print("################################################################################")
             print(f"Iteration {info['Nfeval']}")
-            print("Objective values:", res1, res2, res3, res4, res5)
-            print("Objective gradients:", np.linalg.norm(dres1ma + dres3ma + dres4ma), np.linalg.norm(dres1current), np.linalg.norm(dres1coil + dres2coil + dres5coil))
+            print("Objective values:", res1, res2, res3, res4, res5, res6)
+            print("Objective gradients:", np.linalg.norm(dres1ma + dres3ma + dres4ma), np.linalg.norm(dres1current), np.linalg.norm(dres1coil + dres2coil + dres5coil + dres6coil))
         info['Nfeval'] += 1
     return res, dres
 x = np.concatenate((ma.get_dofs(), stellerator.get_currents()/current_fak, stellerator.get_dofs()))
@@ -91,7 +95,7 @@ if False:
 
 import time
 from scipy.optimize import minimize
-maxiter = 1000
+maxiter = 100
 t1 = time.time()
 res = minimize(J, x, args=({'Nfeval':0},), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter})
 t2 = time.time()

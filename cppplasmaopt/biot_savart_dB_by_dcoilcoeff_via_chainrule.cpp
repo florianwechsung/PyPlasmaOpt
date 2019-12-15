@@ -1,14 +1,13 @@
 #include "biot_savart.h"
 #include <tuple>
 
-Array biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff) {
+#include <vector>
+using std::vector;
+void biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff, Array& res, Array& res_coil_gamma, Array& res_coil_gammadash) {
     int num_points      = points.shape(0);
     int num_quad_points = gamma.shape(0);
     int num_coeffs      = dgamma_by_dcoeff.shape(1);
-    Array res_coil_gamma     = xt::zeros<double>({3, 3, num_points, num_quad_points});
-    Array res_coil_gammadash = xt::zeros<double>({3, 3, num_points, num_quad_points});
 
-    #pragma omp parallel for
     for (int i = 0; i < num_points; ++i) {
         auto point = Vec3d(3, &points.at(i, 0));
         for (int j = 0; j < num_quad_points; ++j) {
@@ -46,8 +45,6 @@ Array biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Ar
         res_coil_1 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 1, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
         res_coil_2 += RowMat(num_points, num_quad_points, &res_coil_gamma.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &dgamma_by_dcoeff.at(0, 0, j)) + RowMat(num_points, num_quad_points, &res_coil_gammadash.at(j, 2, 0, 0)) * ColMat(num_quad_points, num_coeffs, &d2gamma_by_dphidcoeff.at(0, 0, j));
     }
-    Array res = xt::zeros<double>({num_points, num_coeffs, 3});
-    #pragma omp parallel for
     for (int i = 0; i < num_points; ++i) {
         for (int j = 0; j < num_coeffs; ++j) {
            res.at(i, j, 0) = res_coil_0(i, j); 
@@ -55,5 +52,33 @@ Array biot_savart_dB_by_dcoilcoeff_via_chainrule(Array& points, Array& gamma, Ar
            res.at(i, j, 2) = res_coil_2(i, j); 
         }
     }
+}
+
+vector<Array> biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils(vector<Array>& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs) {
+    int num_coils = gammas.size();
+    auto res = vector<Array>();
+    res.reserve(num_coils);
+    auto res_coil_gamma = vector<Array>();
+    res_coil_gamma.reserve(num_coils);
+    auto res_coil_gammadash = vector<Array>();
+    res_coil_gammadash.reserve(num_coils);
+
+    // Actually slightly quicker if we assume the dimensions are the same on every thread.
+    // Should do that optimisation at some point.
+    //int tid = omp_get_thread_num();
+    //int tsize = omp_get_num_threads();
+    for(int i=0; i<num_coils; i++) {
+        long unsigned int num_points = points[i].shape(0);
+        long unsigned int num_quad_points = gammas[i].shape(0);
+        long unsigned int num_coeffs = dgamma_by_dcoeffs[i].shape(1);
+        res.push_back(xt::pyarray<double>::from_shape({num_points, num_coeffs, 3}));
+        res_coil_gamma.push_back(xt::pyarray<double>::from_shape({3, 3, num_points, num_quad_points}));
+        res_coil_gammadash.push_back(xt::pyarray<double>::from_shape({3, 3, num_points, num_quad_points}));
+    }
+    #pragma omp parallel for
+    for(int i=0; i<num_coils; i++) {
+       biot_savart_dB_by_dcoilcoeff_via_chainrule(points[i], gammas[i], dgamma_by_dphis[i], dgamma_by_dcoeffs[i], d2gamma_by_dphidcoeffs[i], res[i], res_coil_gamma[i], res_coil_gammadash[i]);
+    }
     return res;
 }
+

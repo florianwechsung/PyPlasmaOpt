@@ -9,6 +9,7 @@ cmake:
 	cd build ; cmake \
 		-DCMAKE_CXX_COMPILER=g++-9 \
 		-DCMAKE_C_COMPILER=gcc-9 \
+		-DCMAKE_BUILD_TYPE=Debug \
 		..
-	make -C build
+	make -C build -j 4
 	ln -s build/cppplasmaopt.cpython-37m-darwin.so .

@@ -80,10 +80,10 @@ def J(x, info=None):
         info['Nfeval'] += 1
     return res, dres
 x = np.concatenate((ma.get_dofs(), stellerator.get_currents()/current_fak, stellerator.get_dofs()))
-if False:
+if True:
     J0, dJ0 = J(x)
     np.random.seed(1)
-    h = 1e-2 * np.random.rand(*(x.shape))
+    h = 1e-3 * np.random.rand(*(x.shape))
     dJh = sum(dJ0*h)
     for i in range(5, 20):
         eps = 0.5**i
@@ -111,15 +111,15 @@ print("Gradient norm at minimum:", np.linalg.norm(res.jac), np.linalg.norm(J(x)[
 #     Jeps = J(coil_dofs + eps * h)[0]
 #     err = abs((Jeps-J0)/eps - dJh)
 #     print(err)
-import IPython; IPython.embed()
-ax = None
-for i in range(0, len(stellerator.coils)):
-    ax = stellerator.coils[i].plot(ax=ax, show=False)
-ma.plot(ax=ax, show=False, closed_loop=False)
-ax.view_init(elev=30., azim=45)
-ax.set_xlim(-2, 2)
-ax.set_ylim(-2, 2)
-ax.set_zlim(-1, 1)
-plt.show()
+# import IPython; IPython.embed()
+# ax = None
+# for i in range(0, len(stellerator.coils)):
+#     ax = stellerator.coils[i].plot(ax=ax, show=False)
+# ma.plot(ax=ax, show=False, closed_loop=False)
+# ax.view_init(elev=30., azim=45)
+# ax.set_xlim(-2, 2)
+# ax.set_ylim(-2, 2)
+# ax.set_zlim(-1, 1)
+# plt.show()
 # import sys
 # sys.exit()

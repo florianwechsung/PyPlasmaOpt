@@ -75,11 +75,25 @@ class QuasiSymmetricField():
         #     jac_est[:, i] = (fx-fy)/(2*eps)
         # np.set_printoptions(linewidth=1000, precision=4)
         # print(np.linalg.norm(jac-jac_est))
-        res = fsolve(build_residual, self.state, fprime=build_jacobian, xtol=1e-10)
-        self.state[:] = res[:]
-        sigma = res[:-1]
+        if np.linalg.norm(self.state) < 1e-13:
+            soln = fsolve(build_residual, self.state, fprime=build_jacobian, xtol=1e-10)
+        else:
+            diff = 1
+            soln = self.state.copy()
+            count = 0
+            while diff > 1e-10:
+                update = np.linalg.solve(build_jacobian(soln), build_residual(soln))
+                soln -= update
+                diff = np.linalg.norm(update)
+                count += 1
+                if count > 10:
+                    soln = fsolve(build_residual, self.state, fprime=build_jacobian, xtol=1e-10)
+                    break
+        self.state[:] = soln[:]
+        sigma = self.state[:-1]
+        iota = self.state[-1]
         self.dsigma_by_dphi = self.D @ sigma
-        return (sigma, res[-1])
+        return (sigma, iota)
 
     def B(self):
         (t, n, b) = self.magnetic_axis.frenet_frame

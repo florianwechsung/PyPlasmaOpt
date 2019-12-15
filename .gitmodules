@@ -13,3 +13,6 @@
 [submodule "xtl"]
     path = xtl
     url  = https://github.com/xtensor-stack/xtl.git
+[submodule "xsimd"]
+	path = xsimd
+	url = https://github.com/xtensor-stack/xsimd.git

@@ -1,8 +1,38 @@
-#include "xtensor/xmath.hpp"              // xtensor import for the C++ universal functions
 #define FORCE_IMPORT_ARRAY
-#include "xtensor-python/pyarray.hpp"     // Numpy bindings
+#include "xtensor/xnpy.hpp"
 #include "biot_savart.h"
+#include <chrono>
+
+
+
 
 int main() {
+    xt::xarray<double> points         = xt::load_npy<double>("points_200.npy");
+    xt::xarray<double> gamma          = xt::load_npy<double>("gamma_200.npy");
+    xt::xarray<double> dgamma_by_dphi = xt::load_npy<double>("dgamma_by_dphi_200.npy");
+    int n = 10000;
+
+    auto pointsx = vector_type(points.shape(0), 0);
+    auto pointsy = vector_type(points.shape(0), 0);
+    auto pointsz = vector_type(points.shape(0), 0);
+    for (int i = 0; i < points.shape(0); ++i) {
+        pointsx[i] = points(i, 0);
+        pointsy[i] = points(i, 1);
+        pointsz[i] = points(i, 2);
+    }
+    auto t3 = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for
+    for (int i = 0; i < n; ++i) {
+        auto res = xt::xarray<double>::from_shape({points.shape(0), 3});
+        biot_savart_B_simd( pointsx,  pointsy,  pointsz, gamma, dgamma_by_dphi, res);
+        if(i==0)
+            std::cout << res(0, 0) << " " << res(40, 2) << std::endl;
+    }
+    auto t4 = std::chrono::high_resolution_clock::now();
+    double simdtime = std::chrono::duration_cast<std::chrono::milliseconds>( t4 - t3 ).count();
+    double gflops = 1e-9 * n * 30 * points.shape(0) * gamma.shape(0);
+    std::cout << points.shape(0) << std::endl;
+    std::cout << gamma.shape(0) << std::endl;
+    std::cout << "simd     " << simdtime << "ms, " << (gflops/(0.001 * simdtime)) << "GFlops" << std::endl;
     return 1;
 }

@@ -24,7 +24,8 @@ set_target_properties(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE "xtensor/include" "xtensor-python/include" "xsimd/include" "xtl/include" "blaze" "cppplasmaopt" ${Python3_NumPy_INCLUDE_DIRS})
 
 
-add_executable(profiling_biot_savart profiling/profile_biot_savart.cpp cppplasmaopt/biot_savart_B.cpp)
+add_executable(profiling_biot_savart profiling/profile_biot_savart.cpp cppplasmaopt/biot_savart_B.cpp
+    cppplasmaopt/biot_savart_dB_by_dX.cpp)
 set_target_properties(profiling_biot_savart
     PROPERTIES
     CXX_STANDARD 14

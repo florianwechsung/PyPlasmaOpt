@@ -21,7 +21,7 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     )pbdoc");
 
     m.def("biot_savart_B_allcoils", &biot_savart_B_allcoils);
-    m.def("biot_savart_dB_by_dX", &biot_savart_dB_by_dX);
+    m.def("biot_savart_dB_by_dX_allcoils", &biot_savart_dB_by_dX_allcoils);
     m.def("biot_savart_d2B_by_dXdX", &biot_savart_d2B_by_dXdX);
     m.def("biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils", &biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils);
     m.def("biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils", &biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils);

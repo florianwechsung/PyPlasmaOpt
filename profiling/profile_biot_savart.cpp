@@ -20,6 +20,14 @@ int main() {
         pointsy[i] = points(i, 1);
         pointsz[i] = points(i, 2);
     }
+    auto t2 = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for
+    for (int i = 0; i < n; ++i) {
+        auto res = xt::xarray<double>::from_shape({points.shape(0), 3, 3});
+        biot_savart_dB_by_dX_simd( pointsx,  pointsy,  pointsz, gamma, dgamma_by_dphi, res);
+        if(i==0)
+            std::cout << res(0, 0) << " " << res(40, 2) << std::endl;
+    }
     auto t3 = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for
     for (int i = 0; i < n; ++i) {
@@ -29,10 +37,11 @@ int main() {
             std::cout << res(0, 0) << " " << res(40, 2) << std::endl;
     }
     auto t4 = std::chrono::high_resolution_clock::now();
-    double simdtime = std::chrono::duration_cast<std::chrono::milliseconds>( t4 - t3 ).count();
-    double gflops = 1e-9 * n * 30 * points.shape(0) * gamma.shape(0);
-    std::cout << points.shape(0) << std::endl;
-    std::cout << gamma.shape(0) << std::endl;
-    std::cout << "simd     " << simdtime << "ms, " << (gflops/(0.001 * simdtime)) << "GFlops" << std::endl;
+    double dB_by_dX_simdtime = std::chrono::duration_cast<std::chrono::milliseconds>( t3 - t2 ).count();
+    double dB_by_dX_gflops = 1e-9 * n * 100 * points.shape(0) * gamma.shape(0);
+    std::cout << "dB_dX simd     " << dB_by_dX_simdtime << "ms, " << (dB_by_dX_gflops/(0.001 * dB_by_dX_simdtime)) << "GFlops" << std::endl;
+    double B_simdtime = std::chrono::duration_cast<std::chrono::milliseconds>( t4 - t3 ).count();
+    double B_gflops = 1e-9 * n * 30 * points.shape(0) * gamma.shape(0);
+    std::cout << "B     simd     " << B_simdtime << "ms, " << (B_gflops/(0.001 * B_simdtime)) << "GFlops" << std::endl;
     return 1;
 }

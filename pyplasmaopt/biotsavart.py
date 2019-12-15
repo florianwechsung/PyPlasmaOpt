@@ -34,13 +34,17 @@ class BiotSavart():
     
     def dB_by_dX(self, points, use_cpp=True):
         res = np.zeros((len(points), 3, 3))
-        for coil, current in zip(self.coils, self.coil_currents):
-            gamma = coil.gamma
-            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
-            num_coil_quadrature_points = gamma.shape[0]
-            if use_cpp:
-                res += current * cpp.biot_savart_dB_by_dX(points, gamma, dgamma_by_dphi)
-            else:
+        if use_cpp:
+            gammas                 = [coil.gamma for coil in self.coils]
+            dgamma_by_dphis        = [coil.dgamma_by_dphi[:, 0, :] for coil in self.coils]
+            res = cpp.biot_savart_dB_by_dX_allcoils(points, gammas, dgamma_by_dphis)
+            faks = [4 * pi * 1e-7/(4*pi*gammas[i].shape[0]) for i in range(len(self.coils))]
+            return sum(faks[i] * self.coil_currents[i] * res[i] for i in range(len(self.coils)))
+        else:
+            for coil, current in zip(self.coils, self.coil_currents):
+                gamma = coil.gamma
+                dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
+                num_coil_quadrature_points = gamma.shape[0]
                 for i, point in enumerate(points):
                     diff = point-gamma
                     norm_diff = np.linalg.norm(diff, axis=1)
@@ -52,9 +56,9 @@ class BiotSavart():
                         numerator2 = (3.*diff[:, j]/norm_diff)[:, None] * dgamma_by_dphi_cross_diff
                         res[i, j, :] += current * np.sum((1./norm_diff**4)[:, None]*(numerator1-numerator2),
                             axis=0)
-        mu = 4 * pi * 1e-7
-        res *= mu/(4*pi*num_coil_quadrature_points)
-        return res
+            mu = 4 * pi * 1e-7
+            res *= mu/(4*pi*num_coil_quadrature_points)
+            return res
 
     def d2B_by_dXdX(self, points, use_cpp=True):
         res = np.zeros((len(points), 3, 3, 3))
@@ -239,16 +243,19 @@ class BiotSavart():
             return res
 
     def d2B_by_dXdcoilcurrents(self, points, use_cpp=True):
-        res = []
-        for c in range(len(self.coils)):
-            res_coil = np.zeros((len(points), 3, 3))
-            coil = self.coils[c]
-            gamma = coil.gamma
-            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
-            num_coil_quadrature_points = gamma.shape[0]
-            if use_cpp:
-                res_coil = cpp.biot_savart_dB_by_dX(points, gamma, dgamma_by_dphi)
-            else:
+        res = np.zeros((len(points), 3))
+        if use_cpp:
+            gammas                 = [coil.gamma for coil in self.coils]
+            dgamma_by_dphis        = [coil.dgamma_by_dphi[:, 0, :] for coil in self.coils]
+            res = cpp.biot_savart_dB_by_dX_allcoils(points, gammas, dgamma_by_dphis)
+            faks = [4 * pi * 1e-7/(4*pi*gammas[i].shape[0]) for i in range(len(self.coils))]
+            return [faks[i] * res[i] for i in range(len(self.coils))]
+        else:
+            for coil, current in zip(self.coils, self.coil_currents):
+                res_coil = np.zeros((len(points), 3))
+                gamma = coil.gamma
+                dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
+                num_coil_quadrature_points = gamma.shape[0]
                 for i, point in enumerate(points):
                     diff = point-gamma
                     norm_diff = np.linalg.norm(diff, axis=1)
@@ -260,7 +267,7 @@ class BiotSavart():
                         numerator2 = (3.*diff[:, j]/norm_diff)[:, None] * dgamma_by_dphi_cross_diff
                         res_coil[i, j, :] = np.sum((1./norm_diff**4)[:, None]*(numerator1-numerator2),
                             axis=0)
-            mu = 4 * pi * 1e-7
-            res_coil *= mu/(4*pi*num_coil_quadrature_points)
-            res.append(res_coil)
-        return res
+                mu = 4 * pi * 1e-7
+                res_coil *= mu/(4*pi*num_coil_quadrature_points)
+                res.append(res_coil)
+            return res

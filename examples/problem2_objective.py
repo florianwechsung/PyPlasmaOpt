@@ -4,12 +4,12 @@ class Problem2_Objective():
 
     def __init__(self, stellerator, ma, 
                  iota_target=0.103, coil_length_target=4.398229715025710, magnetic_axis_length_target=6.356206812106860,
-                 curvature_scale=1e-6, torsion_scale=1e-4
+                 eta_bar=-2.105800979374183,
+                 curvature_scale=1e-6, torsion_scale=1e-4, tikhonov=0.0
                  ):
         self.stellerator = stellerator
         self.ma = ma
         bs = BiotSavart(stellerator.coils, stellerator.currents)
-        eta_bar = -2.105800979374183
         qsf = QuasiSymmetricField(eta_bar, ma)
         self.qsf = qsf
         sigma, iota = qsf.solve_state()
@@ -32,9 +32,8 @@ class Problem2_Objective():
         self.ma_dof_idxs = (0, self.num_ma_dofs)
         self.current_dof_idxs = (self.ma_dof_idxs[1], self.ma_dof_idxs[1] + len(stellerator.get_currents()))
         self.coil_dof_idxs = (self.current_dof_idxs[1], self.current_dof_idxs[1] + len(stellerator.get_dofs()))
-
-    def x0(self):
-        return np.concatenate((self.ma.get_dofs(), self.stellerator.get_currents()/self.current_fak, self.stellerator.get_dofs()))
+        self.x0 = np.concatenate((self.ma.get_dofs(), self.stellerator.get_currents()/self.current_fak, self.stellerator.get_dofs()))
+        self.tikhonov = tikhonov
 
     def update(self, x):
         J_BSvsQS          = self.J_BSvsQS
@@ -49,9 +48,12 @@ class Problem2_Objective():
         torsion_scale               = self.torsion_scale
         qsf = self.qsf
 
-        self.ma.set_dofs(x[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]])
-        self.stellerator.set_currents(self.current_fak * x[self.current_dof_idxs[0]:self.current_dof_idxs[1]])
-        self.stellerator.set_dofs(x[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]])
+        x_ma = x[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
+        x_current = x[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
+        x_coil = x[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        self.ma.set_dofs(x_ma)
+        self.stellerator.set_currents(self.current_fak * x_current)
+        self.stellerator.set_dofs(x_coil)
         self.qsf.solve_state()
         self.J_BSvsQS.update()
         self.res1 = J_BSvsQS.J_L2() + J_BSvsQS.J_H1()
@@ -60,6 +62,7 @@ class Problem2_Objective():
         self.res4 = (1/iota_target**2) * (qsf.state[-1]-iota_target)**2
         self.res5 = sum(curvature_scale * J.J() for J in J_coil_curvatures)
         self.res6 = sum(torsion_scale * J.J() for J in J_coil_torsions)
+        self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
 
         self.dres1coil = self.stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
             + self.stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
@@ -75,11 +78,14 @@ class Problem2_Objective():
         self.dres3ma = 2 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
         self.dres4ma = 2 * (1/iota_target**2) * (qsf.state[-1] - iota_target) * J_BSvsQS.diota_by_dcoeffs[:,0]
 
-        self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6
+        self.dres_tikhonov = self.tikhonov * 2. * (x-self.x0)
+
+        self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6  + self.res_tikhonov
         self.dres = np.concatenate((self.dres1ma + self.dres3ma + self.dres4ma, self.dres1current, self.dres1coil + self.dres2coil + self.dres5coil + self.dres6coil))
+        self.dres += self.dres_tikhonov
 
     def print_status(self):
-        print("Objective values:", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6)
-        print("Objective gradients:", np.linalg.norm(self.dres1ma + self.dres3ma + self.dres4ma), np.linalg.norm(self.dres1current), np.linalg.norm(self.dres1coil + self.dres2coil + self.dres5coil + self.dres6coil))
+        print("Objective values:", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res_tikhonov)
+        print("Objective gradients:", np.linalg.norm(self.dres1ma + self.dres3ma + self.dres4ma + self.dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]), np.linalg.norm(self.dres1current + self.dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]), np.linalg.norm(self.dres1coil + self.dres2coil + self.dres5coil + self.dres6coil + self.dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]))
 
 

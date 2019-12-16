@@ -10,7 +10,7 @@ def get_matt_data(Nt=4, nfp=2, ppp=10, at_optimum=False):
     else:
         coil_data = np.loadtxt(os.path.join(dir_path, "..", "data", "matt_initial.dat"), delimiter=',')
     num_coils = 6
-    coils = [CartesianFourierCurve(6, np.linspace(0, 1, Nt*ppp, endpoint=False)) for i in range(num_coils)]
+    coils = [CartesianFourierCurve(Nt, np.linspace(0, 1, Nt*ppp, endpoint=False)) for i in range(num_coils)]
     for ic in range(num_coils):
         coils[ic].coefficients[0][0] = coil_data[0, 6*ic + 1]
         coils[ic].coefficients[1][0] = coil_data[0, 6*ic + 3]
@@ -25,7 +25,7 @@ def get_matt_data(Nt=4, nfp=2, ppp=10, at_optimum=False):
         coils[ic].update()
 
     numpoints = Nt*ppp+1 if ((Nt*ppp) % 2 == 0) else Nt*ppp
-    ma = StelleratorSymmetricCylindricalFourierCurve(4, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
+    ma = StelleratorSymmetricCylindricalFourierCurve(Nt-1, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
     if at_optimum:
         ma.coefficients[0][0] = 0.976141492438223
         ma.coefficients[0][1] = 0.112424048908878

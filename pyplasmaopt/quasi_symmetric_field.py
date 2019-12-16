@@ -136,7 +136,7 @@ class QuasiSymmetricField():
     def by_dcoefficients(self):
         ma = self.magnetic_axis
         numpoints = len(ma.points)
-        eps = 1e-4
+        eps = 1e-6
         x0 = ma.get_dofs()
         state0 = self.state
         numcoeffs = len(x0)

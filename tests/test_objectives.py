@@ -4,6 +4,7 @@ from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricC
     SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve, get_matt_data, CoilCollection, \
     QuasiSymmetricField, BiotSavartQuasiSymmetricFieldDifference
 
+
 @pytest.mark.parametrize("gradient", [True, False])
 def test_magnetic_field_objective_by_dcoilcoeffs(gradient):
     nfp = 2
@@ -72,7 +73,7 @@ def test_taylor_test_coil_coeffs(objective):
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     J.update()
     coil_dofs = stellerator.get_dofs()
-    h = 0.1 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    h =1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
     if objective == "l2":
         J0 = J.J_L2()
         dJ = stellerator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients())

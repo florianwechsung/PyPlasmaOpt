@@ -3,8 +3,10 @@
 #include <vector>
 using std::vector;
 //#include <omp.h>
+#include <chrono>
 
 void biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& dgamma_by_dcoeff, Array& d2gamma_by_dphidcoeff, Array& res, Array& res_coil_gamma, Array& res_coil_gammadash) {
+    auto t1 = std::chrono::high_resolution_clock::now();
     int num_points = points.shape(0);
     int num_quad_points = gamma.shape(0);
     int num_coeffs      = dgamma_by_dcoeff.shape(1);
@@ -44,6 +46,7 @@ void biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& points, Array& gamma, 
             }
         }
     }
+    auto t2 = std::chrono::high_resolution_clock::now();
     //Array res = xt::zeros<double>({num_points, num_coeffs, 3, 3});
     RowMat res_coil_00(num_points, num_coeffs);
     RowMat res_coil_10(num_points, num_coeffs);
@@ -88,6 +91,11 @@ void biot_savart_d2B_by_dXdcoilcoeff_via_chainrule(Array& points, Array& gamma, 
            res.at(i, j, 2, 2) = res_coil_22(i, j); 
         }
     }
+    auto t3 = std::chrono::high_resolution_clock::now();
+    double time1 = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+    double time2 = std::chrono::duration_cast<std::chrono::microseconds>( t3 - t2 ).count();
+    std::cout << "Calc: " << time1 << " micros." << std::endl;
+    std::cout << "Mult: " << time2 << " micros." << std::endl;
 }
 
 vector<Array> biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils(vector<Array>& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs) {

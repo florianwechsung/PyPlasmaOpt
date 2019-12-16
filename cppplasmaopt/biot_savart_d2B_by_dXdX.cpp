@@ -1,10 +1,8 @@
 #include "biot_savart.h"
 
-Array biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi) {
+void biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& res) {
     int num_points = points.shape(0);
-    Array res = xt::zeros<double>({num_points, 3, 3, 3});
     int num_quad_points = gamma.shape(0);
-    #pragma omp parallel for
     for (int i = 0; i < num_points; ++i) {
         auto point = Vec3d(3, &points.at(i, 0));
         for (int j = 0; j < num_quad_points; ++j) {
@@ -38,5 +36,4 @@ Array biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi
             }
         }
     }
-    return res;
 }

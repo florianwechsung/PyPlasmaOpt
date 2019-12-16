@@ -69,6 +69,13 @@ struct Vec3dSimd {
         return lhs;
     }
 
+    friend Vec3dSimd operator+(Vec3dSimd lhs, const Vec3dSimd& rhs) {
+        lhs.x += rhs.x;
+        lhs.y += rhs.y;
+        lhs.z += rhs.z;
+        return lhs;
+    }
+
     Vec3dSimd& operator+=(const Vec3dSimd& rhs) {
         this->x += rhs.x;
         this->y += rhs.y;
@@ -111,15 +118,16 @@ inline simd_t normsq(Vec3dSimd& a){
     return a.x*a.x+a.y*a.y+a.z*a.z;
 }
 
-vector<Array> biot_savart_B_allcoils(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis);
-vector<Array> biot_savart_dB_by_dX_allcoils(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis);
-Array         biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi);
+void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& B, Array& dB_by_dX, Array& d2B_by_dXdX, vector<Array>& dB_by_coilcurrents, vector<Array>& d2B_by_dXdcoilcurrents);
+
+void biot_savart_B(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& res);
+void biot_savart_dB_by_dX(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& res);
+void biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& res);
+
 vector<Array> biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils(vector<Array>& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs);
 vector<Array> biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils(vector<Array>& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs);
 Array         biot_savart_dB_by_dcoilcoeff(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& dgamma_by_dcoeffs, Array& d2gamma_by_dphidcoeffs);
 Array         biot_savart_d2B_by_dXdcoilcoeff(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& dgamma_by_dcoeffs, Array& d2gamma_by_dphidcoeffs);
 
 template<class T>
-void biot_savart_B_simd(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& res);
-template<class T>
-void biot_savart_dB_by_dX_simd(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& res);
+void biot_savart_all_simd(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& B, T& dB_by_dX, T& d2B_by_dXdX);

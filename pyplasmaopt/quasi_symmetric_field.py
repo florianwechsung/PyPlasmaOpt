@@ -81,7 +81,7 @@ class QuasiSymmetricField():
             diff = 1
             soln = self.state.copy()
             count = 0
-            while diff > 1e-10:
+            while diff > 1e-12:
                 update = np.linalg.solve(build_jacobian(soln), build_residual(soln))
                 soln -= update
                 diff = np.linalg.norm(update)

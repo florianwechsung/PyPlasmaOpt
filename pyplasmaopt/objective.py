@@ -11,18 +11,18 @@ class BiotSavartQuasiSymmetricFieldDifference():
         ma = self.quasi_symmetric_field.magnetic_axis
         quadrature_points = ma.gamma
         self.biotsavart.compute(quadrature_points, use_cpp=True)
+        self.biotsavart.compute_by_dcoilcoeff(quadrature_points, use_cpp = True)
 
         self.Bbs           = self.biotsavart.B
         self.dBbs_by_dX    = self.biotsavart.dB_by_dX
         self.d2Bbs_by_dXdX = self.biotsavart.d2B_by_dXdX
-
-        self.Bqs        = self.quasi_symmetric_field.B()
-        self.dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX()
-        self.biotsavart.compute_by_dcoilcoeff(quadrature_points, use_cpp = True)
         self.dBbs_by_dcoilcoeff       = self.biotsavart.dB_by_dcoilcoeffs
         self.d2Bbs_by_dXdcoilcoeff    = self.biotsavart.d2B_by_dXdcoilcoeffs
         self.dBbs_by_dcoilcurrents    = self.biotsavart.dB_by_dcoilcurrents
         self.d2Bbs_by_dXdcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents
+
+        self.Bqs        = self.quasi_symmetric_field.B()
+        self.dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX()
 
         qsf = self.quasi_symmetric_field
         (self.dBqs_by_dcoeffs, self.d2Bqs_by_dcoeffsdX, self.diota_by_dcoeffs) = qsf.by_dcoefficients()

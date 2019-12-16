@@ -20,15 +20,15 @@ PYBIND11_MODULE(cppplasmaopt, m) {
         Some other explanation about the add function.
     )pbdoc");
 
-    m.def("biot_savart_all",         &biot_savart_all);
+    m.def("biot_savart_all",               & biot_savart_all);
+    m.def("biot_savart_by_dcoilcoeff_all", & biot_savart_by_dcoilcoeff_all);
+    
     m.def("biot_savart_B",           &biot_savart_B);
     m.def("biot_savart_dB_by_dX",    &biot_savart_dB_by_dX);
     m.def("biot_savart_d2B_by_dXdX", &biot_savart_d2B_by_dXdX);
 
-    m.def("biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils",    &biot_savart_dB_by_dcoilcoeff_via_chainrule_allcoils);
-    m.def("biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils", &biot_savart_d2B_by_dXdcoilcoeff_via_chainrule_allcoils);
-    m.def("biot_savart_dB_by_dcoilcoeff",                           &biot_savart_dB_by_dcoilcoeff);
-    m.def("biot_savart_d2B_by_dXdcoilcoeff",                        &biot_savart_d2B_by_dXdcoilcoeff);
+    m.def("biot_savart_dB_by_dcoilcoeff",    & biot_savart_dB_by_dcoilcoeff);
+    m.def("biot_savart_d2B_by_dXdcoilcoeff", & biot_savart_d2B_by_dXdcoilcoeff);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

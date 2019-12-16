@@ -39,7 +39,7 @@ def J(x, info=None):
     J_BSvsQS.update()
     res1 = J_BSvsQS.J_L2() + J_BSvsQS.J_H1()
     res2 = sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
-    res3 =  (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
+    res3 = (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
     res4 = (1/iota_target**2) * (qsf.state[-1]-iota_target)**2
     res5 = sum(curvature_scale * J.J() for J in J_coil_curvatures)
     res6 = sum(torsion_scale * J.J() for J in J_coil_torsions)
@@ -80,7 +80,7 @@ def J(x, info=None):
         info['Nfeval'] += 1
     return res, dres
 x = np.concatenate((ma.get_dofs(), stellerator.get_currents()/current_fak, stellerator.get_dofs()))
-if True:
+if False:
     J0, dJ0 = J(x)
     np.random.seed(1)
     h = 1e-3 * np.random.rand(*(x.shape))
@@ -97,9 +97,10 @@ import time
 from scipy.optimize import minimize
 maxiter = 100
 t1 = time.time()
-res = minimize(J, x, args=({'Nfeval':0},), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter})
+args = {'Nfeval':0}
+res = minimize(J, x, args=(args,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter})
 t2 = time.time()
-print(f"Time per iteration: {(t2-t1)/maxiter:.4f}")
+print(f"Time per iteration: {(t2-t1)/args['Nfeval']:.4f}")
 x = res.x
 print("Gradient norm at minimum:", np.linalg.norm(res.jac), np.linalg.norm(J(x)[1]))
 

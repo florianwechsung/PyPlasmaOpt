@@ -10,15 +10,17 @@ class BiotSavartQuasiSymmetricFieldDifference():
     def update(self):
         ma = self.quasi_symmetric_field.magnetic_axis
         quadrature_points = ma.gamma
+        self.biotsavart.compute(quadrature_points, use_cpp=True)
 
-        self.Bbs, self.dBbs_by_dX, self.d2Bbs_by_dXdX = self.biotsavart.compute(quadrature_points, use_cpp=True)
-        self.Bqs           = self.quasi_symmetric_field.B()
-        self.dBqs_by_dX    = self.quasi_symmetric_field.dB_by_dX()
+        self.Bbs           = self.biotsavart.B
+        self.dBbs_by_dX    = self.biotsavart.dB_by_dX
+        self.d2Bbs_by_dXdX = self.biotsavart.d2B_by_dXdX
 
-        self.dBbs_by_dcoilcoeff    = self.biotsavart.dB_by_dcoilcoeff_via_chainrule(quadrature_points)
-        # self.dBbs_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff(quadrature_points)
-        self.d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff_via_chainrule(quadrature_points)
-        # self.d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff(quadrature_points)
+        self.Bqs        = self.quasi_symmetric_field.B()
+        self.dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX()
+        self.biotsavart.compute_by_dcoilcoeff(quadrature_points, use_cpp = True)
+        self.dBbs_by_dcoilcoeff       = self.biotsavart.dB_by_dcoilcoeffs
+        self.d2Bbs_by_dXdcoilcoeff    = self.biotsavart.d2B_by_dXdcoilcoeffs
         self.dBbs_by_dcoilcurrents    = self.biotsavart.dB_by_dcoilcurrents
         self.d2Bbs_by_dXdcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents
 
@@ -126,7 +128,7 @@ class SquaredMagneticFieldNormOnCurve(object):
     def J(self):
         quadrature_points = self.curve.gamma
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
-        B = self.biotsavart.compute(quadrature_points)[0]
+        B = self.biotsavart.compute(quadrature_points).B
         return np.sum(arc_length[:, None] * (B**2))/quadrature_points.shape[0]
 
     def dJ_by_dcoilcoefficients(self):
@@ -137,9 +139,8 @@ class SquaredMagneticFieldNormOnCurve(object):
         quadrature_points = self.curve.gamma
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
 
-        B = self.biotsavart.compute(quadrature_points)[0]
-        # dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff(quadrature_points)
-        dB_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeff_via_chainrule(quadrature_points)
+        B = self.biotsavart.compute(quadrature_points).B
+        dB_by_dcoilcoeff = self.biotsavart.compute_by_dcoilcoeff(quadrature_points).dB_by_dcoilcoeffs
         res = []
         for dB in dB_by_dcoilcoeff:
             res.append(np.einsum('ij,ikj,i->k', B, dB, arc_length) * 2 / quadrature_points.shape[0])
@@ -157,8 +158,9 @@ class SquaredMagneticFieldNormOnCurve(object):
         d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
 
         arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
-
-        B, dB_by_dX, _        = self.biotsavart.compute(gamma)
+        self.biotsavart.compute(gamma)
+        B        = self.biotsavart.B
+        dB_by_dX = self.biotsavart.dB_by_dX
 
         num_coeff = dgamma_by_dcoeff.shape[1]
         res = np.zeros((num_coeff, ))
@@ -185,7 +187,7 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
     def J(self):
         quadrature_points = self.curve.gamma
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
-        _, dB_by_dX, _ = self.biotsavart.compute(quadrature_points)
+        dB_by_dX = self.biotsavart.compute(quadrature_points).dB_by_dX
         return np.sum(arc_length * (np.sum(np.sum(dB_by_dX**2, axis=1), axis=1)))/quadrature_points.shape[0]
 
     def dJ_by_dcoilcoefficients(self):
@@ -196,9 +198,8 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         quadrature_points = self.curve.gamma
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
 
-        _, dB_by_dX, _ = self.biotsavart.compute(quadrature_points)
-        # d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff(quadrature_points)
-        d2B_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeff_via_chainrule(quadrature_points)
+        dB_by_dX = self.biotsavart.compute(quadrature_points).dB_by_dX
+        d2B_by_dXdcoilcoeff = self.biotsavart.compute_by_dcoilcoeff(quadrature_points).d2B_by_dXdcoilcoeffs
         res = []
         for dB in d2B_by_dXdcoilcoeff:
             res.append(np.einsum('ijk,iljk,i->l', dB_by_dX, dB, arc_length) * 2 / quadrature_points.shape[0])
@@ -217,8 +218,9 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
 
         arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
-
-        _, dB_by_dX, d2B_by_dXdX = self.biotsavart.compute(gamma)
+        self.biotsavart.compute(gamma)
+        dB_by_dX = self.biotsavart.dB_by_dX
+        d2B_by_dXdX = self.biotsavart.d2B_by_dXdX
 
         num_coeff = dgamma_by_dcoeff.shape[1]
         res = np.zeros((num_coeff, ))

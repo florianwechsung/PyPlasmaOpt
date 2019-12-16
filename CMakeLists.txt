@@ -13,10 +13,10 @@ set(XTENSOR_USE_OPENMP 0)
 
 
 pybind11_add_module(${PROJECT_NAME} 
-    cppplasmaopt/main.cpp cppplasmaopt/biot_savart_all.cpp cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp
-    cppplasmaopt/biot_savart_dB_by_dcoilcoeff.cpp cppplasmaopt/biot_savart_dB_by_dcoilcoeff_via_chainrule.cpp
-    cppplasmaopt/biot_savart_d2B_by_dXdcoilcoeff.cpp cppplasmaopt/biot_savart_d2B_by_dXdX.cpp
-    cppplasmaopt/biot_savart_d2B_by_dXdcoilcoeff_via_chainrule.cpp)
+    cppplasmaopt/main.cpp cppplasmaopt/biot_savart_all.cpp cppplasmaopt/biot_savart_by_dcoilcoeff_all.cpp
+    cppplasmaopt/biot_savart_B.cpp cppplasmaopt/biot_savart_dB_by_dX.cpp cppplasmaopt/biot_savart_d2B_by_dXdX.cpp
+    cppplasmaopt/biot_savart_dB_by_dcoilcoeff.cpp cppplasmaopt/biot_savart_d2B_by_dXdcoilcoeff.cpp
+    )
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
     CXX_STANDARD 17

@@ -133,33 +133,99 @@ class QuasiSymmetricField():
             res[:, j, :] = s_Psi * (B_0**2/abs(G_0)) * (nterm[:, None] * n + bterm[:, None] * b) + tterm[:, None] * t
         return res
 
-    def by_dcoefficients(self):
+    def by_dcoefficients(self, order=4):
         ma = self.magnetic_axis
         numpoints = len(ma.points)
-        eps = 1e-6
+        eps = 1e-4
         x0 = ma.get_dofs()
-        state0 = self.state
         numcoeffs = len(x0)
         dBqs_by_dcoeffs = np.zeros((numpoints, numcoeffs, 3))
         d2Bqs_by_dcoeffsdX = np.zeros((numpoints, numcoeffs, 3, 3))
         diota_by_dcoeffs = np.zeros((numcoeffs, 1)) 
-        for i in range(numcoeffs):
-            x = x0.copy()
-            x[i] += eps
-            ma.set_dofs(x)
-            self.solve_state()
-            dBqs_by_dcoeffs[:, i, :] = self.B()
-            d2Bqs_by_dcoeffsdX[:, i, :, :] = self.dB_by_dX()
-            diota_by_dcoeffs[i, 0] = self.state[-1]
-            x[i] -= 2*eps
-            ma.set_dofs(x)
-            self.solve_state()
-            dBqs_by_dcoeffs[:, i, :] -= self.B()
-            dBqs_by_dcoeffs[:, i, :] *= 1/(2*eps)
-            d2Bqs_by_dcoeffsdX[:, i, :, :] -= self.dB_by_dX()
-            d2Bqs_by_dcoeffsdX[:, i, :, :] *= 1/(2*eps)
-            diota_by_dcoeffs[i, 0] -= self.state[-1]
-            diota_by_dcoeffs[i, 0] *= 1/(2*eps)
+        if order == 2:
+            for i in range(numcoeffs):
+                x = x0.copy()
+                x[i] += eps
+                ma.set_dofs(x)
+                self.solve_state()
+                dBqs_by_dcoeffs[:, i, :] = self.B()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] = self.dB_by_dX()
+                diota_by_dcoeffs[i, 0] = self.state[-1]
+                x[i] -= 2*eps
+                ma.set_dofs(x)
+                self.solve_state()
+                dBqs_by_dcoeffs[:, i, :] -= self.B()
+                dBqs_by_dcoeffs[:, i, :] *= 1/(2*eps)
+                d2Bqs_by_dcoeffsdX[:, i, :, :] -= self.dB_by_dX()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] *= 1/(2*eps)
+                diota_by_dcoeffs[i, 0] -= self.state[-1]
+                diota_by_dcoeffs[i, 0] *= 1/(2*eps)
+        elif order == 4:
+            for i in range(numcoeffs):
+                x = x0.copy()
+
+                x[i] += 2*eps
+                ma.set_dofs(x)
+                self.solve_state()
+                a = -1./12
+                dBqs_by_dcoeffs[:, i, :]       = a * self.B()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] = a * self.dB_by_dX()
+                diota_by_dcoeffs[i, 0]         = a * self.state[-1]
+
+                x[i] -= eps
+                ma.set_dofs(x)
+                self.solve_state()
+                a = 2./3
+                dBqs_by_dcoeffs[:, i, :]       += a * self.B()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] += a * self.dB_by_dX()
+                diota_by_dcoeffs[i, 0]         += a * self.state[-1]
+
+                x[i] -= 2*eps
+                ma.set_dofs(x)
+                self.solve_state()
+                a = -2./3
+                dBqs_by_dcoeffs[:, i, :]       += a * self.B()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] += a * self.dB_by_dX()
+                diota_by_dcoeffs[i, 0]         += a * self.state[-1]
+
+                x[i] -= eps
+                ma.set_dofs(x)
+                self.solve_state()
+                a = 1./12
+                dBqs_by_dcoeffs[:, i, :]       += a * self.B()
+                d2Bqs_by_dcoeffsdX[:, i, :, :] += a * self.dB_by_dX()
+                diota_by_dcoeffs[i, 0]         += a * self.state[-1]
+
+                dBqs_by_dcoeffs[:, i, :]       *= 1/(eps)
+                d2Bqs_by_dcoeffsdX[:, i, :, :] *= 1/(eps)
+                diota_by_dcoeffs[i, 0]         *= 1/(eps)
+        else:
+            raise NotImplementedError
+
         ma.set_dofs(x0)
         self.solve_state()
         return (dBqs_by_dcoeffs, d2Bqs_by_dcoeffsdX, diota_by_dcoeffs)
+    
+    def by_detabar(self):
+        ma = self.magnetic_axis
+        numpoints = len(ma.points)
+        eps = 1e-6
+        dBqs_by_detabar = np.zeros((numpoints, 1, 3))
+        d2Bqs_by_detabardX = np.zeros((numpoints, 1, 3, 3))
+        diota_by_detabar = np.zeros((1, 1)) 
+        self.eta_bar += eps
+        self.solve_state()
+        dBqs_by_detabar[:, 0, :] = self.B()
+        d2Bqs_by_detabardX[:, 0, :, :] = self.dB_by_dX()
+        diota_by_detabar[0, 0] = self.state[-1]
+        self.eta_bar -= 2*eps
+        self.solve_state()
+        dBqs_by_detabar[:, 0, :] -= self.B()
+        dBqs_by_detabar[:, 0, :] *= 1/(2*eps)
+        d2Bqs_by_detabardX[:, 0, :, :] -= self.dB_by_dX()
+        d2Bqs_by_detabardX[:, 0, :, :] *= 1/(2*eps)
+        diota_by_detabar[0, 0] -= self.state[-1]
+        diota_by_detabar[0, 0] *= 1/(2*eps)
+        self.eta_bar += eps
+        self.solve_state()
+        return (dBqs_by_detabar, d2Bqs_by_detabardX, diota_by_detabar)

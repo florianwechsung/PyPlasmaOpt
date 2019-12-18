@@ -218,7 +218,7 @@ class Curve():
         n[:,:] = (1./norm(tdash))[:, None] * tdash
         b[:,:] = np.cross(t, n, axis=1)
 
-    def plot(self, ax=None, show=True, plot_derivative=False, closed_loop=True):
+    def plot(self, ax=None, show=True, plot_derivative=False, closed_loop=True, color=None, linestyle=None):
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
 
@@ -232,7 +232,7 @@ class Curve():
                 return np.concatenate((data, [data[0]]))
             else:
                 return data
-        ax.plot(rep(gamma[:, 0]), rep(gamma[:, 1]), rep(gamma[:, 2]))
+        ax.plot(rep(gamma[:, 0]), rep(gamma[:, 1]), rep(gamma[:, 2]), color=color, linestyle=linestyle)
         if plot_derivative:
             ax.quiver(rep(gamma[:, 0]), rep(gamma[:, 1]), rep(gamma[:, 2]), 0.1 * rep(dgamma_by_dphi[:, 0]), 0.1 * rep(dgamma_by_dphi[:, 1]), 0.1 * rep(dgamma_by_dphi[:, 2]), arrow_length_ratio=0.1, color="r")
         if show:
@@ -520,15 +520,18 @@ class RotatedCurve(Curve):
         self.d3gamma_by_dphidphidcoeff[:, :, :] = d3gamma_by_dphidphidcoeff @ self.rotmat
 
     def d4gamma_by_dphidphidphidcoeff_impl(self):
-        pass
+        d4gamma_by_dphidphidphidcoeff = self.curve.d4gamma_by_dphidphidphidcoeff
+        self.d4gamma_by_dphidphidphidcoeff[:, :, :] = d4gamma_by_dphidphidphidcoeff @ self.rotmat
 
-class GaussianCurve(Curve):
+
+class GaussianSampler():
 
     def __init__(self, points, sigma, length_scale):
-        super().__init__(points)
+        self.points = points
         xs = self.points
         n = len(xs)
-        n_derivs = 2
+        n_derivs = 3
+        self.n_derivs = n_derivs
         cov_mat = np.zeros((n*(n_derivs+1), n*(n_derivs+1)))
         def kernel(x, y):
             return sigma**2*exp(-(x-y)**2/length_scale**2)
@@ -553,10 +556,58 @@ class GaussianCurve(Curve):
                         cov_mat[ii*n + i, jj*n + j] = lam(x, y)
 
         from scipy.linalg import sqrtm
-        L = np.real(sqrtm(cov_mat))
-        z = np.random.normal(size=(n*(n_derivs+1), 3))
-        curve_and_derivs = L@z
+        self.L = np.real(sqrtm(cov_mat))
 
-        self.gamma = curve_and_derivs[0:n,:]
-        self.dgamma_by_dphi = curve_and_derivs[n:2*n,:]
-        self.d2gamma_by_dphidphi = curve_and_derivs[2*n:3*n,:]
+    def sample(self):
+        n = len(self.points)
+        n_derivs = self.n_derivs
+        z = np.random.normal(size=(n*(n_derivs+1), 3))
+        curve_and_derivs = self.L@z
+        return curve_and_derivs[0:n,:], curve_and_derivs[n:2*n,:], curve_and_derivs[2*n:3*n,:], curve_and_derivs[3*n:4*n,:]
+
+class GaussianPerturbedCurve(Curve):
+
+    def __init__(self, curve, sampler):
+        super().__init__(curve.points)
+        self.curve = curve
+        self.sampler = sampler
+        curve.dependencies.append(self)
+        self.sample = sampler.sample()
+        self.update()
+
+    def resample(self):
+        self.sample = self.sampler.sample()
+        self.update()
+
+    def num_coeff(self):
+        return self.curve.num_coeff()
+
+    def get_dofs(self):
+        return self.curve.get_dofs()
+
+    def set_dofs(self, x):
+        return self.curve.set_dofs(x)
+
+    def gamma_impl(self):
+        self.gamma[:] = self.curve.gamma + self.sample[0]
+
+    def dgamma_by_dphi_impl(self):
+        self.dgamma_by_dphi[:] = self.curve.dgamma_by_dphi + self.sample[1][:, None, :]
+
+    def d2gamma_by_dphidphi_impl(self):
+        self.d2gamma_by_dphidphi[:] =  self.curve.d2gamma_by_dphidphi + self.sample[2][:, None, None, :]
+
+    def d3gamma_by_dphidphidphi_impl(self):
+        self.d3gamma_by_dphidphidphi[:] =  self.curve.d3gamma_by_dphidphidphi + self.sample[3][:, None, None, None, :]
+
+    def dgamma_by_dcoeff_impl(self):
+        self.dgamma_by_dcoeff[:] =  self.curve.dgamma_by_dcoeff
+
+    def d2gamma_by_dphidcoeff_impl(self):
+        self.d2gamma_by_dphidcoeff[:] =  self.curve.d2gamma_by_dphidcoeff
+
+    def d3gamma_by_dphidphidcoeff_impl(self):
+        self.d3gamma_by_dphidphidcoeff[:] =  self.curve.d3gamma_by_dphidphidcoeff
+
+    def d4gamma_by_dphidphidphidcoeff_impl(self):
+        self.d4gamma_by_dphidphidphidcoeff[:] =  self.curve.d4gamma_by_dphidphidphidcoeff

@@ -7,7 +7,7 @@ class BiotSavartQuasiSymmetricFieldDifference():
         self.quasi_symmetric_field = quasi_symmetric_field
         self.biotsavart = biotsavart
 
-    def update(self):
+    def update_biotsavart(self):
         ma = self.quasi_symmetric_field.magnetic_axis
         quadrature_points = ma.gamma
         self.biotsavart.compute(quadrature_points, use_cpp=True)
@@ -21,11 +21,17 @@ class BiotSavartQuasiSymmetricFieldDifference():
         self.dBbs_by_dcoilcurrents    = self.biotsavart.dB_by_dcoilcurrents
         self.d2Bbs_by_dXdcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents
 
+    def update_quasisymmetric(self):
         self.Bqs        = self.quasi_symmetric_field.B()
         self.dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX()
 
         qsf = self.quasi_symmetric_field
         (self.dBqs_by_dcoeffs, self.d2Bqs_by_dcoeffsdX, self.diota_by_dcoeffs) = qsf.by_dcoefficients()
+        (self.dBqs_by_detabar, self.d2Bqs_by_detabardX, self.diota_by_detabar) = qsf.by_detabar()
+
+    def update(self):
+        self.update_biotsavart()
+        self.update_quasisymmetric()
 
     def J_L2(self):
         arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
@@ -46,8 +52,6 @@ class BiotSavartQuasiSymmetricFieldDifference():
         return res
 
     def dJ_L2_by_dmagneticaxiscoefficients(self):
-
-        gamma                 = self.quasi_symmetric_field.magnetic_axis.gamma
         dgamma_by_dphi        = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dphi[:,0,:]
         dgamma_by_dcoeff      = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dcoeff
         d2gamma_by_dphidcoeff = self.quasi_symmetric_field.magnetic_axis.d2gamma_by_dphidcoeff[:, 0, :, :]
@@ -56,8 +60,6 @@ class BiotSavartQuasiSymmetricFieldDifference():
         Bbs        = self.Bbs
         dBbs_by_dX = self.dBbs_by_dX
         Bqs        = self.Bqs
-        dBqs_by_dX = self.dBqs_by_dX
-
 
         num_coeff = dgamma_by_dcoeff.shape[1]
         res = np.zeros((num_coeff, ))
@@ -65,9 +67,16 @@ class BiotSavartQuasiSymmetricFieldDifference():
             for k1 in range(3):
                 for k2 in range(3):
                     res[i] += 2 * np.sum((Bbs[:, k1]-Bqs[:, k1]) * dBbs_by_dX[:, k1, k2] * dgamma_by_dcoeff[:, i, k2] * arc_length)
-            res[i] -= np.sum(2*(self.Bbs-self.Bqs)*self.dBqs_by_dcoeffs[:, i, :] * arc_length[:, None])
+            res[i] -= np.sum(2*(Bbs-Bqs)*self.dBqs_by_dcoeffs[:, i, :] * arc_length[:, None])
             res[i] += np.sum((1/arc_length) * np.sum((Bbs-Bqs)**2, axis=1) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
-        res *= 1/gamma.shape[0]
+        res *= 1/arc_length.shape[0]
+        return res
+
+    def dJ_L2_by_detabar(self):
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        res = np.zeros((1, ))
+        res[0] -= np.sum(2*(self.Bbs-self.Bqs)*self.dBqs_by_detabar[:, 0, :] * arc_length[:, None])
+        res *= 1/arc_length.shape[0]
         return res
 
     def J_H1(self):
@@ -110,6 +119,16 @@ class BiotSavartQuasiSymmetricFieldDifference():
             res[i] -= np.sum(2*(dBbs_by_dX-dBqs_by_dX)*self.d2Bqs_by_dcoeffsdX[:, i, :, :] * arc_length[:, None, None])
             res[i] += np.sum((1/arc_length) * np.sum(np.sum((dBbs_by_dX-dBqs_by_dX)**2, axis=1), axis=1) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
         res *= 1/gamma.shape[0]
+        return res
+
+    def dJ_H1_by_detabar(self):
+        dBbs_by_dX    = self.dBbs_by_dX
+        dBqs_by_dX    = self.dBqs_by_dX
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+
+        res = np.zeros((1, ))
+        res[0] -= np.sum(2*(dBbs_by_dX-dBqs_by_dX)*self.d2Bqs_by_detabardX[:, 0, :, :] * arc_length[:, None, None])
+        res *= 1/arc_length.shape[0]
         return res
 
 

@@ -125,7 +125,7 @@ setup(
     name='PlasmaOpt',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=2.4', 'sympy'],
+    install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy'],
     setup_requires=['pybind11>=2.4'],
     cmdclass={'build_ext': BuildExt},
     packages = ["pyplasmaopt"],

@@ -63,7 +63,7 @@ if False:
     import sys
     sys.exit()
 
-maxiter = 0
+maxiter = 100
 if solver == "nlopt":
     def J_nlopt(x, grad, info=info_dict):
         obj.update(x)
@@ -97,6 +97,8 @@ elif solver == "scipy":
     print(res)
     x = res.x
     print("Gradient norm at minimum:", np.linalg.norm(res.jac))
+    import sys
+    sys.exit()
 elif solver == "pylbfgs":
     from lbfgs import LBFGS
     def J_pylbfgs(x, g, info=info_dict):

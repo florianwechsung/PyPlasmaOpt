@@ -2,7 +2,7 @@ import os
 import numpy as np
 from .curve import CartesianFourierCurve, StelleratorSymmetricCylindricalFourierCurve
 
-def get_matt_data(Nt=4, nfp=2, ppp=10, at_optimum=False):
+def get_matt_data(Nt_coils=3, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     if at_optimum:
@@ -10,12 +10,12 @@ def get_matt_data(Nt=4, nfp=2, ppp=10, at_optimum=False):
     else:
         coil_data = np.loadtxt(os.path.join(dir_path, "..", "data", "matt_initial.dat"), delimiter=',')
     num_coils = 6
-    coils = [CartesianFourierCurve(Nt, np.linspace(0, 1, Nt*ppp, endpoint=False)) for i in range(num_coils)]
+    coils = [CartesianFourierCurve(Nt_coils, np.linspace(0, 1, (Nt_coils+1)*ppp, endpoint=False)) for i in range(num_coils)]
     for ic in range(num_coils):
         coils[ic].coefficients[0][0] = coil_data[0, 6*ic + 1]
         coils[ic].coefficients[1][0] = coil_data[0, 6*ic + 3]
         coils[ic].coefficients[2][0] = coil_data[0, 6*ic + 5]
-        for io in range(0, Nt-1):
+        for io in range(0, Nt_coils):
             coils[ic].coefficients[0][2*io+1] = coil_data[io+1, 6*ic + 0]
             coils[ic].coefficients[0][2*io+2] = coil_data[io+1, 6*ic + 1]
             coils[ic].coefficients[1][2*io+1] = coil_data[io+1, 6*ic + 2]
@@ -24,8 +24,10 @@ def get_matt_data(Nt=4, nfp=2, ppp=10, at_optimum=False):
             coils[ic].coefficients[2][2*io+2] = coil_data[io+1, 6*ic + 5]
         coils[ic].update()
 
-    numpoints = Nt*ppp+1 if ((Nt*ppp) % 2 == 0) else Nt*ppp
-    ma = StelleratorSymmetricCylindricalFourierCurve(Nt-1, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
+    numpoints = (Nt_ma+1)*ppp
+    if numpoints % 2 == 0:
+        numpoints += 1
+    ma = StelleratorSymmetricCylindricalFourierCurve(Nt_ma, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
     if at_optimum:
         ma.coefficients[0][0] = 0.976141492438223
         ma.coefficients[0][1] = 0.112424048908878

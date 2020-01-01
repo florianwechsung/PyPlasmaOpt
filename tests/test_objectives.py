@@ -68,12 +68,12 @@ def test_taylor_test_coil_coeffs(objective):
     currents = num_coils * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
+    bs.set_points(ma.gamma)
     qsf = QuasiSymmetricField(-2.25, ma)
-    sigma, iota = qsf.solve_state()
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
-    J.update()
     coil_dofs = stellerator.get_dofs()
-    h =1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    np.random.seed(1)
+    h = np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
     if objective == "l2":
         J0 = J.J_L2()
         dJ = stellerator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients())
@@ -83,16 +83,18 @@ def test_taylor_test_coil_coeffs(objective):
     assert len(dJ) == len(h)
     deriv = np.sum(dJ * h)
     err = 1e6
-    for i in range(5, 10):
-        eps = 0.5**i
+    eps = 0.1
+    while err > 1e-7:
+        eps *= 0.5
         stellerator.set_dofs(coil_dofs + eps * h)
-        J.update()
+        bs.clear_cached_properties()
         Jh = J.J_L2() if objective == "l2" else J.J_H1()
         deriv_est = (Jh-J0)/eps
         err_new = np.linalg.norm(deriv_est-deriv)
         print("err_new %s" % (err_new))
         assert err_new < 0.55 * err
         err = err_new
+    assert eps < 1e-2
 
 @pytest.mark.parametrize("objective", ["l2", "h1"])
 def test_taylor_test_coil_currents(objective):
@@ -102,10 +104,9 @@ def test_taylor_test_coil_currents(objective):
     currents = num_coils * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
+    bs.set_points(ma.gamma)
     qsf = QuasiSymmetricField(-2.25, ma)
-    sigma, iota = qsf.solve_state()
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
-    J.update()
     x0 = stellerator.get_currents()
     h = 1e4 * np.random.rand(len(currents))
     if objective == "l2":
@@ -117,13 +118,58 @@ def test_taylor_test_coil_currents(objective):
     assert len(dJ) == len(h)
     deriv = np.sum(dJ * h)
     err = 1e6
-    for i in range(5, 10):
-        eps = 0.5**i
+    eps = 0.1
+    while err > 1e-7:
+        eps *= 0.5
         stellerator.set_currents(x0 + eps * h)
-        J.update()
+        bs.clear_cached_properties()
         Jh = J.J_L2() if objective == "l2" else J.J_H1()
         deriv_est = (Jh-J0)/eps
         err_new = np.linalg.norm(deriv_est-deriv)
         print("err_new %s" % (err_new))
         assert err_new < 0.55 * err
         err = err_new
+    assert eps < 1e-2
+
+@pytest.mark.parametrize("objective", ["l2", "h1"])
+def test_taylor_test_ma_coeffs(objective):
+    num_coils = 6
+    nfp = 2
+    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    currents = num_coils * [1e4]
+    stellerator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    bs.set_points(ma.gamma)
+    qsf = QuasiSymmetricField(-2.25, ma)
+    J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
+    ma_dofs = ma.get_dofs()
+    np.random.seed(1)
+    h = 1e-2 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
+    if objective == "l2":
+        J0 = J.J_L2()
+        dJ = J.dJ_L2_by_dmagneticaxiscoefficients()
+    else:
+        J0 = J.J_H1()
+        dJ = J.dJ_H1_by_dmagneticaxiscoefficients()
+    assert len(dJ) == len(h)
+    deriv = np.sum(dJ * h)
+    err = 1e6
+    eps = 0.1
+    while err > 1e-9:
+        eps *= 0.5
+        ma.set_dofs(ma_dofs + eps * h)
+        bs.set_points(ma.gamma)
+        bs.clear_cached_properties()
+        qsf.clear_cached_properties()
+        Jh = J.J_L2() if objective == "l2" else J.J_H1()
+        ma.set_dofs(ma_dofs - eps * h)
+        bs.set_points(ma.gamma)
+        bs.clear_cached_properties()
+        qsf.clear_cached_properties()
+        Jhm = J.J_L2() if objective == "l2" else J.J_H1()
+        deriv_est = (Jh-Jhm)/(2*eps)
+        err_new = np.linalg.norm(deriv_est-deriv)/np.linalg.norm(deriv)
+        print("err_new %s" % (err_new))
+        assert err_new < 0.26 * err
+        err = err_new
+    assert eps < 1e-2

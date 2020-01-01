@@ -8,11 +8,12 @@ solver = "scipy"
 # solver = "pylbfgs"
 
 nfp = 2
-(coils, ma) = get_matt_data(nfp=nfp, ppp=20, at_optimum=True)
-currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-# currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+ppp = 20
+(coils, ma) = get_matt_data(nfp=nfp, ppp=ppp, at_optimum=False)
+# currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
 stellarator = CoilCollection(coils, currents, nfp, True)
-obj = Problem2_Objective(stellarator, ma, curvature_scale=1e-8, torsion_scale=1e-8, tikhonov=1e-4, eta_bar=-2.105800979374183)
+obj = Problem2_Objective(stellarator, ma, curvature_scale=0e-8, torsion_scale=0e-8, tikhonov=0e-4)#, eta_bar=-2.105800979374183)
 
 # nfp = 3
 # (coils, ma) = get_flat_data(nfp=nfp, ppp=20)
@@ -24,7 +25,6 @@ obj = Problem2_Objective(stellarator, ma, curvature_scale=1e-8, torsion_scale=1e
 
 
 print(obj.x0.shape)
-# obj.update(obj.x0.copy().reshape((175,1)))
 info_dict = {'Nfeval':0}
 
 def plot(info):
@@ -47,6 +47,7 @@ def plot(info):
 x = obj.x0
 obj.update(x)
 print("Initial value of J", obj.res)
+# import IPython; IPython.embed()
 if False:
     obj.update(x)
     J0, dJ0 = obj.res, obj.dres
@@ -63,7 +64,8 @@ if False:
     import sys
     sys.exit()
 
-maxiter = 100
+maxiter = 2000
+memory = 1000
 if solver == "nlopt":
     def J_nlopt(x, grad, info=info_dict):
         obj.update(x)
@@ -76,7 +78,7 @@ if solver == "nlopt":
     opt = nlopt.opt(nlopt.LD_LBFGS, len(obj.x0))
     opt.set_min_objective(J_nlopt)
     opt.set_xtol_rel(1e-8)
-    opt.set_vector_storage(50)
+    opt.set_vector_storage(memory)
     opt.set_maxeval(maxiter)
     x = opt.optimize(list(x))
 elif solver == "scipy":
@@ -91,14 +93,15 @@ elif solver == "scipy":
     import time
     from scipy.optimize import minimize
     t1 = time.time()
-    res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter})
+    res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
+    # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
     t2 = time.time()
     print(f"Time per iteration: {(t2-t1)/info_dict['Nfeval']:.4f}")
     print(res)
     x = res.x
     print("Gradient norm at minimum:", np.linalg.norm(res.jac))
-    import sys
-    sys.exit()
+    # import sys
+    # sys.exit()
 elif solver == "pylbfgs":
     from lbfgs import LBFGS
     def J_pylbfgs(x, g, info=info_dict):
@@ -113,7 +116,17 @@ elif solver == "pylbfgs":
 
     xmin = opt.minimize(J_pylbfgs, x)
 
-if False:
+plt.figure()
+plt.semilogy(obj.Jvals, label="J")
+plt.semilogy([dj[0] for dj in obj.dJvals], label="dJ")
+plt.semilogy([dj[1] for dj in obj.dJvals], label="dJ_etabar")
+plt.semilogy([dj[2] for dj in obj.dJvals], label="dJ_ma")
+plt.semilogy([dj[3] for dj in obj.dJvals], label="dJ_current")
+plt.semilogy([dj[4] for dj in obj.dJvals], label="dJ_coil")
+plt.legend()
+plt.title("Convergence")
+plt.savefig("convergence-ppp-%i-lbfgsb.png" % ppp)
+if True:
     obj.update(x)
     J0, dJ0 = obj.res, obj.dres
     np.random.seed(1)
@@ -126,13 +139,15 @@ if False:
         Jeps = obj.res
         err = abs((Jeps-J0)/eps - dJh)
         print(err)
+    import sys
+    sys.exit()
 
 sigma = 1e-4
 sampler = GaussianSampler(coils[0].points, length_scale=0.2, sigma=sigma)
 perturbed_coils = [GaussianPerturbedCurve(coil, sampler) for coil in stellarator.coils]
 perturbed_bs = BiotSavart(perturbed_coils, stellarator.currents)
+perturbed_bs.set_points(obj.ma.gamma)
 J_BSvsQS = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, perturbed_bs)
-J_BSvsQS.update()
 # ax = None
 # for i in range(0, len(stellarator.coils)):
 #     ax = stellarator.coils[i].plot(ax=ax, show=False, color=["b", "g", "r", "c", "m", "y"][i%len(coils)], linestyle="-")
@@ -152,8 +167,10 @@ L2s = []
 H1s = []
 nsamples = 2000
 for i in range(nsamples):
+    if i % 100 == 0:
+        print(i)
     [coil.resample() for coil in perturbed_coils]
-    J_BSvsQS.update_biotsavart()
+    perturbed_bs.clear_cached_properties()
     L2s.append(J_BSvsQS.J_L2())
     H1s.append(J_BSvsQS.J_H1())
 
@@ -176,13 +193,9 @@ ymax = plt.ylim()[1]
 plt.vlines(opt_H1, 0, ymax, color='r')
 plt.xscale('log')
 plt.xlim((0.5 * opt_H1, 2 * max(H1s)))
-plt.suptitle("$\\sigma= %.4f$" % sigma)
-plt.savefig("sigma= %.4f.png" % sigma)
+plt.suptitle("$\\sigma=%.4f$" % sigma)
+plt.savefig(("sigma=%.4f" % sigma).replace(".", "p") + ".png")
 plt.show()
 
 
-
-
 import IPython; IPython.embed()
-# import sys
-# sys.exit()

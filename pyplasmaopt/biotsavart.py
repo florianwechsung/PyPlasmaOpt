@@ -1,14 +1,55 @@
 import numpy as np
 from math import pi
 import cppplasmaopt as cpp
+from property_manager3 import cached_property, PropertyManager
+writable_cached_property = cached_property(writable=True)
 
 
-class BiotSavart():
+class BiotSavart(PropertyManager):
 
     def __init__(self, coils, coil_currents):
         assert len(coils) == len(coil_currents)
         self.coils = coils
         self.coil_currents = coil_currents
+
+    def set_points(self, points):
+        self.points = points
+        self.clear_cached_properties()
+
+    @writable_cached_property
+    def B(self):
+        self.compute(self.points)
+        return self.B
+
+    @writable_cached_property
+    def dB_by_dX(self):
+        self.compute(self.points)
+        return self.dB_by_dX
+
+    @writable_cached_property
+    def d2B_by_dXdX(self):
+        self.compute(self.points)
+        return self.d2B_by_dXdX
+
+    @writable_cached_property
+    def dB_by_dcoilcurrents(self):
+        self.compute(self.points)
+        return self.dB_by_dcoilcurrents
+
+    @writable_cached_property
+    def d2B_by_dXdcoilcurrents(self):
+        self.compute(self.points)
+        return self.d2B_by_dXdcoilcurrents
+
+    @writable_cached_property
+    def dB_by_dcoilcoeffs(self):
+        self.compute_by_dcoilcoeff(self.points)
+        return self.dB_by_dcoilcoeffs
+
+    @writable_cached_property
+    def d2B_by_dXdcoilcoeffs(self):
+        self.compute_by_dcoilcoeff(self.points)
+        return self.d2B_by_dXdcoilcoeffs
 
     def compute(self, points, use_cpp=True):
         self.B           = np.zeros((len(points), 3))

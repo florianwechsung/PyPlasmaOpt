@@ -555,7 +555,9 @@ class GaussianSampler():
         n_derivs = self.n_derivs
         z = np.random.normal(size=(n*(n_derivs+1), 3))
         curve_and_derivs = self.L@z
-        return curve_and_derivs[0:n,:], curve_and_derivs[n:2*n,:], curve_and_derivs[2*n:3*n,:], curve_and_derivs[3*n:4*n,:]
+        return curve_and_derivs[0:n, :], curve_and_derivs[n:2*n, :], \
+            curve_and_derivs[2*n:3*n, :], curve_and_derivs[3*n:4*n, :]
+
 
 class GaussianPerturbedCurve(Curve):
 
@@ -569,7 +571,7 @@ class GaussianPerturbedCurve(Curve):
 
     def resample(self):
         self.sample = self.sampler.sample()
-        self.update()
+        self.clear_cached_properties()
 
     def num_coeff(self):
         return self.curve.num_coeff()
@@ -582,32 +584,32 @@ class GaussianPerturbedCurve(Curve):
 
     @cached_property
     def gamma(self):
-        self.gamma[:] = self.curve.gamma + self.sample[0]
+        return self.curve.gamma + self.sample[0]
 
     @cached_property
     def dgamma_by_dphi(self):
-        self.dgamma_by_dphi[:] = self.curve.dgamma_by_dphi + self.sample[1][:, None, :]
+        return self.curve.dgamma_by_dphi + self.sample[1][:, None, :]
 
     @cached_property
     def d2gamma_by_dphidphi(self):
-        self.d2gamma_by_dphidphi[:] =  self.curve.d2gamma_by_dphidphi + self.sample[2][:, None, None, :]
+        return self.curve.d2gamma_by_dphidphi + self.sample[2][:, None, None, :]
 
     @cached_property
     def d3gamma_by_dphidphidphi(self):
-        self.d3gamma_by_dphidphidphi[:] =  self.curve.d3gamma_by_dphidphidphi + self.sample[3][:, None, None, None, :]
+        return self.curve.d3gamma_by_dphidphidphi + self.sample[3][:, None, None, None, :]
 
     @cached_property
     def dgamma_by_dcoeff(self):
-        self.dgamma_by_dcoeff[:] =  self.curve.dgamma_by_dcoeff
+        return self.curve.dgamma_by_dcoeff
 
     @cached_property
     def d2gamma_by_dphidcoeff(self):
-        self.d2gamma_by_dphidcoeff[:] =  self.curve.d2gamma_by_dphidcoeff
+        return self.curve.d2gamma_by_dphidcoeff
 
     @cached_property
     def d3gamma_by_dphidphidcoeff(self):
-        self.d3gamma_by_dphidphidcoeff[:] =  self.curve.d3gamma_by_dphidphidcoeff
+        return self.curve.d3gamma_by_dphidphidcoeff
 
     @cached_property
     def d4gamma_by_dphidphidphidcoeff(self):
-        self.d4gamma_by_dphidphidphidcoeff[:] =  self.curve.d4gamma_by_dphidphidphidcoeff
+        return self.curve.d4gamma_by_dphidphidphidcoeff

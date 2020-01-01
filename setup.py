@@ -51,6 +51,7 @@ ext_modules = [
             os.path.join('.', 'xtl', 'include'),
             os.path.join('.', 'xtensor', 'include'),
             os.path.join('.', 'xtensor-python', 'include'),
+            os.path.join('.', 'xsimd', 'include'),
             os.path.join('.', 'blaze'),
         ],
         language='c++'
@@ -103,6 +104,9 @@ class BuildExt(build_ext):
             darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.7']
             c_opts['unix'] += darwin_opts
             l_opts['unix'] += darwin_opts
+    else:
+        c_opts['unix'] += ['-fopenmp']
+        l_opts['unix'] += ['-fopenmp']
         
 
     def build_extensions(self):

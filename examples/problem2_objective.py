@@ -64,6 +64,11 @@ class Problem2_Objective():
         x_current = x[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
         x_coil = x[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
 
+        self.dresetabar  = np.zeros(1)
+        self.dresma      = np.zeros(self.ma_dof_idxs[1]-self.ma_dof_idxs[0])
+        self.drescurrent = np.zeros(self.current_dof_idxs[1]-self.current_dof_idxs[0])
+        self.drescoil    = np.zeros(self.coil_dof_idxs[1]-self.coil_dof_idxs[0])
+
         qsf.eta_bar = x_etabar
         self.ma.set_dofs(x_ma)
         bs.set_points(self.ma.gamma)
@@ -71,43 +76,45 @@ class Problem2_Objective():
         self.stellerator.set_dofs(x_coil)
 
         """ Objective values """
-        self.res1 = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
-        self.res2 = 0.5 * sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
-        self.res3 = 0.5 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
-        self.res4 = 0.5 * (1/iota_target**2) * (qsf.iota-iota_target)**2
-        self.res5 = sum(curvature_scale * J.J() for J in J_coil_curvatures)
-        self.res6 = sum(torsion_scale * J.J() for J in J_coil_torsions)
-        self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
-
-        """ Objective derivative wrt eta_bar """
-        self.dres1etabar = 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
-        self.dres4etabar = (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_detabar[:,0]
-
-        """ Objective derivative wrt magnetic axis coefficients """
-        self.dres1ma = 0.5 * J_BSvsQS.dJ_L2_by_dmagneticaxiscoefficients() + 0.5 * J_BSvsQS.dJ_H1_by_dmagneticaxiscoefficients()
-        self.dres3ma = (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
-        self.dres4ma = (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_dcoeffs[:,0]
-
-        """ Objective derivative wrt coil coefficients """
-        self.dres1coil = 0.5 * self.stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
+        self.res1         = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
+        self.dresetabar  += 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
+        self.dresma      += 0.5 * J_BSvsQS.dJ_L2_by_dmagneticaxiscoefficients() + 0.5 * J_BSvsQS.dJ_H1_by_dmagneticaxiscoefficients()
+        self.drescoil    += 0.5 * self.stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
             + 0.5 * self.stellerator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
-        self.dres2coil = (1/coil_length_target)**2 * self.stellerator.reduce_coefficient_derivatives([
-            (J_coil_lengths[i].J()-coil_length_target) * J_coil_lengths[i].dJ_by_dcoefficients() for i in range(len(J_coil_lengths))])
-        self.dres5coil = self.curvature_scale * self.stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
-        self.dres6coil = self.torsion_scale * self.stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
-
-        """ Objective derivative wrt coil currents """
-        self.dres1current = 0.5 * self.current_fak * (
+        self.drescurrent += 0.5 * self.current_fak * (
             self.stellerator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellerator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
         )
+
+
+        self.res2      = 0.5 * sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
+        self.drescoil += (1/coil_length_target)**2 * self.stellerator.reduce_coefficient_derivatives([
+            (J_coil_lengths[i].J()-coil_length_target) * J_coil_lengths[i].dJ_by_dcoefficients() for i in range(len(J_coil_lengths))])
+
+        self.res3    = 0.5 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
+        self.dresma += (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
+
+        self.res4        = 0.5 * (1/iota_target**2) * (qsf.iota-iota_target)**2
+        self.dresetabar += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_detabar[:,0]
+        self.dresma     += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_dcoeffs[:, 0]
+
+        if curvature_scale > 1e-30:
+            self.res5      = sum(curvature_scale * J.J() for J in J_coil_curvatures)
+            self.drescoil += self.curvature_scale * self.stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+        else:
+            self.res5 = 0
+        if torsion_scale > 1e-30:
+            self.res6      = sum(torsion_scale * J.J() for J in J_coil_torsions)
+            self.drescoil += self.torsion_scale * self.stellerator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
+        else:
+            self.res6 = 0
+
+        self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
+
 
         self.dres_tikhonov = self.tikhonov * 2. * (x-self.x0)
 
         self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6  + self.res_tikhonov
-        self.dresetabar = self.dres1etabar + self.dres4etabar
-        self.dresma = self.dres1ma + self.dres3ma + self.dres4ma
-        self.drescurrent = self.dres1current
-        self.drescoil = self.dres1coil + self.dres2coil + self.dres5coil + self.dres6coil
+
         self.dres = np.concatenate((
             self.dresetabar, self.dresma,
             self.drescurrent, self.drescoil
@@ -123,9 +130,9 @@ class Problem2_Objective():
         norm = np.linalg.norm
         print("Objective values:", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res_tikhonov)
         print("Objective gradients:",
-              norm(self.dres1etabar + self.dres4etabar),
-              norm(self.dres1ma + self.dres3ma + self.dres4ma + self.dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]),
-              norm(self.dres1current + self.dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]),
-              norm(self.dres1coil + self.dres2coil + self.dres5coil + self.dres6coil + self.dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]))
+              norm(self.dresetabar),
+              norm(self.dresma + self.dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]),
+              norm(self.drescurrent + self.dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]),
+              norm(self.drescoil + self.dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]))
 
 

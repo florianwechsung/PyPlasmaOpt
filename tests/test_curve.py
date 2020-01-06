@@ -184,6 +184,28 @@ def test_magnetic_axis_kappa_first_derivative():
         assert err < 0.55 * err_old
         err_old = err
 
+def test_magnetic_axis_kappa_derivative():
+    cfc = get_coil()
+    coeffs = cfc.get_dofs()
+    def f(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.kappa.copy()
+    def df(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.dkappa_by_dcoeff.copy()
+    taylor_test(f, df, coeffs)
+
+def test_magnetic_axis_torsion_derivative():
+    cfc = get_coil()
+    coeffs = cfc.get_dofs()
+    def f(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.torsion.copy()
+    def df(dofs):
+        cfc.set_dofs(dofs)
+        return cfc.dtorsion_by_dcoeff.copy()
+    taylor_test(f, df, coeffs)
+
 def test_magnetic_axis_dof_numbering():
     ma = get_magnetic_axis()
     coeffs = ma.get_dofs()
@@ -202,7 +224,6 @@ def test_magnetic_axis_coefficient_derivative():
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_curvature_derivative():
-    # import IPython; IPython.embed()
     # This implicitly also tests the higher order derivatives of gamma as these
     # are needed to compute the derivative of the curvature.
     ma = get_magnetic_axis()
@@ -227,6 +248,45 @@ def test_magnetic_axis_incremental_arclength_derivative():
         ma.set_dofs(dofs)
         return ma.dincremental_arclength_by_dcoeff.copy()
     taylor_test(f, df, coeffs)
+
+def test_magnetic_axis_frenet_frame_derivative():
+    ma = get_magnetic_axis()
+    coeffs = ma.get_dofs()
+    def f(dofs):
+        ma.set_dofs(dofs)
+        return ma.frenet_frame[0].copy()
+    def df(dofs):
+        ma.set_dofs(dofs)
+        return ma.dfrenet_frame_by_dcoeff[0].copy()
+    taylor_test(f, df, coeffs)
+
+    def f(dofs):
+        ma.set_dofs(dofs)
+        return ma.frenet_frame[1].copy()
+    def df(dofs):
+        ma.set_dofs(dofs)
+        return ma.dfrenet_frame_by_dcoeff[1].copy()
+    taylor_test(f, df, coeffs)
+
+    def f(dofs):
+        ma.set_dofs(dofs)
+        return ma.frenet_frame[2].copy()
+    def df(dofs):
+        ma.set_dofs(dofs)
+        return ma.dfrenet_frame_by_dcoeff[2].copy()
+    taylor_test(f, df, coeffs)
+
+def test_magnetic_axis_dkappa_by_dphi_derivative():
+    ma = get_magnetic_axis()
+    coeffs = ma.get_dofs()
+    def f(dofs):
+        ma.set_dofs(dofs)
+        return ma.dkappa_by_dphi[:,0,:].copy()
+    def df(dofs):
+        ma.set_dofs(dofs)
+        return ma.d2kappa_by_dphidcoeff[:, 0, :, :].copy()
+    taylor_test(f, df, coeffs)
+
 
 def test_magnetic_axis_frenet_frame():
     ma = get_magnetic_axis()

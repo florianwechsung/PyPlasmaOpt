@@ -4,5 +4,8 @@ PyPlasmaOpt.egg-info/
 *.eggs/
 var/
 PlasmaOpt.egg-info/
+tmp/
 build/
+build-mac/
+build-linux/
 *.so

@@ -9,11 +9,17 @@ solver = "scipy"
 
 nfp = 2
 ppp = 20
-(coils, ma) = get_matt_data(nfp=nfp, ppp=ppp, at_optimum=False)
-# currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+at_optimum = False
+(coils, ma) = get_matt_data(nfp=nfp, ppp=ppp, at_optimum=at_optimum)
+if at_optimum:
+    currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+    eta_bar = -2.105800979374183
+else:
+    currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+    eta_bar = -2.25
+
 stellarator = CoilCollection(coils, currents, nfp, True)
-obj = Problem2_Objective(stellarator, ma, curvature_scale=0e-8, torsion_scale=0e-8, tikhonov=0e-4)#, eta_bar=-2.105800979374183)
+obj = Problem2_Objective(stellarator, ma, curvature_scale=0e-8, torsion_scale=0e-8, tikhonov=0e-4, eta_bar=eta_bar)
 
 # nfp = 3
 # (coils, ma) = get_flat_data(nfp=nfp, ppp=20)
@@ -44,27 +50,37 @@ def plot(info):
         obj.print_status()
     info['Nfeval'] += 1
 
+def taylor_test(obj, x):
+    obj.update(x)
+    J0, dJ0 = obj.res, obj.dres
+    np.random.seed(1)
+    h = np.random.rand(*(x.shape))
+    dJh = sum(dJ0*h)
+    for i in range(5, 20):
+        eps = 0.5**i
+        shifts = [-3, -2, -1, 1, 2, 3]
+        weights = [-1/60, 3/20, -3/4, 3/4, -3/20, 1/60]
+
+        obj.update(x + shifts[0]*eps*h)
+        fd = weights[0] * obj.res
+        for i in range(1, len(shifts)):
+            obj.update(x + shifts[i]*eps*h)
+            fd += weights[i] * obj.res
+        err = abs(fd/eps - dJh)
+        print(err/np.linalg.norm(dJh))
+    obj.update(x)
+
 x = obj.x0
 obj.update(x)
 print("Initial value of J", obj.res)
 # import IPython; IPython.embed()
-if False:
-    obj.update(x)
-    J0, dJ0 = obj.res, obj.dres
-    np.random.seed(1)
-    h = 1e-3 * np.random.rand(*(x.shape))
-    h[10:] = 0
-    dJh = sum(dJ0*h)
-    for i in range(5, 20):
-        eps = 0.5**i
-        obj.update(x + eps * h)
-        Jeps = obj.res
-        err = abs((Jeps-J0)/eps - dJh)
-        print(err)
-    import sys
-    sys.exit()
 
-maxiter = 2000
+if True:
+    taylor_test(obj, x)
+    # import sys
+    # sys.exit()
+
+maxiter = 1
 memory = 1000
 if solver == "nlopt":
     def J_nlopt(x, grad, info=info_dict):
@@ -93,15 +109,13 @@ elif solver == "scipy":
     import time
     from scipy.optimize import minimize
     t1 = time.time()
-    res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
-    # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
+    # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
+    res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory})
     t2 = time.time()
     print(f"Time per iteration: {(t2-t1)/info_dict['Nfeval']:.4f}")
     print(res)
     x = res.x
     print("Gradient norm at minimum:", np.linalg.norm(res.jac))
-    # import sys
-    # sys.exit()
 elif solver == "pylbfgs":
     from lbfgs import LBFGS
     def J_pylbfgs(x, g, info=info_dict):
@@ -127,20 +141,9 @@ plt.legend()
 plt.title("Convergence")
 plt.savefig("convergence-ppp-%i-lbfgsb.png" % ppp)
 if True:
-    obj.update(x)
-    J0, dJ0 = obj.res, obj.dres
-    np.random.seed(1)
-    h = 1e-3 * np.random.rand(*(x.shape))
-    h[10:] = 0
-    dJh = sum(dJ0*h)
-    for i in range(5, 20):
-        eps = 0.5**i
-        obj.update(x + eps * h)
-        Jeps = obj.res
-        err = abs((Jeps-J0)/eps - dJh)
-        print(err)
-    import sys
-    sys.exit()
+    taylor_test(obj, x)
+# import sys
+# sys.exit()
 
 sigma = 1e-4
 sampler = GaussianSampler(coils[0].points, length_scale=0.2, sigma=sigma)
@@ -162,6 +165,7 @@ J_BSvsQS = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, perturbed_bs)
 
 opt_L2 = obj.J_BSvsQS.J_L2()
 opt_H1 = obj.J_BSvsQS.J_H1()
+obj.print_status()
 print(opt_L2, opt_H1)
 L2s = []
 H1s = []
@@ -173,6 +177,7 @@ for i in range(nsamples):
     perturbed_bs.clear_cached_properties()
     L2s.append(J_BSvsQS.J_L2())
     H1s.append(J_BSvsQS.J_H1())
+    J_BSvsQS.dJ_H1_by_dcoilcoefficients()
 
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})

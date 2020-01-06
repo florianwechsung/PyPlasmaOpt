@@ -36,7 +36,7 @@ index 9cffb47..22d03d1 100644
 def test_biot_savart_same_results_as_matlab():
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     coil_collection = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)
@@ -70,7 +70,7 @@ def test_biot_savart_same_results_as_matlab():
 def test_quasi_symmetric_difference_same_results_as_matlab():
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     coil_collection = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)
@@ -84,7 +84,7 @@ def test_quasi_symmetric_difference_same_results_as_matlab():
 
 def test_sigma():
     nfp = 2
-    _, ma = get_matt_data(Nt=4, nfp=nfp, ppp=40)
+    _, ma = get_matt_data(nfp=nfp, ppp=40)
     eta_bar = -2.25
     qsf = QuasiSymmetricField(eta_bar, ma)
     sigma = qsf.sigma
@@ -95,7 +95,7 @@ def test_sigma():
 
 def test_iota():
     nfp = 2
-    _, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    _, ma = get_matt_data(nfp=nfp, ppp=20)
     eta_bar = -2.25
     qsf = QuasiSymmetricField(eta_bar, ma)
     iota = qsf.iota
@@ -103,7 +103,7 @@ def test_iota():
 
 def test_Bqs():
     nfp = 2
-    _, ma = get_matt_data(Nt=4, nfp=nfp, ppp=100)
+    _, ma = get_matt_data(nfp=nfp, ppp=100)
     eta_bar = -2.25
     qsf = QuasiSymmetricField(eta_bar, ma)
     iota = qsf.iota

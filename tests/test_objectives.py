@@ -64,7 +64,7 @@ def test_magnetic_field_objective_by_dcurvecoeffs(gradient):
 def test_taylor_test_coil_coeffs(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -83,24 +83,30 @@ def test_taylor_test_coil_coeffs(objective):
     assert len(dJ) == len(h)
     deriv = np.sum(dJ * h)
     err = 1e6
-    eps = 0.1
-    while err > 1e-7:
+    eps = 0.02
+    while err > 1e-9:
         eps *= 0.5
+
         stellerator.set_dofs(coil_dofs + eps * h)
         bs.clear_cached_properties()
-        Jh = J.J_L2() if objective == "l2" else J.J_H1()
-        deriv_est = (Jh-J0)/eps
+        Jhp = J.J_L2() if objective == "l2" else J.J_H1()
+
+        stellerator.set_dofs(coil_dofs - eps * h)
+        bs.clear_cached_properties()
+        Jhm = J.J_L2() if objective == "l2" else J.J_H1()
+
+        deriv_est = (Jhp-Jhm)/(2*eps)
         err_new = np.linalg.norm(deriv_est-deriv)
         print("err_new %s" % (err_new))
         assert err_new < 0.55 * err
         err = err_new
-    assert eps < 1e-2
+    assert eps < 1e-3
 
 @pytest.mark.parametrize("objective", ["l2", "h1"])
 def test_taylor_test_coil_currents(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -135,7 +141,7 @@ def test_taylor_test_coil_currents(objective):
 def test_taylor_test_ma_coeffs(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(Nt=4, nfp=nfp, ppp=20)
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
     currents = num_coils * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -144,7 +150,7 @@ def test_taylor_test_ma_coeffs(objective):
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     ma_dofs = ma.get_dofs()
     np.random.seed(1)
-    h = 1e-2 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
+    h = np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
     if objective == "l2":
         J0 = J.J_L2()
         dJ = J.dJ_L2_by_dmagneticaxiscoefficients()
@@ -154,22 +160,77 @@ def test_taylor_test_ma_coeffs(objective):
     assert len(dJ) == len(h)
     deriv = np.sum(dJ * h)
     err = 1e6
-    eps = 0.1
-    while err > 1e-9:
+    eps = 0.04
+    while err > 1e-11:
         eps *= 0.5
-        ma.set_dofs(ma_dofs + eps * h)
-        bs.set_points(ma.gamma)
-        bs.clear_cached_properties()
-        qsf.clear_cached_properties()
-        Jh = J.J_L2() if objective == "l2" else J.J_H1()
-        ma.set_dofs(ma_dofs - eps * h)
-        bs.set_points(ma.gamma)
-        bs.clear_cached_properties()
-        qsf.clear_cached_properties()
-        Jhm = J.J_L2() if objective == "l2" else J.J_H1()
-        deriv_est = (Jh-Jhm)/(2*eps)
+        deriv_est = 0
+        shifts = [-2, -1, +1, +2]
+        weights = [+1/12, -2/3, +2/3, -1/12]
+        for i in range(4):
+            ma.set_dofs(ma_dofs + shifts[i]*eps*h)
+            bs.set_points(ma.gamma)
+            qsf.clear_cached_properties()
+            deriv_est += weights[i] * (J.J_L2() if objective == "l2" else J.J_H1())
+        deriv_est *= 1/eps
         err_new = np.linalg.norm(deriv_est-deriv)/np.linalg.norm(deriv)
         print("err_new %s" % (err_new))
+        assert err_new < (0.55)**4 * err
+        err = err_new
+    assert eps < 1e-3
+
+def test_taylor_test_iota_by_coeffs():
+    nfp = 2
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
+    qsf = QuasiSymmetricField(-2.25, ma)
+    ma_dofs = ma.get_dofs()
+    np.random.seed(1)
+    h = 1e-1 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
+    qsf.solve_state()
+    dJ = qsf.diota_by_dcoeffs
+    assert len(dJ) == len(h)
+    deriv = np.sum(dJ[:,0] * h)
+    err = 1e6
+    eps = 0.01
+    while err > 1e-8:
+        eps *= 0.5
+        ma.set_dofs(ma_dofs + eps * h)
+        qsf.clear_cached_properties()
+        Jh = qsf.iota
+        ma.set_dofs(ma_dofs - eps * h)
+        qsf.clear_cached_properties()
+        Jhm = qsf.iota
+        deriv_est = (Jh-Jhm)/(2*eps)
+        err_new = np.linalg.norm(deriv_est-deriv)/np.linalg.norm(deriv)
         assert err_new < 0.26 * err
         err = err_new
+        print("err_new %s" % (err_new))
+    assert eps < 1e-2
+
+def test_taylor_test_sigma_by_coeffs():
+    nfp = 2
+    coils, ma = get_matt_data(nfp=nfp, ppp=20)
+    qsf = QuasiSymmetricField(-2.25, ma)
+    ma_dofs = ma.get_dofs()
+    np.random.seed(1)
+    h = 1e-1 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
+    qsf.solve_state()
+    dJ = qsf.dsigma_by_dcoeff
+    deriv = dJ @ h
+    err = 1e6
+    eps = 0.01
+    while err > 1e-8:
+        eps *= 0.5
+        ma.set_dofs(ma_dofs + eps * h)
+        qsf.clear_cached_properties()
+        qsf.solve_state()
+        Jh = qsf.sigma
+        ma.set_dofs(ma_dofs - eps * h)
+        qsf.clear_cached_properties()
+        qsf.solve_state()
+        Jhm = qsf.sigma
+        deriv_est = (Jh-Jhm)/(2*eps)
+        err_new = np.linalg.norm(deriv_est-deriv)/np.linalg.norm(deriv)
+        assert err_new < 0.26 * err
+        err = err_new
+        print("err_new %s" % (err_new))
     assert eps < 1e-2

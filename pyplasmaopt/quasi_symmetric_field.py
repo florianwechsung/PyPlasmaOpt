@@ -41,30 +41,80 @@ class QuasiSymmetricField(PropertyManager):
 
     @writable_cached_property
     def B(self):
-        self.compute_forward()
+        self.compute()
         return self.B
 
     @writable_cached_property
     def dB_by_dX(self):
-        self.compute_forward()
+        self.compute()
         return self.dB_by_dX
 
     @writable_cached_property
     def sigma(self):
-        self.compute_forward()
+        self.compute()
         return self.sigma
 
     @writable_cached_property
     def iota(self):
-        self.compute_forward()
+        self.compute()
         return self.iota
 
     @writable_cached_property
     def dsigma_by_dphi(self):
-        self.compute_forward()
+        self.compute()
         return self.dsigma_by_dphi
 
-    def compute_forward(self):
+    @writable_cached_property
+    def diota_by_detabar(self):
+        self.compute()
+        return self.diota_by_detabar
+
+    @writable_cached_property
+    def dsigma_by_detabar(self):
+        self.compute()
+        return self.dsigma_by_detabar
+
+    @writable_cached_property
+    def diota_by_dcoeffs(self):
+        self.compute()
+        return self.diota_by_dcoeffs
+
+    @writable_cached_property
+    def dsigma_by_dcoeffs(self):
+        self.compute()
+        return self.dsigma_by_dcoeffs
+
+    @writable_cached_property
+    def dB_by_dcoeffs(self):
+        self.compute()
+        return self.dB_by_dcoeffs
+
+    @writable_cached_property
+    def d2B_by_dcoeffsdX(self):
+        self.compute()
+        return self.d2B_by_dcoeffsdX
+
+    @writable_cached_property
+    def diota_by_dcoeffs(self):
+        self.compute()
+        return self.diota_by_dcoeffs
+
+    @writable_cached_property
+    def dB_by_detabar(self):
+        self.compute()
+        return self.dB_by_detabar
+
+    @writable_cached_property
+    def d2B_by_detabardX(self):
+        self.compute()
+        return self.d2B_by_detabardX
+
+    @writable_cached_property
+    def diota_by_detabar(self):
+        self.compute()
+        return self.diota_by_detabar
+
+    def compute(self):
         sigma, iota, dsigma_by_dphi = self.solve_state()
         self.sigma = sigma
         self.iota = iota
@@ -75,6 +125,7 @@ class QuasiSymmetricField(PropertyManager):
         self.B = self.B_0 * t
         self.dB_by_detabar = np.zeros((self.B.shape[0], 1, self.B.shape[1]))
         self.dB_by_dcoeffs = self.B_0 * dt_by_dcoeff
+
         """ Compute dB_by_dX """
         kappa = self.magnetic_axis.kappa[:, 0]
         dkappa_by_dphi = self.magnetic_axis.dkappa_by_dphi[:, 0, 0]
@@ -84,6 +135,7 @@ class QuasiSymmetricField(PropertyManager):
         s_G = self.s_G
         B_0 = self.B_0
         G_0 = np.mean(l) * self.s_G * self.B_0/(2*pi)
+        assert G_0 >= 0
         eta_bar = self.eta_bar
         iota = self.iota
         sigma = self.sigma
@@ -106,6 +158,8 @@ class QuasiSymmetricField(PropertyManager):
             bterm += (X1c * dY1s_dvarphi - iota * X1c * Y1c) * b[:, j]
             tterm = kappa * s_G * B_0 * n[:, j]
             self.dB_by_dX[:, j, :] = s_Psi * (B_0**2/abs(G_0)) * (nterm[:, None] * n + bterm[:, None] * b) + tterm[:, None] * t
+
+        """ Compute d2B_by_detabardX"""
 
         diota_detabar = self.diota_by_detabar[0, 0]
         dsigma_detabar = self.dsigma_by_detabar[:, 0]
@@ -141,25 +195,24 @@ class QuasiSymmetricField(PropertyManager):
             self.d2B_by_detabardX[:, 0, j, :] = s_Psi * (B_0**2/abs(G_0)) * (nterm[:, None] * n + bterm[:, None] * b)
 
         diota_by_dcoeffs = self.diota_by_dcoeffs
-        dsigma_by_dcoeff = self.dsigma_by_dcoeff
+        dsigma_by_dcoeffs = self.dsigma_by_dcoeffs
         dkappa_by_dcoeff = self.magnetic_axis.dkappa_by_dcoeff[:, :, 0]
         dl_by_dcoeff = self.magnetic_axis.dincremental_arclength_by_dcoeff[:, :, 0]
-        d2sigma_by_dphidcoeff = self.D @ dsigma_by_dcoeff
+        d2sigma_by_dphidcoeff = self.D @ dsigma_by_dcoeffs
         dtorsion_by_dcoeff = self.magnetic_axis.dtorsion_by_dcoeff[:, :, 0]
 
-
+        """ Compute d2B_by_dcoeffsdX"""
         num_coeff = diota_by_dcoeffs.shape[0]
         self.d2B_by_dcoeffsdX = np.zeros((self.n, num_coeff, 3, 3))
         ma = self.magnetic_axis
-        assert G_0 >= 0
         for i in range(num_coeff):
             dX1c_by_dcoeff = -eta_bar*dkappa_by_dcoeff[:, i]/kappa**2
             dY1s_by_dcoeff = s_G * s_Psi * dkappa_by_dcoeff[:, i] / eta_bar
-            dY1c_by_dcoeff = s_G * s_Psi * (dkappa_by_dcoeff[:, i] * sigma + kappa * dsigma_by_dcoeff[:, i]) / eta_bar
+            dY1c_by_dcoeff = s_G * s_Psi * (dkappa_by_dcoeff[:, i] * sigma + kappa * dsigma_by_dcoeffs[:, i]) / eta_bar
 
             d2X1c_dphidcoeff = -eta_bar * (ma.d2kappa_by_dphidcoeff[:, 0, i, 0]/kappa**2 - 2 * dkappa_by_dphi * dkappa_by_dcoeff[:, i] / kappa**3)
             d2Y1s_dphidcoeff = s_G * s_Psi * ma.d2kappa_by_dphidcoeff[:, 0, i, 0] / eta_bar
-            d2Y1c_dphidcoeff = s_G * s_Psi * (ma.d2kappa_by_dphidcoeff[:, 0, i, 0] * sigma + dkappa_by_dcoeff[:, i] * dsigma_dphi + dkappa_by_dphi * dsigma_by_dcoeff[:, i] + kappa * d2sigma_by_dphidcoeff[:, i]) / eta_bar
+            d2Y1c_dphidcoeff = s_G * s_Psi * (ma.d2kappa_by_dphidcoeff[:, 0, i, 0] * sigma + dkappa_by_dcoeff[:, i] * dsigma_dphi + dkappa_by_dphi * dsigma_by_dcoeffs[:, i] + kappa * d2sigma_by_dphidcoeff[:, i]) / eta_bar
 
             dG_0_by_dcoeff = np.mean(dl_by_dcoeff[:, i]) * self.s_G * self.B_0/(2*pi)
             d2X1c_dvarphidcoeff = (dG_0_by_dcoeff / B_0) * (dX1c_dphi/l) + (abs(G_0)/B_0) * (d2X1c_dphidcoeff/l-dX1c_dphi*dl_by_dcoeff[:, i]/l**2)
@@ -205,6 +258,7 @@ class QuasiSymmetricField(PropertyManager):
         fak2 = 2 * G_0 * self.eta_bar**2 / (self.s_Psi * self.B_0)
         torsion = self.magnetic_axis.torsion[:, 0]
         fak1lD = np.diag(fak1/l) @ self.D
+
         def build_residual(x):
             sigma = x[:-1]
             iota = x[-1]
@@ -212,7 +266,6 @@ class QuasiSymmetricField(PropertyManager):
             residual[:n] = fak1lD@sigma + iota * ((self.eta_bar/kappa)**4 + 1 + sigma**2) + fak2 * torsion / kappa**2
             residual[-1] = sigma[0]
             return residual
-
 
         def build_jacobian(x):
             sigma = x[:-1]
@@ -273,6 +326,7 @@ class QuasiSymmetricField(PropertyManager):
         self.diota_by_detabar = -temp[-1:, :]
         self.d2sigma_by_detabardphi = (self.D @ self.dsigma_by_detabar[:, 0]).reshape((n, 1, 1))
 
+        """ Calculate dresidual_by_dcoeffs """
         dl_by_dcoeff = self.magnetic_axis.dincremental_arclength_by_dcoeff[:, :, 0]
         dkappa_by_dcoeff = self.magnetic_axis.dkappa_by_dcoeff[:, :, 0]
 
@@ -292,35 +346,6 @@ class QuasiSymmetricField(PropertyManager):
         temp = jacinv @ dresidual_by_dcoeff
 
         self.diota_by_dcoeffs  = -temp[-1:, :].T
-        self.dsigma_by_dcoeff = -temp[:n, :]
+        self.dsigma_by_dcoeffs = -temp[:n, :]
         return sigma, iota, dsigma_by_dphi
 
-    @writable_cached_property
-    def dB_by_dcoeffs(self):
-        self.compute_forward()
-        return self.dB_by_dcoeffs
-
-    @writable_cached_property
-    def d2B_by_dcoeffsdX(self):
-        self.compute_forward()
-        return self.d2B_by_dcoeffsdX
-
-    @writable_cached_property
-    def diota_by_dcoeffs(self):
-        self.compute_forward()
-        return self.diota_by_dcoeffs
-
-    @writable_cached_property
-    def dB_by_detabar(self):
-        self.compute_forward()
-        return self.dB_by_detabar
-
-    @writable_cached_property
-    def d2B_by_detabardX(self):
-        self.compute_forward()
-        return self.d2B_by_detabardX
-
-    @writable_cached_property
-    def diota_by_detabar(self):
-        self.compute_forward()
-        return self.diota_by_detabar

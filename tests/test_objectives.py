@@ -214,23 +214,29 @@ def test_taylor_test_sigma_by_coeffs():
     np.random.seed(1)
     h = 1e-1 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
     qsf.solve_state()
-    dJ = qsf.dsigma_by_dcoeff
+    dJ = qsf.dsigma_by_dcoeffs
     deriv = dJ @ h
     err = 1e6
     eps = 0.01
     while err > 1e-8:
         eps *= 0.5
+
         ma.set_dofs(ma_dofs + eps * h)
         qsf.clear_cached_properties()
-        qsf.solve_state()
-        Jh = qsf.sigma
+        Jhp = qsf.sigma
+
         ma.set_dofs(ma_dofs - eps * h)
         qsf.clear_cached_properties()
-        qsf.solve_state()
         Jhm = qsf.sigma
-        deriv_est = (Jh-Jhm)/(2*eps)
+
+        deriv_est = (Jhp-Jhm)/(2*eps)
         err_new = np.linalg.norm(deriv_est-deriv)/np.linalg.norm(deriv)
         assert err_new < 0.26 * err
         err = err_new
         print("err_new %s" % (err_new))
     assert eps < 1e-2
+
+if __name__ == "__main__":
+    test_taylor_test_ma_coeffs("l2")
+    test_taylor_test_ma_coeffs("h1")
+    # test_taylor_test_sigma_by_coeffs()

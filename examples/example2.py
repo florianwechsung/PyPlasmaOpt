@@ -80,7 +80,7 @@ if True:
     # import sys
     # sys.exit()
 
-maxiter = 1
+maxiter = 100
 memory = 1000
 if solver == "nlopt":
     def J_nlopt(x, grad, info=info_dict):

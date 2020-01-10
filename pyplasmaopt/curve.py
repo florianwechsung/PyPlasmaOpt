@@ -626,7 +626,7 @@ class GaussianSampler():
         self.n_derivs = n_derivs
         cov_mat = np.zeros((n*(n_derivs+1), n*(n_derivs+1)))
         def kernel(x, y):
-            return sigma**2*exp(-(x-y)**2/length_scale**2)
+            return sum(sigma**2*exp(-(x-y+i)**2/length_scale**2) for i in range(-2, 3))
         for ii in range(n_derivs+1):
             for jj in range(n_derivs+1):
                 if ii + jj == 0:

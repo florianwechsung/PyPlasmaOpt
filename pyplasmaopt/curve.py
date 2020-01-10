@@ -4,7 +4,7 @@ from math import pi, sin, cos
 from property_manager3 import cached_property, PropertyManager
 
 
-class Curve(PropertyManager):
+class Curve():
     r"""
     A periodic curve \Gamma : [0, 1) \to R^3, \phi\mapsto\Gamma(\phi).
     """
@@ -18,7 +18,17 @@ class Curve(PropertyManager):
 
     def update(self):
 
-        self.clear_cached_properties()
+        props = [
+            "gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi", "d3gamma_by_dphidphidphi",
+            "dgamma_by_dcoeff", "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff", "d4gamma_by_dphidphidphidcoeff",
+            "kappa", "dkappa_by_dphi", "dkappa_by_dcoeff", "d2kappa_by_dphidcoeff",
+            "incremental_arclength", "dincremental_arclength_by_dcoeff", "dincremental_arclength_by_dphi",
+            "torsion", "dtorsion_by_dcoeff",
+            "frenet_frame", "dfrenet_frame_by_dcoeff"
+        ]
+        for k in list(self.__dict__.keys()):
+            if k in props:
+                del self.__dict__[k]
 
         for obj in self.dependencies:
             obj.update()
@@ -127,6 +137,10 @@ class Curve(PropertyManager):
 
     @cached_property
     def d3gamma_by_dphidphidcoeff(self):
+        raise NotImplementedError
+
+    @cached_property
+    def d4gamma_by_dphidphidphidcoeff(self):
         raise NotImplementedError
 
     @cached_property
@@ -667,11 +681,10 @@ class GaussianPerturbedCurve(Curve):
         self.sampler = sampler
         curve.dependencies.append(self)
         self.sample = sampler.sample()
-        self.update()
 
     def resample(self):
         self.sample = self.sampler.sample()
-        self.clear_cached_properties()
+        self.update()
 
     def num_coeff(self):
         return self.curve.num_coeff()

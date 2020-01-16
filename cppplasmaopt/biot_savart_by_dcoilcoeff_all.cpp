@@ -42,11 +42,13 @@ void biot_savart_by_dcoilcoeff_all_simd(vector_type& pointsx, vector_type& point
                 auto norm_diff_7_inv = norm_diff_5_inv/(norm_diff_2);
                 auto d2gamma_j_by_dphi_dcoeff_k_cross_diff       = cross(d2gamma_j_by_dphi_dcoeff_k, diff);
                 for (int l = 0; l < 3; ++l) {
-                    auto el = Vec3dSimd(0., 0., 0.);
+                    auto el  = Vec3d{0., 0., 0.};
                     el[l] += 1.;
 
-                    auto term1 = cross(d2gamma_j_by_dphi_dcoeff_k, el) * norm_diff_3_inv ;
-                    auto term2 = cross(dgamma_j_by_dphi, el) * (3. * diff_inner_dgamma_j_by_dcoeff_k * norm_diff_5_inv);
+                    auto d2gamma_j_by_dphi_dcoeff_k_cross_el = cross(d2gamma_j_by_dphi_dcoeff_k, el);
+                    auto dgamma_j_by_dphi_cross_el = cross(dgamma_j_by_dphi, el);
+                    auto term1 = Vec3dSimd(d2gamma_j_by_dphi_dcoeff_k_cross_el[0], d2gamma_j_by_dphi_dcoeff_k_cross_el[1], d2gamma_j_by_dphi_dcoeff_k_cross_el[2]) * norm_diff_3_inv;
+                    auto term2 = Vec3dSimd(dgamma_j_by_dphi_cross_el[0], dgamma_j_by_dphi_cross_el[1], dgamma_j_by_dphi_cross_el[2]) * (3. * diff_inner_dgamma_j_by_dcoeff_k * norm_diff_5_inv);
                     auto term3 = three_dgamma_by_dphi_cross_diff * (-5. * diff_inner_dgamma_j_by_dcoeff_k * diff[l] * norm_diff_7_inv);
                     auto term4 = three_dgamma_by_dphi_cross_diff * (dgamma_j_by_dcoeff_k[l] * norm_diff_5_inv);
                     auto term5 = d2gamma_j_by_dphi_dcoeff_k_cross_diff * (-3. * diff[l] * norm_diff_5_inv);

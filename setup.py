@@ -76,13 +76,13 @@ def has_flag(compiler, flagname):
 
 
 def cpp_flag(compiler):
-    """Return the -std=c++14 compiler flag  and errors when the flag is
+    """Return the -std=gnu++17 compiler flag  and errors when the flag is
     no available.
     """
-    if has_flag(compiler, '-std=c++14'):
-        return '-std=c++14'
+    if has_flag(compiler, '-std=gnu++17'):
+        return '-std=gnu++17'
     else:
-        raise RuntimeError('C++14 support is required by cppplasmaopt!')
+        raise RuntimeError('gnu++17 support is required by cppplasmaopt!')
 
 
 class BuildExt(build_ext):
@@ -129,7 +129,7 @@ setup(
     name='PlasmaOpt',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy'],
+    install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy', 'argparse'],
     setup_requires=['pybind11>=2.4'],
     cmdclass={'build_ext': BuildExt},
     packages = ["pyplasmaopt"],

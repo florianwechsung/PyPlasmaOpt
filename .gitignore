@@ -9,3 +9,6 @@ build/
 build-mac/
 build-linux/
 *.so
+*.png
+*.txt
+*.npy

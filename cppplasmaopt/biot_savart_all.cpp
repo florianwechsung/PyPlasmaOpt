@@ -145,14 +145,14 @@ void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma
     auto pointsx = vector_type(points.shape(0), 0);
     auto pointsy = vector_type(points.shape(0), 0);
     auto pointsz = vector_type(points.shape(0), 0);
-    for (int i = 0; i < points.shape(0); ++i) {
+    int num_points = points.shape(0);
+    for (int i = 0; i < num_points; ++i) {
         pointsx[i] = points(i, 0);
         pointsy[i] = points(i, 1);
         pointsz[i] = points(i, 2);
     }
 
     int num_coils  = gammas.size();
-    int num_points = points.shape(0);
 
     auto Bs           = vector<Array>();
     auto dB_by_dXs    = vector<Array>();

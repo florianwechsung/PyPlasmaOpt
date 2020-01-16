@@ -285,7 +285,7 @@ class CurveCurvature():
     def J(self):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         kappa = self.curve.kappa[:, 0]
-        return np.mean(kappa**2 * arc_length)
+        return np.mean(kappa**4 * arc_length)
 
     def dJ_by_dcoefficients(self):
         kappa                 = self.curve.kappa[:,0]
@@ -297,8 +297,8 @@ class CurveCurvature():
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((kappa**2/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(2*kappa * dkappa_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((kappa**4/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(4*kappa**3 * dkappa_by_dcoeff[:,i] * arc_length)
         return res
 
 
@@ -314,7 +314,7 @@ class CurveTorsion():
     def J(self):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         torsion    = self.curve.torsion[:, 0]
-        return np.mean(torsion**2 * arc_length)
+        return np.mean(torsion**4 * arc_length)
 
     def dJ_by_dcoefficients(self):
         torsion               = self.curve.torsion[:,0]
@@ -326,6 +326,6 @@ class CurveTorsion():
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((torsion**2/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(2*torsion * dtorsion_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((torsion**4/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(4*torsion**3 * dtorsion_by_dcoeff[:,i] * arc_length)
         return res

@@ -1,5 +1,14 @@
 # PlasmaOpt
 
+## Requirements
+
+On a recent linux (e.g. Ubuntu > 18.04), all requirements should be met.
+On mac, install gcc and python via
+
+    brew install python gcc
+
+and make sure to follow the instructions under _Caveats_ when installing python.
+
 ## Installation
 
 To install run
@@ -10,10 +19,15 @@ or if you don't have SSH keys for GitHub set up
 
     git clone --recursive https://github.com/florianwechsung/PyPlasmaOpt.git
 
-and then
+change into the directory
 
     cd PyPlasmaOpt/
-    pip3 install -e .
+
+and then depending on your platform run 
+
+    make pip-mac
+or 
+    make pip-linux
 
 To check the installation
 

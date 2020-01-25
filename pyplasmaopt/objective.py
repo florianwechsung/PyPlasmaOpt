@@ -316,11 +316,12 @@ class CurveTorsion():
 
     def __init__(self, curve, p=2):
         self.curve = curve
+        self.p = p
 
     def J(self):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         torsion    = self.curve.torsion[:, 0]
-        return np.mean(torsion**p * arc_length)
+        return np.mean(torsion**self.p * arc_length)
 
     def dJ_by_dcoefficients(self):
         torsion               = self.curve.torsion[:,0]
@@ -332,8 +333,8 @@ class CurveTorsion():
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((torsion**p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(p*torsion**(p-1) * dtorsion_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((torsion**self.p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(self.p*torsion**(self.p-1) * dtorsion_by_dcoeff[:,i] * arc_length)
         return res
 
 

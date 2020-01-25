@@ -17,6 +17,10 @@ def get_objective():
     parser.add_argument("--curvature-penalty", type=float, default=0.)
     parser.add_argument("--torsion-penalty", type=float, default=0.)
     parser.add_argument("--tikhonov", type=float, default=0.)
+    parser.add_argument("--sobolev", type=float, default=0.)
+    parser.add_argument("--arclength", type=float, default=0.)
+    parser.add_argument("--minimum-distance", type=float, default=0.04)
+    parser.add_argument("--distance-weight", type=float, default=0.)
     args, _ = parser.parse_known_args()
     print("Configuration: \n", args.__dict__)
 
@@ -35,7 +39,12 @@ def get_objective():
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
     outdir += "/"
-    obj = Problem2_Objective(stellarator, ma, curvature_scale=args.curvature_penalty, torsion_scale=args.torsion_penalty, tikhonov=args.tikhonov, eta_bar=eta_bar, nsamples=args.nsamples, sigma_perturb=args.sigma, length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir)
+    obj = Problem2_Objective(
+        stellarator, ma, curvature_scale=args.curvature_penalty, torsion_scale=args.torsion_penalty,
+        tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
+        minimum_distance=args.minimum_distance, distance_weight=args.distance_weight,
+        eta_bar=eta_bar, nsamples=args.nsamples, sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
+        mode=args.mode, outdir=outdir)
     return obj, args
 
 class Problem2_Objective():
@@ -43,7 +52,8 @@ class Problem2_Objective():
     def __init__(self, stellarator, ma, 
                  iota_target=0.103, coil_length_target=4.398229715025710, magnetic_axis_length_target=6.356206812106860,
                  eta_bar=-2.25,
-                 curvature_scale=1e-6, torsion_scale=1e-4, tikhonov=0.0,
+                 curvature_scale=1e-6, torsion_scale=1e-4, tikhonov=0., arclength=0., sobolev=0.,
+                 minimum_distance=0.04, distance_weight=1.,
                  nsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
                  outdir="output/"
                  ):
@@ -61,8 +71,11 @@ class Problem2_Objective():
         coils = stellarator._base_coils
         self.J_coil_lengths    = [CurveLength(coil) for coil in coils]
         self.J_axis_length     = CurveLength(ma)
-        self.J_coil_curvatures = [CurveCurvature(coil) for coil in coils]
-        self.J_coil_torsions   = [CurveTorsion(coil) for coil in coils]
+        self.J_coil_curvatures = [CurveCurvature(coil, coil_length_target) for coil in coils]
+        self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
+        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_arclengths = [UniformArclength(coil, coil_length_target) for coil in coils]
+        self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target                 = iota_target
         self.coil_length_target          = coil_length_target
@@ -76,11 +89,16 @@ class Problem2_Objective():
         self.coil_dof_idxs = (self.current_dof_idxs[1], self.current_dof_idxs[1] + len(stellarator.get_dofs()))
         self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs()))
         self.x = self.x0.copy()
+        self.sobolev = sobolev
         self.tikhonov = tikhonov
+        self.arclength = arclength
+        self.distance_weight = distance_weight
         self.Jvals = []
         self.dJvals = []
 
         sampler = GaussianSampler(coils[0].points, length_scale=length_scale_perturb, sigma=sigma_perturb)
+        # import IPython; IPython.embed()
+        # import sys; sys.exit()
         self.sampler = sampler
         self.J_BSvsQS_perturbed = []
         for i in range(nsamples):
@@ -171,27 +189,47 @@ class Problem2_Objective():
         self.dresetabar += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_detabar[:,0]
         self.dresma     += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_dcoeffs[:, 0]
 
-        if curvature_scale > 1e-30:
+        if curvature_scale > 1e-15:
             self.res5      = sum(curvature_scale * J.J() for J in J_coil_curvatures)
             self.drescoil += self.curvature_scale * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
         else:
             self.res5 = 0
-        if torsion_scale > 1e-30:
+        if torsion_scale > 1e-15:
             self.res6      = sum(torsion_scale * J.J() for J in J_coil_torsions)
             self.drescoil += self.torsion_scale * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
         else:
             self.res6 = 0
 
-        self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
+        if self.sobolev > 1e-15:
+            self.res7 = sum(self.sobolev * J.J() for J in self.J_sobolevs)
+            self.drescoil += self.sobolev * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolevs[:-1]])
+            self.dresma += self.sobolev * self.J_sobolevs[-1].dJ_by_dcoefficients()
+        else:
+            self.res7 = 0
 
+        if self.arclength > 1e-15:
+            self.res8 = sum(self.arclength * J.J() for J in self.J_arclengths)
+            self.drescoil += self.arclength * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclengths])
+        else:
+            self.res8 = 0
 
-        self.dres_tikhonov = self.tikhonov * 2. * (x-self.x0)
-        self.dresetabar += self.dres_tikhonov[0:1]
-        self.dresma += self.dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
-        self.drescurrent += self.dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
-        self.drescoil += self.dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        if self.distance_weight > 1e-15:
+            self.res9 = self.distance_weight * self.J_distance.J()
+            self.drescoil += self.distance_weight * self.stellarator.reduce_coefficient_derivatives(self.J_distance.dJ_by_dcoefficients())
+        else:
+            self.res9 = 0
 
-        self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6  + self.res_tikhonov
+        if self.tikhonov > 1e-15:
+            self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
+            dres_tikhonov = self.tikhonov * 2. * (x-self.x0)
+            self.dresetabar += dres_tikhonov[0:1]
+            self.dresma += dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
+            self.drescurrent += dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
+            self.drescoil += dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        else:
+            self.res_tikhonov = 0
+
+        self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6 + self.res7 + self.res8 + self.res9 + self.res_tikhonov
 
         self.dres = np.concatenate((
             self.dresetabar, self.dresma,
@@ -217,7 +255,7 @@ class Problem2_Objective():
         print(f"Iteration {iteration}")
         norm = np.linalg.norm
         print("Objective value:         ", self.res)
-        print("Objective values:        ", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res_tikhonov)
+        print("Objective values:        ", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov)
         print("Objective 10%, mean, 90%:", np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9))
         print("Objective gradients:     ",
                 norm(self.dresetabar),
@@ -236,7 +274,9 @@ class Problem2_Objective():
 
     def plot(self, filename):
         import matplotlib.pyplot as plt
-        ax = None
+        from mpl_toolkits.mplot3d import Axes3D
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 2, 1, projection="3d")
         for i in range(0, len(self.stellarator.coils)):
             ax = self.stellarator.coils[i].plot(ax=ax, show=False, color=["b", "g", "r", "c", "m", "y"][i%len(self.stellarator._base_coils)])
         self.ma.plot(ax=ax, show=False, closed_loop=False)
@@ -244,5 +284,40 @@ class Problem2_Objective():
         ax.set_xlim(-2, 2)
         ax.set_ylim(-2, 2)
         ax.set_zlim(-1, 1)
+        ax = fig.add_subplot(1, 2, 2, projection="3d")
+        for i in range(0, len(self.stellarator.coils)):
+            ax = self.stellarator.coils[i].plot(ax=ax, show=False, color=["b", "g", "r", "c", "m", "y"][i%len(self.stellarator._base_coils)])
+        self.ma.plot(ax=ax, show=False, closed_loop=False)
+        ax.view_init(elev=0., azim=0)
+        ax.set_xlim(-2, 2)
+        ax.set_ylim(-2, 2)
+        ax.set_zlim(-1, 1)
         plt.savefig(self.outdir + filename, dpi=300)
         plt.close()
+
+        import mayavi.mlab as mlab
+        mlab.options.offscreen = True
+        # for coil in coils:
+        # colors = ((
+        colors = [
+            (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
+            (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
+            (0.3333333333333333, 0.6588235294117647, 0.40784313725490196),
+            (0.7686274509803922, 0.3058823529411765, 0.3215686274509804),
+            (0.5058823529411764, 0.4470588235294118, 0.7019607843137254),
+            (0.5764705882352941, 0.47058823529411764, 0.3764705882352941),
+            (0.8549019607843137, 0.5450980392156862, 0.7647058823529411),
+            (0.5490196078431373, 0.5490196078431373, 0.5490196078431373),
+            (0.8, 0.7254901960784313, 0.4549019607843137),
+            (0.39215686274509803, 0.7098039215686275, 0.803921568627451)
+        ]
+
+        for i in range(0, len(self.stellarator.coils)):
+            gamma = self.stellarator.coils[i].gamma
+            gamma = np.concatenate((gamma, [gamma[0,:]]))
+            mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[i%len(self.stellarator._base_coils)])
+        mlab.view(azimuth=0, elevation=0)
+        mlab.savefig(self.outdir + "mayavi_top_" + filename, magnification=4)
+        mlab.view(azimuth=0, elevation=90)
+        mlab.savefig(self.outdir + "mayavi_side_" + filename, magnification=4)
+        mlab.close()

@@ -34,20 +34,21 @@ def taylor_test(obj, x):
             obj.update(x + shifts[i]*eps*h)
             fd += weights[i] * obj.res
         err = abs(fd/eps - dJh)
-        print(err/np.linalg.norm(dJh))
+        print(err, err/np.linalg.norm(dJh))
     obj.update(x)
 
 x = obj.x0
 obj.update(x)
 obj.callback(x)
 # import IPython; IPython.embed()
+# import sys; sys.exit()
 
 if True:
     taylor_test(obj, x)
     # import sys
     # sys.exit()
 
-maxiter = 2000
+maxiter = 1000
 memory = 300
 if solver == "nlopt":
     def J_nlopt(x, grad, info=info_dict):
@@ -81,11 +82,11 @@ elif solver == "scipy":
             print("################################# Restart optimization #############################################")
             print("####################################################################################################")
             restarts += 1
-        res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter-iters, 'maxcor': memory}, callback=obj.callback)
+        # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter-iters, 'maxcor': memory}, callback=obj.callback)
+        res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter-iters}, callback=obj.callback)
         iters += res.nit
         x = res.x
 
-    # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': maxiter, 'maxcor': memory}, callback=obj.callback)
     t2 = time.time()
     print(f"Time per iteration: {(t2-t1)/len(obj.Jvals)}")
     print(res)

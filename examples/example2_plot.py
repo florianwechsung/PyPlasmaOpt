@@ -120,14 +120,13 @@ for i in range(niterates):
     argmin1 = np.zeros((num_total_coils, num_total_coils), dtype=np.int64)
     distances[:, :] = 1e10
     from scipy.spatial.distance import cdist
-    for i in range(num_total_coils):
-        for j in range(i-1):
-            dists = cdist(stellarator.coils[i].gamma, stellarator.coils[j].gamma)
-            np.fill_diagonal(dists, 1e10)
+    for j in range(num_total_coils):
+        for k in range(j):
+            dists = cdist(stellarator.coils[j].gamma, stellarator.coils[k].gamma)
             idx = np.unravel_index(np.argmin(dists), dists.shape)
-            distances[i, j] = np.min(dists)
-            argmin0[i, j] = idx[0]
-            argmin1[i, j] = idx[1]
+            distances[j, k] = np.min(dists)
+            argmin0[j, k] = idx[0]
+            argmin1[j, k] = idx[1]
     idx = np.unravel_index(np.argmin(distances), distances.shape)
     min_distances.append(np.min(distances))
     min_distances_points.append((stellarator.coils[idx[0]].gamma[argmin0[idx[0], idx[1]], :], stellarator.coils[idx[1]].gamma[argmin1[idx[0], idx[1]], :]))
@@ -151,7 +150,6 @@ plt.grid()
 plt.legend()
 plt.savefig(outdir + "distance.png", dpi=300)
 plt.close()
-# import IPython; IPython.embed()
 
 
 # ax = None

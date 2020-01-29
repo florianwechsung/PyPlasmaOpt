@@ -116,6 +116,8 @@ np.savetxt(outdir + "Jvals_quantiles.txt", obj.Jvals_quantiles)
 np.savetxt(outdir + "Jvals_no_noise.txt", obj.Jvals_no_noise)
 np.savetxt(outdir + "xiterates.txt", obj.xiterates)
 np.savetxt(outdir + "Jvals_perturbed.txt", obj.Jvals_perturbed)
+np.savetxt(outdir + "Jvals_individual.txt", obj.Jvals_individual)
+np.savetxt(outdir + "QSvsBS_perturbed.txt", obj.QSvsBS_perturbed)
 
 # import IPython; IPython.embed()
 if True:

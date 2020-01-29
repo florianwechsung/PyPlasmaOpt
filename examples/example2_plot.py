@@ -166,3 +166,39 @@ plt.close()
 # plt.show()
 # plt.savefig(obj.outdir + filename, dpi=300)
 # plt.close()
+
+obj.set_dofs(xiterates[-1, :])
+nperiods = 200
+rphiz, xyz = compute_field_lines(obj.biotsavart, nperiods=nperiods, batch_size=8, magnetic_axis_radius=obj.ma.gamma[0, 0], max_thickness=0.4, delta=0.01)
+nparticles = rphiz.shape[0]
+
+import mayavi.mlab as mlab
+mlab.options.offscreen = True
+for coil in obj.stellarator.coils:
+    mlab.plot3d(coil.gamma[:, 0], coil.gamma[:, 1], coil.gamma[:, 2])
+colors = [
+    (0.298, 0.447, 0.690), (0.866, 0.517, 0.321),
+    (0.333, 0.658, 0.407), (0.768, 0.305, 0.321),
+    (0.505, 0.447, 0.701), (0.576, 0.470, 0.376),
+    (0.854, 0.545, 0.764), (0.549, 0.549, 0.549),
+    (0.800, 0.725, 0.454), (0.392, 0.709, 0.803)]
+counter = 0
+for i in range(0, nparticles, nparticles//5):
+    mlab.plot3d(xyz[i, :, 0], xyz[i, :, 1], xyz[i, :, 2], tube_radius=0.005, color=colors[counter%len(colors)])
+    counter += 1
+mlab.view(azimuth=0, elevation=0)
+mlab.savefig(outdir + "poincare-3d.png", magnification=4)
+mlab.close()
+
+plt.figure()
+for i in range(nparticles):
+    plt.scatter(rphiz[i, range(0, nperiods*100, 100), 0], rphiz[i, range(0, nperiods*100, 100), 2], s=0.1)
+# plt.show()
+plt.savefig(outdir + "poincare.png", dpi=300)
+plt.close()
+plt.figure()
+for i in range(nparticles):
+    plt.scatter(rphiz[i, range(0, 6*100, 100), 0], rphiz[i, range(0, 6*100, 100), 2], s=0.1)
+# plt.show()
+plt.savefig(outdir + "poincare_few_turns.png", dpi=300)
+plt.close()

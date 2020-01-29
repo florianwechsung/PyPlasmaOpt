@@ -127,6 +127,8 @@ inline simd_t normsq(Vec3dSimd& a){
 }
 
 void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& B, Array& dB_by_dX, Array& d2B_by_dXdX, vector<Array>& dB_by_coilcurrents, vector<Array>& d2B_by_dXdcoilcurrents);
+void biot_savart_B_only(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& B);
+
 void biot_savart_by_dcoilcoeff_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs, vector<double>& currents, vector<Array>& dB_by_dcoilcoeffs, vector<Array>& d2B_by_dXdcoilcoeff);
 
 void biot_savart_B(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& res);

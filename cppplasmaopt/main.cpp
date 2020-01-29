@@ -21,6 +21,7 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     )pbdoc");
 
     m.def("biot_savart_all",               & biot_savart_all);
+    m.def("biot_savart_B_only",            & biot_savart_B_only);
     m.def("biot_savart_by_dcoilcoeff_all", & biot_savart_by_dcoilcoeff_all);
     
     m.def("biot_savart_B",           &biot_savart_B);

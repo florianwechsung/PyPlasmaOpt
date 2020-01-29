@@ -34,7 +34,7 @@ def get_objective():
         eta_bar = -2.25
     stellarator = CoilCollection(coils, currents, nfp, True)
     np.random.seed(args.seed)
-    outdir = "output-4th-power"
+    outdir = "output"
     for k in args.__dict__:
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
@@ -93,6 +93,8 @@ class Problem2_Objective():
         self.tikhonov = tikhonov
         self.arclength = arclength
         self.distance_weight = distance_weight
+        self.Jvals_individual = []
+        self.QSvsBS_perturbed = []
         self.Jvals = []
         self.dJvals = []
 
@@ -125,6 +127,10 @@ class Problem2_Objective():
         self.stellarator.set_currents(self.current_fak * x_current)
         self.stellarator.set_dofs(x_coil)
 
+        self.biotsavart.clear_cached_properties()
+        self.qsf.clear_cached_properties()
+
+
     def update(self, x):
         self.x[:] = x
         J_BSvsQS          = self.J_BSvsQS
@@ -139,12 +145,8 @@ class Problem2_Objective():
         curvature_scale             = self.curvature_scale
         torsion_scale               = self.torsion_scale
         qsf = self.qsf
-        bs = self.biotsavart
 
         self.set_dofs(x)
-
-        bs.clear_cached_properties()
-        qsf.clear_cached_properties()
 
         self.dresetabar  = np.zeros(1)
         self.dresma      = np.zeros(self.ma_dof_idxs[1]-self.ma_dof_idxs[0])
@@ -229,14 +231,15 @@ class Problem2_Objective():
         else:
             self.res_tikhonov = 0
 
-        self.res = self.res1 + self.res2 + self.res3 + self.res4 + self.res5 + self.res6 + self.res7 + self.res8 + self.res9 + self.res_tikhonov
+        self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov])
+        self.res = sum(self.Jvals_individual[-1])
+        self.QSvsBS_perturbed.append([0.5 * j.J_L2() + 0.5 * j.J_H1() for j in self.J_BSvsQS_perturbed])
+        self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
 
         self.dres = np.concatenate((
             self.dresetabar, self.dresma,
             self.drescurrent, self.drescoil
         ))
-
-        self.perturbed_vals = [self.res - self.res1 + 0.5 * j.J_L2() + 0.5 * j.J_H1() for j in self.J_BSvsQS_perturbed]
 
     def callback(self, x):
         assert np.allclose(self.x, x)
@@ -295,10 +298,18 @@ class Problem2_Objective():
         plt.savefig(self.outdir + filename, dpi=300)
         plt.close()
 
-        import mayavi.mlab as mlab
+        try:
+            import mayavi.mlab as mlab
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "\n\nPlease install mayavi first. On a mac simply do \n" +
+                "   pip3 install mayavi PyQT5\n" +
+                "On Ubuntu run \n" +
+                "   pip3 install mayavi\n" +
+                "   sudo apt install python3-pyqt4\n\n"
+            )
+
         mlab.options.offscreen = True
-        # for coil in coils:
-        # colors = ((
         colors = [
             (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
             (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
@@ -319,5 +330,7 @@ class Problem2_Objective():
         mlab.view(azimuth=0, elevation=0)
         mlab.savefig(self.outdir + "mayavi_top_" + filename, magnification=4)
         mlab.view(azimuth=0, elevation=90)
-        mlab.savefig(self.outdir + "mayavi_side_" + filename, magnification=4)
+        mlab.savefig(self.outdir + "mayavi_side1_" + filename, magnification=4)
+        mlab.view(azimuth=90, elevation=90)
+        mlab.savefig(self.outdir + "mayavi_side2_" + filename, magnification=4)
         mlab.close()

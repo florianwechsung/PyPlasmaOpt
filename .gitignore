@@ -12,3 +12,5 @@ build-linux/
 *.png
 *.txt
 *.npy
+*.log
+*.stat

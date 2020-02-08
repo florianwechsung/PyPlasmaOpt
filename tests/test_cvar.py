@@ -6,8 +6,8 @@ import matplotlib
 matplotlib.use('AGG')
 
 def test_cvar_toy_example():
-    nsamples = 1000
-    perturbs = 1 * np.random.normal(size=(nsamples, 1))
+    nsamples = 100
+    perturbs = 10 * np.random.normal(size=(nsamples, 1))**2
     x = np.zeros((1,))
     t = np.zeros((1,))
 
@@ -21,33 +21,32 @@ def test_cvar_toy_example():
 
     xmin_det = np.asarray([0])
 
-    class Obj():
-        def __init__(self):
-            self.x = np.zeros((1,))
-
-        def update(self, x):
-            self.x = x
-            x = perturbs + x
-            self.J_samples = foo(x)
-            self.dJ_samples = dfoo(x)
-
     alpha = 0.9
+    cvar = CVaR(alpha, eps=1)
+
+    class Obj():
+        def J(self, tx):
+            t = tx[0]
+            x = perturbs + tx[1:]
+            return cvar.J(t, foo(x))
+
+        def dJ(self, tx):
+            t = tx[0]
+            x = perturbs + tx[1:]
+            return np.concatenate((cvar.dJ_dt(t, foo(x)), cvar.dJ_dx(t, foo(x), dfoo(x))))
+
     obj = Obj()
-    cvar = CVaR(obj, alpha, eps=1)
     tx = np.concatenate((t,x))
     from scipy.optimize import minimize
 
     x0 = np.asarray([1.0, 0])
-    cvar.update(x0)
     h = np.asarray([1., 1])
-    dJ = np.sum(cvar.dJ() * h)
+    dJ = np.sum(obj.dJ(x0) * h)
     err = 1e8
     for i in range(1, 10):
         eps = 0.5**i
-        cvar.update(x0 + eps * h)
-        Jp = cvar.J()
-        cvar.update(x0 - eps * h)
-        Jm = cvar.J()
+        Jp = obj.J(x0 + eps * h)
+        Jm = obj.J(x0 - eps * h)
         err_new = 0.5*(Jp-Jm)/eps-dJ
         assert err_new < 0.55**2 * err
         err = err_new
@@ -55,9 +54,8 @@ def test_cvar_toy_example():
 
     def minimize_cvar(t, x):
         def fun(tx):
-            cvar.update(tx)
-            res = cvar.J()
-            dres = cvar.dJ()
+            res = obj.J(tx)
+            dres = obj.dJ(tx)
             return res, dres
         res = minimize(fun, np.array([t, x]), jac=True, method="BFGS", tol=1e-10)
         x = res.x[1]
@@ -66,12 +64,12 @@ def test_cvar_toy_example():
         fxpert = foo(xpert)
         true_cvar = np.mean([f for f in fxpert if f >= np.quantile(fxpert, alpha)])
         print(res)
-        print("eps=%.2e:" % cvar.eps, res.fun, "vs", true_cvar)
+        print("eps=%.2e:" % cvar.eps, res.fun, "vs", true_cvar, "err", abs(res.fun-true_cvar))
         return t, x
 
-    for i in range(7):
+    for i in range(17):
         t, x = minimize_cvar(t, x)
-        cvar.eps *= 0.1
+        cvar.eps *= 0.2
     xs = np.linspace(-1, 1, 100)
     xpert = perturbs + x
     fxpert = foo(xpert)
@@ -103,30 +101,30 @@ def test_cvar_2d_example():
         return np.exp(np.sum(x, axis=1))[:, None]  + 2 * 0.01 * x
 
     class Obj():
+        def J(self, tx):
+            t = tx[0]
+            x = perturbs + tx[1:]
+            return cvar.J(t, foo(x))
 
-        def update(self, x):
-            self.x = x.copy()
-            x = perturbs + x
-            self.J_samples = foo(x)
-            self.dJ_samples = dfoo(x)
+        def dJ(self, tx):
+            t = tx[0]
+            x = perturbs + tx[1:]
+            return np.concatenate((cvar.dJ_dt(t, foo(x)), cvar.dJ_dx(t, foo(x), dfoo(x))))
 
     alpha = 0.95
     obj = Obj()
-    cvar = CVaR(obj, alpha, eps=1)
+    cvar = CVaR(alpha, eps=1)
     tx = np.concatenate((t, x))
     from scipy.optimize import minimize
 
     x0 = np.asarray([0.0, 0.1, 0.1])
-    cvar.update(x0)
     h = np.asarray([1., 1, 1.])
-    dJ = np.sum(cvar.dJ() * h)
+    dJ = np.sum(obj.dJ(x0) * h)
     err = 1e8
     for i in range(1, 8):
         eps = 0.5**i
-        cvar.update(x0 + eps * h)
-        Jp = cvar.J()
-        cvar.update(x0 - eps * h)
-        Jm = cvar.J()
+        Jp = obj.J(x0 + eps * h)
+        Jm = obj.J(x0 - eps * h)
         err_new = 0.5*(Jp-Jm)/eps-dJ
         assert err_new < 0.55**2 * err
         err = err_new
@@ -134,9 +132,8 @@ def test_cvar_2d_example():
 
     def minimize_cvar(t, x):
         def fun(tx):
-            cvar.update(tx)
-            res = cvar.J()
-            dres = cvar.dJ()
+            res = obj.J(tx)
+            dres = obj.dJ(tx)
             return res, dres
         res = minimize(fun, np.concatenate((t, x)), jac=True, method="BFGS", tol=1e-10)
         x = res.x[1:]
@@ -150,9 +147,8 @@ def test_cvar_2d_example():
 
     def minimize_mean(x):
         def fun(x):
-            obj.update(x)
-            res = np.mean(obj.J_samples)
-            dres = np.mean(obj.dJ_samples, axis=0)
+            res = np.mean(foo(x + perturbs))
+            dres = np.mean(dfoo(x + perturbs), axis=0)
             return res, dres
         res = minimize(fun, x, jac=True, method="BFGS", tol=1e-10)
         print(res)
@@ -182,3 +178,6 @@ def test_cvar_2d_example():
     plt.legend()
     plt.xscale('log')
     plt.savefig("/tmp/tmp_hist.png", dpi=600)
+
+if __name__ == "__main__":
+    test_cvar_toy_example()

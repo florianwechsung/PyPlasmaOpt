@@ -2,13 +2,15 @@ from pyplasmaopt import *
 import numpy as np
 from math import pi
 import argparse
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
 
 def get_objective():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
     parser.add_argument("--mode", type=str, default="deterministic",
-                        choices=["deterministic", "stochastic"])
+                        choices=["deterministic", "stochastic", "cvar0.9", "cvar0.95"])
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=1)
@@ -87,7 +89,12 @@ class Problem2_Objective():
         self.ma_dof_idxs = (1, 1+self.num_ma_dofs)
         self.current_dof_idxs = (self.ma_dof_idxs[1], self.ma_dof_idxs[1] + len(stellarator.get_currents()))
         self.coil_dof_idxs = (self.current_dof_idxs[1], self.current_dof_idxs[1] + len(stellarator.get_dofs()))
-        self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs()))
+        if mode in ["deterministic", "stochastic"]:
+            self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs()))
+        elif mode[0:4] == "cvar":
+            self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs(), [0.]))
+        else:
+            raise NotImplementedError
         self.x = self.x0.copy()
         self.sobolev = sobolev
         self.tikhonov = tikhonov
@@ -102,17 +109,25 @@ class Problem2_Objective():
         # import IPython; IPython.embed()
         # import sys; sys.exit()
         self.sampler = sampler
-        self.J_BSvsQS_perturbed = []
-        for i in range(nsamples):
-            perturbed_coils = [GaussianPerturbedCurve(coil, sampler) for coil in stellarator.coils]
-            perturbed_bs    = BiotSavart(perturbed_coils, stellarator.currents)
-            perturbed_bs.set_points(self.ma.gamma)
-            self.J_BSvsQS_perturbed.append(BiotSavartQuasiSymmetricFieldDifference(self.qsf, perturbed_bs))
+
+        if mode in ["deterministic", "stochastic"]:
+            self.mode = mode
+            self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, nsamples, qsf, mode)
+        elif mode[0:4] == "cvar":
+            self.mode = "cvar"
+            self.cvar_alpha = float(mode[4:])
+            self.cvar = CVaR(self.cvar_alpha, .1)
+            self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, nsamples, qsf, self.cvar)
+        else:
+            raise NotImplementedError
+
+        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
+        self.J_BSvsQS_perturbed = self.stochastic_qs_objective.J_BSvsQS_perturbed
+
         self.Jvals_perturbed = []
         self.Jvals_quantiles = []
         self.Jvals_no_noise = []
         self.xiterates = []
-        self.mode = mode
         self.outdir = outdir
 
     def set_dofs(self, x):
@@ -120,6 +135,7 @@ class Problem2_Objective():
         x_ma = x[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
         x_current = x[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
         x_coil = x[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        self.t = x[-1]
 
         self.qsf.eta_bar = x_etabar
         self.ma.set_dofs(x_ma)
@@ -129,7 +145,6 @@ class Problem2_Objective():
 
         self.biotsavart.clear_cached_properties()
         self.qsf.clear_cached_properties()
-
 
     def update(self, x):
         self.x[:] = x
@@ -154,12 +169,11 @@ class Problem2_Objective():
         self.drescoil    = np.zeros(self.coil_dof_idxs[1]-self.coil_dof_idxs[0])
 
 
-        """ Objective values """
-        ninv = 1./len(self.J_BSvsQS_perturbed)
 
-        for j in self.J_BSvsQS_perturbed:
-            j.biotsavart.clear_cached_properties()
-            j.biotsavart.set_points(self.ma.gamma)
+
+        """ Objective values """
+        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
+
         if self.mode == "deterministic":
             self.res1         = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
             self.dresetabar  += 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
@@ -170,13 +184,19 @@ class Problem2_Objective():
                 self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
             )
         elif self.mode == "stochastic":
-            self.res1         = ninv * 0.5 * sum(J.J_L2() + J.J_H1() for J in self.J_BSvsQS_perturbed)
-            self.dresetabar  += ninv * 0.5 * sum(J.dJ_L2_by_detabar() + J.dJ_H1_by_detabar() for J in self.J_BSvsQS_perturbed)
-            self.dresma      += ninv * 0.5 * sum(J.dJ_L2_by_dmagneticaxiscoefficients() + J.dJ_H1_by_dmagneticaxiscoefficients() for J in self.J_BSvsQS_perturbed)
-            self.drescoil    += ninv * 0.5 * sum(self.stellarator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients()) \
-                + self.stellarator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients())  for J in self.J_BSvsQS_perturbed)
-            self.drescurrent += ninv * 0.5 * self.current_fak * sum(self.stellarator.reduce_current_derivatives(J.dJ_L2_by_dcoilcurrents()) \
-                                                                    + self.stellarator.reduce_current_derivatives(J.dJ_H1_by_dcoilcurrents()) for J in self.J_BSvsQS_perturbed )
+            self.res1         = self.stochastic_qs_objective.J()
+            self.drescoil    += self.stochastic_qs_objective.dJ_by_dcoilcoefficients()
+            self.drescurrent += self.current_fak * self.stochastic_qs_objective.dJ_by_dcoilcurrents()
+            self.dresetabar  += self.stochastic_qs_objective.dJ_by_detabar()
+            self.dresma      += self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients()
+        elif self.mode == "cvar":
+            t = x[-1]
+            self.res1         = self.stochastic_qs_objective.J(t=t)
+            self.drescoil    += self.stochastic_qs_objective.dJ_by_dcoilcoefficients(t=t)
+            self.drescurrent += self.current_fak * self.stochastic_qs_objective.dJ_by_dcoilcurrents(t=t)
+            self.dresetabar  += self.stochastic_qs_objective.dJ_by_detabar(t=t)
+            self.dresma      += self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients(t=t)
+            self.drescvart   = self.stochastic_qs_objective.dJ_by_dt(t=t)
         else:
             raise NotImplementedError
 
@@ -236,10 +256,20 @@ class Problem2_Objective():
         self.QSvsBS_perturbed.append([0.5 * j.J_L2() + 0.5 * j.J_H1() for j in self.J_BSvsQS_perturbed])
         self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
 
-        self.dres = np.concatenate((
-            self.dresetabar, self.dresma,
-            self.drescurrent, self.drescoil
-        ))
+        if self.mode in ["deterministic", "stochastic"]:
+            self.dres = np.concatenate((
+                self.dresetabar, self.dresma,
+                self.drescurrent, self.drescoil
+            ))
+        elif self.mode == "cvar":
+            self.dres = np.concatenate((
+                self.dresetabar, self.dresma,
+                self.drescurrent, self.drescoil,
+                self.drescvart
+            ))
+        else:
+            raise NotImplementedError
+
 
     def callback(self, x):
         assert np.allclose(self.x, x)
@@ -253,6 +283,8 @@ class Problem2_Objective():
         self.xiterates.append(x.copy())
         self.Jvals_perturbed.append(self.perturbed_vals)
 
+        if comm.rank > 0:
+            return
         print("################################################################################")
         iteration = len(self.xiterates)-1
         print(f"Iteration {iteration}")
@@ -260,6 +292,7 @@ class Problem2_Objective():
         print("Objective value:         ", self.res)
         print("Objective values:        ", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov)
         print("Objective 10%, mean, 90%:", np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9))
+        print(" CVaR(0.9), CVaR(0.95):  ", np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9))), np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95))))
         print("Objective gradients:     ",
                 norm(self.dresetabar),
                 norm(self.dresma),
@@ -272,10 +305,12 @@ class Problem2_Objective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
         print("Curvature Max: %.3e; Mean: %.3e " % (max_curvature, mean_curvature))
         print("Torsion   Max: %.3e; Mean: %.3e " % (max_torsion, mean_torsion), flush=True)
-        if iteration % 10 == 0:
+        if iteration % 50 == 0:
             self.plot('iteration-%04i.png' % iteration)
 
     def plot(self, filename):
+        import matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         fig = plt.figure()
@@ -298,39 +333,41 @@ class Problem2_Objective():
         plt.savefig(self.outdir + filename, dpi=300)
         plt.close()
 
-        try:
-            import mayavi.mlab as mlab
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "\n\nPlease install mayavi first. On a mac simply do \n" +
-                "   pip3 install mayavi PyQT5\n" +
-                "On Ubuntu run \n" +
-                "   pip3 install mayavi\n" +
-                "   sudo apt install python3-pyqt4\n\n"
-            )
 
-        mlab.options.offscreen = True
-        colors = [
-            (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
-            (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
-            (0.3333333333333333, 0.6588235294117647, 0.40784313725490196),
-            (0.7686274509803922, 0.3058823529411765, 0.3215686274509804),
-            (0.5058823529411764, 0.4470588235294118, 0.7019607843137254),
-            (0.5764705882352941, 0.47058823529411764, 0.3764705882352941),
-            (0.8549019607843137, 0.5450980392156862, 0.7647058823529411),
-            (0.5490196078431373, 0.5490196078431373, 0.5490196078431373),
-            (0.8, 0.7254901960784313, 0.4549019607843137),
-            (0.39215686274509803, 0.7098039215686275, 0.803921568627451)
-        ]
+        if "DISPLAY" in os.environ:
+            try:
+                import mayavi.mlab as mlab
+            except ModuleNotFoundError:
+                raise ModuleNotFoundError(
+                    "\n\nPlease install mayavi first. On a mac simply do \n" +
+                    "   pip3 install mayavi PyQT5\n" +
+                    "On Ubuntu run \n" +
+                    "   pip3 install mayavi\n" +
+                    "   sudo apt install python3-pyqt4\n\n"
+                )
 
-        for i in range(0, len(self.stellarator.coils)):
-            gamma = self.stellarator.coils[i].gamma
-            gamma = np.concatenate((gamma, [gamma[0,:]]))
-            mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[i%len(self.stellarator._base_coils)])
-        mlab.view(azimuth=0, elevation=0)
-        mlab.savefig(self.outdir + "mayavi_top_" + filename, magnification=4)
-        mlab.view(azimuth=0, elevation=90)
-        mlab.savefig(self.outdir + "mayavi_side1_" + filename, magnification=4)
-        mlab.view(azimuth=90, elevation=90)
-        mlab.savefig(self.outdir + "mayavi_side2_" + filename, magnification=4)
-        mlab.close()
+            mlab.options.offscreen = True
+            colors = [
+                (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
+                (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
+                (0.3333333333333333, 0.6588235294117647, 0.40784313725490196),
+                (0.7686274509803922, 0.3058823529411765, 0.3215686274509804),
+                (0.5058823529411764, 0.4470588235294118, 0.7019607843137254),
+                (0.5764705882352941, 0.47058823529411764, 0.3764705882352941),
+                (0.8549019607843137, 0.5450980392156862, 0.7647058823529411),
+                (0.5490196078431373, 0.5490196078431373, 0.5490196078431373),
+                (0.8, 0.7254901960784313, 0.4549019607843137),
+                (0.39215686274509803, 0.7098039215686275, 0.803921568627451)
+            ]
+
+            for i in range(0, len(self.stellarator.coils)):
+                gamma = self.stellarator.coils[i].gamma
+                gamma = np.concatenate((gamma, [gamma[0,:]]))
+                mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[i%len(self.stellarator._base_coils)])
+            mlab.view(azimuth=0, elevation=0)
+            mlab.savefig(self.outdir + "mayavi_top_" + filename, magnification=4)
+            mlab.view(azimuth=0, elevation=90)
+            mlab.savefig(self.outdir + "mayavi_side1_" + filename, magnification=4)
+            mlab.view(azimuth=90, elevation=90)
+            mlab.savefig(self.outdir + "mayavi_side2_" + filename, magnification=4)
+            mlab.close()

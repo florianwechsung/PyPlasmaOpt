@@ -1,9 +1,10 @@
 from pyplasmaopt import *
 from math import log10, floor, ceil
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import rc
-import matplotlib
 rc('font',**{'family':'serif', 'serif':['Computer Modern Roman']})
 rc('text', usetex=True)
 

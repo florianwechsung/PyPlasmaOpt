@@ -7,6 +7,7 @@ def soft_plus(x, eps, method=2):
     if method==1:
         f = eps*np.log(1+np.exp(x/eps))
     else:
+        x = x+eps/2
         f = (x**3/eps**2 - x**4/(2*eps**3)) * (x>0) * (x<eps) \
             + (x-eps/2) * (x>=eps)
     return f
@@ -15,32 +16,26 @@ def soft_plus_dash(x, eps, method=2):
     if method==1:
         dfdx = np.exp(x/eps)/(np.exp(x/eps)+1)
     else:
+        x = x+eps/2
         dfdx = (3*x**2/eps**2 - 2*x**3/(eps**3)) * (x>0) * (x<eps) \
             + 1. * (x>=eps)
     return dfdx
 
 class CVaR():
 
-    def __init__(self, obj, alpha, eps=0.1):
-        self.obj = obj
+    def __init__(self, alpha, eps=0.1):
         self.alpha = alpha
         self.eps = eps
 
-    def update(self, tx):
-        self.tx = tx.copy()
-        self.obj.update(self.tx[1:])
-
-    def J(self):
-        t = self.tx[0]
-        x = self.tx[1:]
-        vals = self.obj.J_samples
-        return t + np.mean(soft_plus(vals-t, self.eps))/(1-self.alpha)
+    def J(self, t, Jsamples):
+        return t + np.mean(soft_plus(Jsamples-t, self.eps))/(1-self.alpha)
     
-    def dJ(self):
-        t = self.tx[0]
-        x = self.tx[1:]
-        vals = self.obj.J_samples
-        softplus_dash = soft_plus_dash(vals-t, self.eps)
+    def dJ_dt(self, t, Jsamples):
+        softplus_dash = soft_plus_dash(Jsamples-t, self.eps)
         partial_t = np.asarray([1. - np.mean(softplus_dash)/(1-self.alpha)])
-        partial_x = np.mean(softplus_dash[:, None] * self.obj.dJ_samples, axis=0)/(1-self.alpha)
-        return np.concatenate((partial_t, partial_x))
+        return partial_t
+
+    def dJ_dx(self, t, Jsamples, dJsamples):
+        softplus_dash = soft_plus_dash(Jsamples-t, self.eps)
+        partial_x = np.mean(softplus_dash[:, None] * dJsamples, axis=0)/(1-self.alpha)
+        return partial_x

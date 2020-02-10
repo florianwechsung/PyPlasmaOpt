@@ -104,3 +104,17 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
             return self.mode.dJ_dt(t, self.all_Js)
         else:
             raise NotImplementedError
+
+    def find_optimal_t(self, tinit=None):
+        if not isinstance(self.mode, CVaR):
+            raise NotImplementedError
+        if tinit is None:
+            tinit = np.asarray([0.])
+        else:
+            tinit = np.asarray([tinit])
+        from scipy.optimize import minimize
+        def J(t):
+            return self.J(t=t), self.dJ_by_dt(t=t)
+        res = minimize(J, tinit, jac=True, method='BFGS', tol=1e-10, options={'maxiter': 100})
+        t = res.x[0]
+        return t

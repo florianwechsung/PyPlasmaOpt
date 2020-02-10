@@ -7,10 +7,11 @@ comm = MPI.COMM_WORLD
 
 def get_objective():
     parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--output", type=str, default="")
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
     parser.add_argument("--mode", type=str, default="deterministic",
-                        choices=["deterministic", "stochastic", "cvar0.9", "cvar0.95"])
+                        choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95"])
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=1)
@@ -36,8 +37,14 @@ def get_objective():
         eta_bar = -2.25
     stellarator = CoilCollection(coils, currents, nfp, True)
     np.random.seed(args.seed)
-    outdir = "output"
-    for k in args.__dict__:
+    keys = list(args.__dict__.keys())
+    assert keys[0] == "output"
+    if not args.__dict__[keys[0]] == "":
+        outdir = "output-%s" % args.__dict__[keys[0]]
+    else:
+        outdir = "output"
+    for i in range(1, len(keys)):
+        k = keys[i]
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
     outdir += "/"
@@ -116,7 +123,7 @@ class Problem2_Objective():
         elif mode[0:4] == "cvar":
             self.mode = "cvar"
             self.cvar_alpha = float(mode[4:])
-            self.cvar = CVaR(self.cvar_alpha, .1)
+            self.cvar = CVaR(self.cvar_alpha, .01)
             self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, nsamples, qsf, self.cvar)
         else:
             raise NotImplementedError
@@ -305,7 +312,7 @@ class Problem2_Objective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
         print("Curvature Max: %.3e; Mean: %.3e " % (max_curvature, mean_curvature))
         print("Torsion   Max: %.3e; Mean: %.3e " % (max_torsion, mean_torsion), flush=True)
-        if iteration % 50 == 0:
+        if iteration % 25 == 0:
             self.plot('iteration-%04i.png' % iteration)
 
     def plot(self, filename):

@@ -45,12 +45,16 @@ if obj.mode == "cvar":
 else:
     x = obj.x0
 
+if obj.mode == "cvar":
+    obj.update(x)
+    x[-1] = obj.stochastic_qs_objective.find_optimal_t(x[-1])
+
 obj.update(x)
 obj.callback(x)
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 
-if True:
+if False:
     taylor_test(obj, x)
     # import sys
     # sys.exit()
@@ -94,6 +98,7 @@ elif solver == "scipy":
             # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter-iters, 'maxcor': memory}, callback=obj.callback)
             res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': miter}, callback=obj.callback)
             obj.cvar.eps *= 0.1
+            x[-1] = obj.stochastic_qs_objective.find_optimal_t(x[-1])
         else:
             miter = maxiter-iters
             res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': miter}, callback=obj.callback)

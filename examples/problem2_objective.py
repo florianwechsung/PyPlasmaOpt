@@ -16,16 +16,18 @@ def get_objective():
     parser.add_argument("--length-scale", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--ppp", type=int, default=20)
-    parser.add_argument("--nsamples", type=int, default=100)
-    parser.add_argument("--curvature-penalty", type=float, default=0.)
-    parser.add_argument("--torsion-penalty", type=float, default=0.)
+    parser.add_argument("--ninsamples", type=int, default=100)
+    parser.add_argument("--noutsamples", type=int, default=100)
+    parser.add_argument("--curvature-pen", type=float, default=0.)
+    parser.add_argument("--torsion-pen", type=float, default=0.)
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
     parser.add_argument("--arclength", type=float, default=0.)
-    parser.add_argument("--minimum-distance", type=float, default=0.04)
-    parser.add_argument("--distance-weight", type=float, default=0.)
+    parser.add_argument("--min-dist", type=float, default=0.04)
+    parser.add_argument("--dist-weight", type=float, default=0.)
+    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd"])
+    parser.add_argument("--lr", type=float, default=0.1)
     args, _ = parser.parse_known_args()
-    print("Configuration: \n", args.__dict__)
 
     nfp = 2
     (coils, ma) = get_matt_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
@@ -36,7 +38,6 @@ def get_objective():
         currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
         eta_bar = -2.25
     stellarator = CoilCollection(coils, currents, nfp, True)
-    np.random.seed(args.seed)
     keys = list(args.__dict__.keys())
     assert keys[0] == "output"
     if not args.__dict__[keys[0]] == "":
@@ -48,12 +49,15 @@ def get_objective():
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
     outdir += "/"
+    os.makedirs(outdir, exist_ok=True)
+    set_file_logger(outdir + "log.txt")
+    info("Configuration: \n%s", args.__dict__)
     obj = Problem2_Objective(
-        stellarator, ma, curvature_scale=args.curvature_penalty, torsion_scale=args.torsion_penalty,
+        stellarator, ma, curvature_scale=args.curvature_pen, torsion_scale=args.torsion_pen,
         tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
-        minimum_distance=args.minimum_distance, distance_weight=args.distance_weight,
-        eta_bar=eta_bar, nsamples=args.nsamples, sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
-        mode=args.mode, outdir=outdir)
+        minimum_distance=args.min_dist, distance_weight=args.dist_weight,
+        eta_bar=eta_bar, ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=0.003,#args.sigma,
+        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
     return obj, args
 
 class Problem2_Objective():
@@ -63,10 +67,11 @@ class Problem2_Objective():
                  eta_bar=-2.25,
                  curvature_scale=1e-6, torsion_scale=1e-4, tikhonov=0., arclength=0., sobolev=0.,
                  minimum_distance=0.04, distance_weight=1.,
-                 nsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
-                 outdir="output/"
+                 ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
+                 outdir="output/", seed=1
                  ):
         self.stellarator = stellarator
+        self.seed = seed
         self.ma = ma
         bs = BiotSavart(stellarator.coils, stellarator.currents)
         self.biotsavart = bs
@@ -75,6 +80,8 @@ class Problem2_Objective():
         self.qsf = qsf
         sigma = qsf.sigma
         iota = qsf.iota
+        self.ninsamples = ninsamples
+        self.noutsamples = noutsamples
 
         self.J_BSvsQS          = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
         coils = stellarator._base_coils
@@ -107,34 +114,35 @@ class Problem2_Objective():
         self.tikhonov = tikhonov
         self.arclength = arclength
         self.distance_weight = distance_weight
-        self.Jvals_individual = []
-        self.QSvsBS_perturbed = []
-        self.Jvals = []
-        self.dJvals = []
 
         sampler = GaussianSampler(coils[0].points, length_scale=length_scale_perturb, sigma=sigma_perturb)
         # import IPython; IPython.embed()
         # import sys; sys.exit()
         self.sampler = sampler
 
+        self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, ninsamples, qsf, self.seed)
+        self.stochastic_qs_objective_out_of_sample = None
+
         if mode in ["deterministic", "stochastic"]:
             self.mode = mode
-            self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, nsamples, qsf, mode)
         elif mode[0:4] == "cvar":
             self.mode = "cvar"
             self.cvar_alpha = float(mode[4:])
             self.cvar = CVaR(self.cvar_alpha, .01)
-            self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, nsamples, qsf, self.cvar)
         else:
             raise NotImplementedError
 
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
-        self.J_BSvsQS_perturbed = self.stochastic_qs_objective.J_BSvsQS_perturbed
 
         self.Jvals_perturbed = []
         self.Jvals_quantiles = []
         self.Jvals_no_noise = []
         self.xiterates = []
+        self.Jvals_individual = []
+        self.QSvsBS_perturbed = []
+        self.Jvals = []
+        self.dJvals = []
+        self.out_of_sample_values = []
         self.outdir = outdir
 
     def set_dofs(self, x):
@@ -176,11 +184,12 @@ class Problem2_Objective():
         self.drescoil    = np.zeros(self.coil_dof_idxs[1]-self.coil_dof_idxs[0])
 
 
-
-
         """ Objective values """
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
 
+        Jsamples = self.stochastic_qs_objective.J_samples()
+        assert len(Jsamples) == self.ninsamples
+        self.QSvsBS_perturbed.append(Jsamples)
         if self.mode == "deterministic":
             self.res1         = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
             self.dresetabar  += 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
@@ -191,19 +200,20 @@ class Problem2_Objective():
                 self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
             )
         elif self.mode == "stochastic":
-            self.res1         = self.stochastic_qs_objective.J()
-            self.drescoil    += self.stochastic_qs_objective.dJ_by_dcoilcoefficients()
-            self.drescurrent += self.current_fak * self.stochastic_qs_objective.dJ_by_dcoilcurrents()
-            self.dresetabar  += self.stochastic_qs_objective.dJ_by_detabar()
-            self.dresma      += self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients()
+            n = self.ninsamples
+            self.res1         = sum(Jsamples)/n
+            self.drescoil    += sum(self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())/n
+            self.drescurrent += self.current_fak * sum(self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())/n
+            self.dresetabar  += sum(self.stochastic_qs_objective.dJ_by_detabar_samples())/n
+            self.dresma      += sum(self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())/n
         elif self.mode == "cvar":
             t = x[-1]
-            self.res1         = self.stochastic_qs_objective.J(t=t)
-            self.drescoil    += self.stochastic_qs_objective.dJ_by_dcoilcoefficients(t=t)
-            self.drescurrent += self.current_fak * self.stochastic_qs_objective.dJ_by_dcoilcurrents(t=t)
-            self.dresetabar  += self.stochastic_qs_objective.dJ_by_detabar(t=t)
-            self.dresma      += self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients(t=t)
-            self.drescvart   = self.stochastic_qs_objective.dJ_by_dt(t=t)
+            self.res1         = self.cvar.J(t, Jsamples)
+            self.drescoil    += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())
+            self.drescurrent += self.current_fak * self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())
+            self.dresetabar  += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_detabar_samples())
+            self.dresma      += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())
+            self.drescvart   = self.cvar.dJ_dt(t, Jsamples)
         else:
             raise NotImplementedError
 
@@ -260,7 +270,6 @@ class Problem2_Objective():
 
         self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov])
         self.res = sum(self.Jvals_individual[-1])
-        self.QSvsBS_perturbed.append([0.5 * j.J_L2() + 0.5 * j.J_H1() for j in self.J_BSvsQS_perturbed])
         self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
 
         if self.mode in ["deterministic", "stochastic"]:
@@ -277,8 +286,15 @@ class Problem2_Objective():
         else:
             raise NotImplementedError
 
+    def compute_out_of_sample(self):
+        if self.stochastic_qs_objective_out_of_sample is None:
+            self.stochastic_qs_objective_out_of_sample = StochasticQuasiSymmetryObjective(self.stellarator, self.sampler, self.noutsamples, self.qsf, 9999+self.seed)
 
-    def callback(self, x):
+        self.stochastic_qs_objective_out_of_sample.set_magnetic_axis(self.ma.gamma)
+        Jsamples = np.array(self.stochastic_qs_objective_out_of_sample.J_samples())
+        return Jsamples, Jsamples + sum(self.Jvals_individual[-1][1:])
+
+    def callback(self, x, verbose=True):
         assert np.allclose(self.x, x)
         self.Jvals.append(self.res)
         norm = np.linalg.norm
@@ -290,30 +306,32 @@ class Problem2_Objective():
         self.xiterates.append(x.copy())
         self.Jvals_perturbed.append(self.perturbed_vals)
 
-        if comm.rank > 0:
-            return
-        print("################################################################################")
         iteration = len(self.xiterates)-1
-        print(f"Iteration {iteration}")
+        info("################################################################################")
+        info(f"Iteration {iteration}")
         norm = np.linalg.norm
-        print("Objective value:         ", self.res)
-        print("Objective values:        ", self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov)
-        print("Objective 10%, mean, 90%:", np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9))
-        print(" CVaR(0.9), CVaR(0.95):  ", np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9))), np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95))))
-        print("Objective gradients:     ",
-                norm(self.dresetabar),
-                norm(self.dresma),
-                norm(self.drescurrent),
-                norm(self.drescoil))
+        info(f"Objective value:         {self.res:.6e}")
+        info(f"Objective values:        {self.res1:.6e}, {self.res2:.6e}, {self.res3:.6e}, {self.res4:.6e}, {self.res5:.6e}, {self.res6:.6e}, {self.res7:.6e}, {self.res8:.6e}, {self.res9:.6e}, {self.res_tikhonov:.6e}")
+        info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(self.perturbed_vals, 0.1):.6e}, {np.mean(self.perturbed_vals):.6e}, {np.quantile(self.perturbed_vals, 0.9):.6e}")
+        cvar90 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9)))
+        cvar95 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95)))
+        info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
+        info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
 
         max_curvature  = max(np.max(c.kappa) for c in self.stellarator._base_coils)
         mean_curvature = np.mean([np.mean(c.kappa) for c in self.stellarator._base_coils])
         max_torsion    = max(np.max(np.abs(c.torsion)) for c in self.stellarator._base_coils)
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
-        print("Curvature Max: %.3e; Mean: %.3e " % (max_curvature, mean_curvature))
-        print("Torsion   Max: %.3e; Mean: %.3e " % (max_torsion, mean_torsion), flush=True)
+        info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
+        info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         if iteration % 25 == 0:
-            self.plot('iteration-%04i.png' % iteration)
+            oos_vals = self.compute_out_of_sample()[1]
+            self.out_of_sample_values.append(oos_vals)
+            info("Out of sample")
+            info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(oos_vals, 0.1):.6e}, {np.mean(oos_vals):.6e}, {np.quantile(oos_vals, 0.9):.6e}")
+            info(f"CVaR(.9), CVaR(.95), Max:{np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.9))):.6e}, {np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.95))):.6e}, {max(oos_vals):.6e}")
+            if comm.rank == 0:
+                self.plot('iteration-%04i.png' % iteration)
 
     def plot(self, filename):
         import matplotlib

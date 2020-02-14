@@ -35,7 +35,7 @@ def test_biotsavart_dBdX_taylortest(use_cpp, idx):
     B0 = bs.B[idx]
     dB = bs.dB_by_dX[idx]
     for direction in [np.asarray((1., 0, 0)), np.asarray((0, 1., 0)), np.asarray((0, 0, 1.))]:
-        deriv = dB.dot(direction)
+        deriv = dB.T.dot(direction)
         err = 1e6
         for i in range(5, 10):
             eps = 0.5**i

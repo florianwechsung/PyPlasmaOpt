@@ -15,20 +15,20 @@ class Curve():
         else:
             self.points = points
         self.dependencies = []
-
-    def update(self):
-
-        props = [
+        self.curve_properties = set([
             "gamma", "dgamma_by_dphi", "d2gamma_by_dphidphi", "d3gamma_by_dphidphidphi",
             "dgamma_by_dcoeff", "d2gamma_by_dphidcoeff", "d3gamma_by_dphidphidcoeff", "d4gamma_by_dphidphidphidcoeff",
             "kappa", "dkappa_by_dphi", "dkappa_by_dcoeff", "d2kappa_by_dphidcoeff",
             "incremental_arclength", "dincremental_arclength_by_dcoeff", "dincremental_arclength_by_dphi",
             "torsion", "dtorsion_by_dcoeff",
             "frenet_frame", "dfrenet_frame_by_dcoeff"
-        ]
-        for k in list(self.__dict__.keys()):
-            if k in props:
-                del self.__dict__[k]
+        ])
+    def update(self):
+
+        d = self.__dict__
+        keys_to_remove = set(self.curve_properties).intersection(set(d.keys()))
+        for key in keys_to_remove:
+            del d[key]
 
         for obj in self.dependencies:
             obj.update()
@@ -664,10 +664,12 @@ class GaussianSampler():
         from scipy.linalg import sqrtm
         self.L = np.real(sqrtm(cov_mat))
 
-    def sample(self):
+    def sample(self, randomgen=None):
         n = len(self.points)
         n_derivs = self.n_derivs
-        z = np.random.normal(size=(n*(n_derivs+1), 3))
+        if randomgen is None:
+            randomgen = np.random
+        z = randomgen.standard_normal(size=(n*(n_derivs+1), 3))
         curve_and_derivs = self.L@z
         return curve_and_derivs[0:n, :], curve_and_derivs[n:2*n, :], \
             curve_and_derivs[2*n:3*n, :], curve_and_derivs[3*n:4*n, :]
@@ -675,15 +677,16 @@ class GaussianSampler():
 
 class GaussianPerturbedCurve(Curve):
 
-    def __init__(self, curve, sampler):
+    def __init__(self, curve, sampler, randomgen=None):
         super().__init__(curve.points)
         self.curve = curve
         self.sampler = sampler
         curve.dependencies.append(self)
-        self.sample = sampler.sample()
+        self.randomgen = randomgen
+        self.sample = sampler.sample(self.randomgen)
 
     def resample(self):
-        self.sample = self.sampler.sample()
+        self.sample = self.sampler.sample(self.randomgen)
         self.update()
 
     def num_coeff(self):

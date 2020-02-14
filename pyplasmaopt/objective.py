@@ -48,7 +48,7 @@ class BiotSavartQuasiSymmetricFieldDifference():
         dBqs_by_dcoeffs = self.quasi_symmetric_field.dB_by_dcoeffs
 
         num_coeff = dgamma_by_dcoeff.shape[1]
-        res = 2*np.einsum('ij,ijk,imk,i->m', (Bbs-Bqs), dBbs_by_dX, dgamma_by_dcoeff, arc_length)
+        res = 2*np.einsum('ij,ikj,imk,i->m', (Bbs-Bqs), dBbs_by_dX, dgamma_by_dcoeff, arc_length)
         res -= 2*np.einsum('ij,imj,i->m', (Bbs-Bqs), dBqs_by_dcoeffs, arc_length)
         res += np.einsum('i,i,imj,ij->m', (1/arc_length), np.sum((Bbs-Bqs)**2, axis=1), d2gamma_by_dphidcoeff, dgamma_by_dphi)
         res *= 1/arc_length.shape[0]
@@ -105,7 +105,7 @@ class BiotSavartQuasiSymmetricFieldDifference():
         dBqs_by_dX    = self.quasi_symmetric_field.dB_by_dX
 
         num_coeff = dgamma_by_dcoeff.shape[1]
-        res = 2 * np.einsum('ijk,ijkl,iml,i->m',(dBbs_by_dX-dBqs_by_dX), d2Bbs_by_dXdX, dgamma_by_dcoeff, arc_length)
+        res = 2 * np.einsum('ijk,ijlk,iml,i->m',(dBbs_by_dX-dBqs_by_dX), d2Bbs_by_dXdX, dgamma_by_dcoeff, arc_length)
         res -= 2*np.einsum('ijk,imjk,i->m', (dBbs_by_dX-dBqs_by_dX), d2Bqs_by_dcoeffsdX, arc_length)
         res += np.einsum('i,i,iml,il->m', (1/arc_length), np.sum(np.sum((dBbs_by_dX-dBqs_by_dX)**2, axis=1), axis=1), d2gamma_by_dphidcoeff, dgamma_by_dphi)
         res *= 1/gamma.shape[0]

@@ -7,3 +7,5 @@ from .quasi_symmetric_field import *
 from .poincareplot import *
 from .cvar import *
 from .stochastic_objective import *
+from .stochastic_gradient import *
+from .logging import *

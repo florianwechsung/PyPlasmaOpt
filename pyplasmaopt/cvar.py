@@ -39,3 +39,16 @@ class CVaR():
         softplus_dash = soft_plus_dash(Jsamples-t, self.eps)
         partial_x = np.mean(softplus_dash[:, None] * dJsamples, axis=0)/(1-self.alpha)
         return partial_x
+
+    def find_optimal_t(self, Jsamples, tinit=None):
+        if tinit is None:
+            tinit = np.asarray([0.])
+        else:
+            tinit = np.asarray([tinit])
+        from scipy.optimize import minimize
+        def J(t):
+            return self.J(t, Jsamples), self.dJ_dt(t, Jsamples)
+        res = minimize(J, tinit, jac=True, method='BFGS', tol=1e-10, options={'maxiter': 100})
+        t = res.x[0]
+        return t
+

@@ -1,26 +1,23 @@
 from pyplasmaopt import *
 from problem2_objective import Problem2_Objective, get_objective
+from scipy.optimize import minimize
 import numpy as np
 import os
 
-solver = "scipy"
-# solver = "nlopt"
-# solver = "pylbfgs"
-# solver = None
 obj, args = get_objective()
 
-print("Biggest deviation", np.max(np.linalg.norm(obj.J_BSvsQS_perturbed[0].biotsavart.coils[0].sample[0], axis=1))*1e3, "mm")
+info("Biggest deviation in first coil %.6fmm", np.max(np.linalg.norm(obj.stochastic_qs_objective.J_BSvsQS_perturbed[0].biotsavart.coils[0].sample[0], axis=1))*1e3)
 
-info_dict = {'Nfeval': 0}
 outdir = obj.outdir
-os.makedirs(outdir, exist_ok=True)
+solver = args.optimizer
+# solver = None
 
 def taylor_test(obj, x):
     obj.update(x)
-    J0, dJ0 = obj.res, obj.dres
+    j0, dj0 = obj.res, obj.dres
     np.random.seed(1)
     h = 0.1 * np.random.rand(*(x.shape))
-    dJh = sum(dJ0*h)
+    djh = sum(dj0*h)
     for i in range(1, 8):
         eps = 0.1**i
         shifts = [-3, -2, -1, 1, 2, 3]
@@ -31,8 +28,8 @@ def taylor_test(obj, x):
         for i in range(1, len(shifts)):
             obj.update(x + shifts[i]*eps*h)
             fd += weights[i] * obj.res
-        err = abs(fd/eps - dJh)
-        print(err, err/np.linalg.norm(dJh))
+        err = abs(fd/eps - djh)
+        info("%.6e, %.6e", err, err/np.linalg.norm(djh))
     obj.update(x)
 
 
@@ -47,98 +44,100 @@ else:
 
 if obj.mode == "cvar":
     obj.update(x)
-    x[-1] = obj.stochastic_qs_objective.find_optimal_t(x[-1])
+    x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
 
 obj.update(x)
 obj.callback(x)
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 
-if False:
+if True:
     taylor_test(obj, x)
-    # import sys
-    # sys.exit()
+    # import sys; sys.exit()
 
-maxiter = 2000
-memory = 300
-if solver == "nlopt":
-    def J_nlopt(x, grad, info=info_dict):
-        obj.update(x)
-        if grad.size > 0:
-            grad[:] = obj.dres[:]
-        if info:
-            plot(info)
-        return obj.res
-    import nlopt
-    opt = nlopt.opt(nlopt.LD_LBFGS, len(obj.x0))
-    opt.set_min_objective(J_nlopt)
-    opt.set_xtol_rel(1e-8)
-    opt.set_vector_storage(memory)
-    opt.set_maxeval(maxiter)
-    xmin = opt.optimize(list(x))
-elif solver == "scipy":
-    def J_scipy(x, info=None):
+maxiter = 25
+memory = 200
+if solver is None:
+    xmin = np.loadtxt(outdir + "xmin.txt")
+    obj.update(xmin)
+    obj.callback(xmin)
+elif solver.lower() in ["bfgs", "lbfgs"]:
+    method = {"bfgs": "BFGS", "lbfgs": "L-BFGS-B"}[solver]
+    def J_scipy(x):
         obj.update(x)
         res = obj.res
         dres = obj.dres
         return res, dres
     import time
-    from scipy.optimize import minimize
     t1 = time.time()
     iters = 0
     restarts = 0
     while iters < maxiter and restarts < 10:
         if iters > 0:
-            print("####################################################################################################")
-            print("################################# Restart optimization #############################################")
-            print("####################################################################################################")
+            if comm.rank == 0:
+                info("####################################################################################################")
+                info("################################# Restart optimization #############################################")
+                info("####################################################################################################")
             restarts += 1
         if obj.mode == "cvar": 
             miter = min(250, maxiter-iters)
-            # res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='L-BFGS-B', tol=1e-20, options={'maxiter': maxiter-iters, 'maxcor': memory}, callback=obj.callback)
-            res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': miter}, callback=obj.callback)
+            res = minimize(J_scipy, x, jac=True, method=method, tol=1e-20, options={"maxiter": miter, "maxcor": memory}, callback=obj.callback)
             obj.cvar.eps *= 0.1
-            x[-1] = obj.stochastic_qs_objective.find_optimal_t(x[-1])
+            x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
         else:
             miter = maxiter-iters
-            res = minimize(J_scipy, x, args=(info_dict,), jac=True, method='BFGS', tol=1e-20, options={'maxiter': miter}, callback=obj.callback)
+            res = minimize(J_scipy, x, jac=True, method=method, tol=1e-20, options={"maxiter": miter, "maxcor": memory}, callback=obj.callback)
 
         iters += res.nit
         x = res.x
 
     t2 = time.time()
-    print(f"Time per iteration: {(t2-t1)/len(obj.Jvals)}")
-    print(res)
+    if comm.rank == 0:
+        info(res)
+        info(f"Time per iteration: {(t2-t1)/len(obj.Jvals)}")
+        info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
     xmin = res.x
-    print("Gradient norm at minimum:", np.linalg.norm(res.jac))
-elif solver == "pylbfgs":
-    from lbfgs import LBFGS
-    def J_pylbfgs(x, g, info=info_dict):
+elif solver.lower() in ["sgd"]:
+    def J_scipy(x):
         obj.update(x)
-        g[:] = obj.dres[:]
-        plot(info)
-        return obj.res
+        res = obj.res
+        dres = obj.dres
+        return res, dres
+    # oldmode = obj.mode
+    # obj.mode = 'deterministic'
+    res = minimize(J_scipy, x, jac=True, method="BFGS", tol=1e-20, options={"maxiter": 75, "maxcor": 1000}, callback=obj.callback)
+    # obj.mode = oldmode
 
-    opt = LBFGS()
-    opt.max_iterations = maxiter
-    opt.linesearch = "wolfe"
+    learning_rate = args.lr
+    x = res.x
+    def J(x):
+        # obj.stochastic_qs_objective.resample()
+        obj.update(x)
+        res = obj.res
+        dres = obj.dres
+        return res, dres
+    P = res.hess_inv
+    # P = None
+    import time
+    t1 = time.time()
+    xmin = gradient_descent(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # xmin = ada_grad(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # xmin = momentum(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # xmin = rmsprop(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    t2 = time.time()
 
-    xmin = opt.minimize(J_pylbfgs, x)
-else:
-    xmin = np.loadtxt(outdir + "xmin.txt")
-    obj.update(xmin)
-    obj.callback(xmin)
-
-if comm.rank == 0:
+if comm.rank == 0 and solver is not None:
     np.savetxt(outdir + "xmin.txt", xmin)
     np.savetxt(outdir + "Jvals.txt", obj.Jvals)
     np.savetxt(outdir + "dJvals.txt", obj.dJvals)
     np.savetxt(outdir + "Jvals_quantiles.txt", obj.Jvals_quantiles)
     np.savetxt(outdir + "Jvals_no_noise.txt", obj.Jvals_no_noise)
     np.savetxt(outdir + "xiterates.txt", obj.xiterates)
-    np.savetxt(outdir + "Jvals_perturbed.txt", obj.Jvals_perturbed)
     np.savetxt(outdir + "Jvals_individual.txt", obj.Jvals_individual)
-    np.savetxt(outdir + "QSvsBS_perturbed.txt", obj.QSvsBS_perturbed)
+    np.savetxt(outdir + "Jvals_insample.txt", obj.Jvals_perturbed)
+    np.savetxt(outdir + "QSvsBS_insample.txt", obj.QSvsBS_perturbed)
+    np.savetxt(outdir + "out_of_sample_values.txt", obj.out_of_sample_values)
+    np.savetxt(outdir + "out_of_sample_means.txt", np.mean(obj.out_of_sample_values, axis=1))
 
 # import IPython; IPython.embed()
 # import sys; sys.exit()
@@ -146,29 +145,7 @@ if comm.rank == 0:
 if True:
     taylor_test(obj, xmin)
 
-
-stellarator = obj.stellarator
-if True:
-    perturbed_coils = [GaussianPerturbedCurve(coil, obj.sampler) for coil in stellarator.coils]
-    perturbed_bs = BiotSavart(perturbed_coils, stellarator.currents)
-    perturbed_bs.set_points(obj.ma.gamma)
-    J_BSvsQS = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, perturbed_bs)
-
-    L2s = [0.5 * obj.J_BSvsQS.J_L2()]
-    H1s = [0.5 * obj.J_BSvsQS.J_H1()]
-    Jvals_perturbed_more = [obj.res - obj.res1 + L2s[-1] + H1s[-1]]
-    print(L2s[0], H1s[0])
-    nsamples = 20000
-    for i in range(nsamples):
-        if i % 100 == 0:
-            print(i, flush=True)
-        [coil.resample() for coil in perturbed_coils]
-        perturbed_bs.clear_cached_properties()
-        L2s.append(0.5 * J_BSvsQS.J_L2())
-        H1s.append(0.5 * J_BSvsQS.J_H1())
-        Jvals_perturbed_more.append(obj.res - obj.res1 + L2s[-1] + H1s[-1])
-    if comm.rank == 0:
-        np.savetxt(outdir + "L2s.txt", L2s)
-        np.savetxt(outdir + "H1s.txt", H1s)
-        np.savetxt(outdir + "Jvals_perturbed_more.txt", Jvals_perturbed_more)
-# import IPython; IPython.embed()
+QSvsBS_outofsample, Jvals_outofsample = obj.compute_out_of_sample()
+if comm.rank == 0:
+    np.savetxt(outdir + "QSvsBS_outofsample.txt", QSvsBS_outofsample)
+    np.savetxt(outdir + "Jvals_outofsample.txt", Jvals_outofsample)

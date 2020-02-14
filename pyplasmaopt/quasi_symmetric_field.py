@@ -1,4 +1,5 @@
 from .curve import Curve
+from .logging import info, warning
 import numpy as np
 from math import pi
 from scipy.optimize import fsolve
@@ -292,7 +293,7 @@ class QuasiSymmetricField(PropertyManager):
         # np.set_printoptions(linewidth=1000, precision=4)
         # print( "Jac - Jac_Est", np.linalg.norm(jac-jac_est))
         if np.linalg.norm(self.__state) < 1e-13:
-            print("First solve: use fsolve")
+            info("First solve: use fsolve")
             soln = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13)
         else:
             diff = 1
@@ -304,7 +305,7 @@ class QuasiSymmetricField(PropertyManager):
                 diff = np.linalg.norm(update)
                 count += 1
                 if count > 10:
-                    print("Newton failed: use fsolve")
+                    warning("Newton failed: use fsolve")
                     soln = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13)
                     break
 

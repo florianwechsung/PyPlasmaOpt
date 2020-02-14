@@ -19,8 +19,7 @@ Jvals = np.loadtxt(outdir + "Jvals.txt")
 dJvals = np.loadtxt(outdir + "dJvals.txt")
 Jvals_quantiles = np.loadtxt(outdir + "Jvals_quantiles.txt")
 Jvals_no_noise = np.loadtxt(outdir + "Jvals_no_noise.txt")
-L2s = np.loadtxt(outdir + "L2s.txt")
-H1s = np.loadtxt(outdir + "H1s.txt")
+QSvsBS_insample = np.loadtxt(outdir + "QSvsBS_insample.txt")
 xiterates = np.loadtxt(outdir + "xiterates.txt")
 niterates = len(Jvals)
 
@@ -62,15 +61,12 @@ locmin = matplotlib.ticker.LogLocator(base=10.0, subs=(0.1,0.2,0.4,0.6,0.8,1,2,4
 locmaj = matplotlib.ticker.LogLocator(base=10.0, subs=(0.1,1.0, ))
 
 
-plt.figure(figsize=(10, 5))
+plt.figure(figsize=(7, 5))
 bins = 100
-ax = plt.subplot(121)
-plt.title("$\\frac{1}{2}||B_{BS}-B_{QS}||^2$")
-plt.hist(L2s[1:], bins, density=True, facecolor='g', alpha=0.75, log=True)
+plt.title("$||B_{BS}-B_{QS}||^2$")
+plt.hist(QSvsBS_insample[-1,:], bins, density=True, facecolor='g', alpha=0.75, log=True)
 plt.xscale('log')
 ymax = plt.ylim()[1]
-plt.vlines(L2s[0], 0, ymax, color='r', label="Without pertubation")
-plt.vlines(np.mean(L2s[1:]), 0, ymax, color='y', label="Mean")
 xmin, xmax = plt.xlim()
 logmin = floor(log10(xmin))
 logmax = ceil(log10(xmax))
@@ -78,27 +74,7 @@ plt.xlim((10**logmin, 10**logmax))
 import matplotlib.ticker as ticker
 ax.set_xscale('log')
 ax.xaxis.set_major_locator(ticker.LogLocator(base=10.0, numticks=15))
-# ax.xaxis.set_minor_locator(ticker.MultipleLocator(1.))
-# ax.set_xticks([10**(i) for i in range(logmin, logmax+1)])
-# plt.xlim((0.5 * min(L2s), 2 * max(L2s)))
-plt.legend()
 
-ax = plt.subplot(122)
-plt.title("$\\frac{1}{2}||\\nabla B_{BS}-\\nabla B_{QS}||^2$")
-plt.hist(H1s[1:], bins, density=True, facecolor='b', alpha=0.75, log=True)
-plt.xscale('log')
-ymax = plt.ylim()[1]
-plt.vlines(H1s[0], 0, ymax, color='r', label="Without pertubation")
-plt.vlines(np.mean(H1s[1:]), 0, ymax, color='y', label="Mean")
-xmin, xmax = plt.xlim()
-xogmin = floor(log10(xmin))
-logmax = ceil(log10(xmax))
-plt.xlim((10**logmin, 10**logmax))
-ax.xaxis.set_major_locator(ticker.LogLocator(base=10.0, numticks=15))
-# ax.set_xticks([10**(i) for i in range(logmin, logmax+1)])
-plt.legend()
-
-# plt.suptitle("$\\sigma=%.4f$" % sigma_perturb)
 plt.savefig(outdir + "histogram.png", dpi=300)
 plt.close()
 max_curvatures = []

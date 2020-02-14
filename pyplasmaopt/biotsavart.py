@@ -178,7 +178,7 @@ class BiotSavart(PropertyManager):
                             term4 = 3 * (dgamma_by_dcoeff[:,j,k]/norm_diff**5)[:, None] * dgamma_by_dphi_cross_diff
                             term5 = -3 * (diff[:, k]/norm_diff**5)[:, None] * np.cross(d2gamma_by_dphidcoeff[:, j, :], diff, axis=1)
                             term6 = 3 * (diff[:, k]/norm_diff**5)[:, None] * np.cross(dgamma_by_dphi, dgamma_by_dcoeff[:, j, :])
-                            self.d2B_by_dXdcoilcoeffs[l][i, j, :, k] = current * np.sum(term1 + term2 + term3 + term4 + term5 + term6, axis=0)
+                            self.d2B_by_dXdcoilcoeffs[l][i, j, k, :] = current * np.sum(term1 + term2 + term3 + term4 + term5 + term6, axis=0)
                 mu = 4 * pi * 1e-7
                 self.d2B_by_dXdcoilcoeffs[l] *= mu/(4*pi*num_coil_quadrature_points)
         return self

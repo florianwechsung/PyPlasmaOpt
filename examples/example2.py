@@ -55,7 +55,7 @@ if True:
     taylor_test(obj, x)
     # import sys; sys.exit()
 
-maxiter = 25
+maxiter = 2000
 memory = 200
 if solver is None:
     xmin = np.loadtxt(outdir + "xmin.txt")

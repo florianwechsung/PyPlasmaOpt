@@ -76,6 +76,10 @@ def rmsprop(J, x0, learning_rate, maxiter, callback=lambda x: None, fudge_factor
     return xk
 
 def online_bfgs(J, x0, maxiter, callback=lambda x: None, B0=None, c=1.0, lam=1e-5, lr=0.1, tau=100):
+    """
+    Based on 'A Stochastic Quasi-Newton Method for Online Convex Optimization'
+    by Schraudolph, Yu, and Günter.
+    """
     xk = x0.copy()
     n = x0.shape[0]
     eps = 1e-10

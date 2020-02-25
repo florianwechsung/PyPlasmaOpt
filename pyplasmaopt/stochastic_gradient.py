@@ -74,3 +74,35 @@ def rmsprop(J, x0, learning_rate, maxiter, callback=lambda x: None, fudge_factor
         v[:] = beta * v + (1-beta)*df**2
         xk -= (learning_rate/np.sqrt(v + eps)) * df
     return xk
+
+def online_bfgs(J, x0, maxiter, callback=lambda x: None, B0=None, c=1.0, lam=1e-5, lr=0.1, tau=100):
+    xk = x0.copy()
+    n = x0.shape[0]
+    eps = 1e-10
+    I = np.identity(n)
+    if B0 is None:
+        Bk = eps * I
+    else:
+        Bk = B0.copy()
+    c = 1.0
+    lam = 1e-5
+    f0 = None
+    for k in range(maxiter):
+        etak = lr * tau/(tau+k)
+        f, df = J(xk, resample=True)
+        if f0 is None:
+            f0 = f
+        else:
+            if f > 10 * f0:
+                break
+        callback(xk)
+        pk = - Bk@df
+        sk = (etak/c) * pk
+        xk += sk
+        _, dfnew = J(xk, resample=False)
+        yk = dfnew - df + lam*sk
+        if k == 0 and B0 is None:
+            Bk = (np.sum(sk*yk)/np.sum(yk*yk)) * I
+        rhok = np.sum(sk*yk)**(-1)
+        Bk = (I - rhok * np.outer(sk, yk)) @ Bk @ (I - rhok*np.outer(yk, sk)) + c*rhok*np.outer(sk, sk)
+    return xk

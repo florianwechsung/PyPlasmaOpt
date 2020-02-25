@@ -55,7 +55,8 @@ if True:
     taylor_test(obj, x)
     # import sys; sys.exit()
 
-maxiter = 2000
+maxiter = 5000
+# maxiter = 500
 memory = 200
 if solver is None:
     xmin = np.loadtxt(outdir + "xmin.txt")
@@ -99,31 +100,39 @@ elif solver.lower() in ["bfgs", "lbfgs"]:
     xmin = res.x
 elif solver.lower() in ["sgd"]:
     def J_scipy(x):
+        # obj.stochastic_qs_objective.resample()
         obj.update(x)
         res = obj.res
         dres = obj.dres
         return res, dres
     # oldmode = obj.mode
     # obj.mode = 'deterministic'
-    res = minimize(J_scipy, x, jac=True, method="BFGS", tol=1e-20, options={"maxiter": 75, "maxcor": 1000}, callback=obj.callback)
+    for i in range(1):
+        res = minimize(J_scipy, x, jac=True, method="BFGS", tol=1e-20, options={"maxiter": 500}, callback=obj.callback)
+        info(res)
+        x = res.x
+    xmin = x
     # obj.mode = oldmode
+    # import sys; sys.exit()
 
-    learning_rate = args.lr
-    x = res.x
-    def J(x):
-        # obj.stochastic_qs_objective.resample()
+    # learning_rate = args.lr
+    # x = res.x
+    def J(x, resample=True):
+        if resample:
+            obj.stochastic_qs_objective.resample()
         obj.update(x)
         res = obj.res
         dres = obj.dres
         return res, dres
     P = res.hess_inv
-    # P = None
+    # # P = None
     import time
     t1 = time.time()
-    xmin = gradient_descent(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
-    # xmin = ada_grad(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
-    # xmin = momentum(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
-    # xmin = rmsprop(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # xmin = gradient_descent(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # # xmin = ada_grad(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # # xmin = momentum(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    # # xmin = rmsprop(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
+    xmin = online_bfgs(J, x, maxiter, callback=obj.callback, B0=P)
     t2 = time.time()
 
 if comm.rank == 0 and solver is not None:

@@ -27,6 +27,9 @@ def get_objective():
     parser.add_argument("--dist-weight", type=float, default=0.)
     parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd"])
     parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--tau", type=float, default=100)
+    parser.add_argument("--c", type=float, default=0.1)
+    parser.add_argument("--lam", type=float, default=1e-5)
     args, _ = parser.parse_known_args()
 
     nfp = 2

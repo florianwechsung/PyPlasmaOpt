@@ -132,7 +132,7 @@ elif solver.lower() in ["sgd"]:
     # # xmin = ada_grad(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
     # # xmin = momentum(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
     # # xmin = rmsprop(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
-    xmin = online_bfgs(J, x, maxiter, callback=obj.callback, B0=P)
+    xmin = online_bfgs(J, x, maxiter, callback=obj.callback, B0=P, c=args.c, lr=args.lr, lam=args.lam, tau=args.tau)
     t2 = time.time()
 
 if comm.rank == 0 and solver is not None:
@@ -154,7 +154,14 @@ if comm.rank == 0 and solver is not None:
 if True:
     taylor_test(obj, xmin)
 
-QSvsBS_outofsample, Jvals_outofsample = obj.compute_out_of_sample()
+oos = []
+for i in range(20000//args.noutsamples):
+    oos.append(obj.compute_out_of_sample())
+    obj.stochastic_qs_objective_out_of_sample.resample()
+
+QSvsBS_outofsample = np.concatenate([o[0] for o in oos])
+Jvals_outofsample = np.concatenate([o[1] for o in oos])
+
 if comm.rank == 0:
     np.savetxt(outdir + "QSvsBS_outofsample.txt", QSvsBS_outofsample)
     np.savetxt(outdir + "Jvals_outofsample.txt", Jvals_outofsample)

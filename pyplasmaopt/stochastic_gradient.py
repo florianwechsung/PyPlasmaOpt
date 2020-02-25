@@ -88,8 +88,6 @@ def online_bfgs(J, x0, maxiter, callback=lambda x: None, B0=None, c=1.0, lam=1e-
         Bk = eps * I
     else:
         Bk = B0.copy()
-    c = 1.0
-    lam = 1e-5
     f0 = None
     for k in range(maxiter):
         etak = lr * tau/(tau+k)

@@ -47,7 +47,9 @@ def get_objective():
         outdir = "output-%s" % args.__dict__[keys[0]]
     else:
         outdir = "output"
-    for i in range(1, len(keys)):
+    if args.__dict__[keys[1]]:
+        outdir += "_atopt"
+    for i in range(2, len(keys)):
         k = keys[i]
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")

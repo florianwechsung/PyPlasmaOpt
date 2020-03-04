@@ -55,7 +55,7 @@ if True:
     taylor_test(obj, x)
     # import sys; sys.exit()
 
-maxiter = 5000
+maxiter = args.maxiter
 # maxiter = 500
 memory = 200
 if solver is None:
@@ -155,7 +155,7 @@ if True:
     taylor_test(obj, xmin)
 
 oos = []
-for i in range(20000//args.noutsamples):
+for i in range(args.nsamples_final//args.noutsamples):
     oos.append(obj.compute_out_of_sample())
     obj.stochastic_qs_objective_out_of_sample.resample()
 

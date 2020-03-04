@@ -30,6 +30,10 @@ def get_objective():
     parser.add_argument("--tau", type=float, default=100)
     parser.add_argument("--c", type=float, default=0.1)
     parser.add_argument("--lam", type=float, default=1e-5)
+    parser.add_argument("--iota_target", type=float, default=0.103)
+    parser.add_argument("--coil_length_target", type=float, default=4.398229715025710)
+    parser.add_argument("--nsamples_final", type=int, default=20000)
+    parser.add_argument("--maxiter", type=int, default=5000)
     args, _ = parser.parse_known_args()
 
     nfp = 2
@@ -53,6 +57,8 @@ def get_objective():
         k = keys[i]
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
+    if len(outdir)>254:
+        outdir = outdir[:254]
     outdir += "/"
     os.makedirs(outdir, exist_ok=True)
     set_file_logger(outdir + "log.txt")
@@ -62,7 +68,8 @@ def get_objective():
         tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
         minimum_distance=args.min_dist, distance_weight=args.dist_weight,
         eta_bar=eta_bar, ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=0.003,#args.sigma,
-        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
+        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed,
+        iota_target=args.iota_target, coil_length_target=args.coil_length_target)
     return obj, args
 
 class Problem2_Objective():

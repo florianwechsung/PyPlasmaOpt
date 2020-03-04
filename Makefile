@@ -6,6 +6,10 @@ pip-linux:
 	rm -rf build
 	pip3 install -vvv -e .
 
+pip-landreman:
+        rm -rf build
+        env CC=gcc-mp-8 CXX=g++-mp-8 pip install --no-cache-dir -vvv -e .
+
 cmake-mac:
 	rm -rf build-mac
 	rm -f cppplasmaopt.cpython-37m-darwin.so

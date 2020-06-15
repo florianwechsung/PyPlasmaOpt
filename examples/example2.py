@@ -6,7 +6,8 @@ import os
 
 obj, args = get_objective()
 
-info("Biggest deviation in first coil %.6fmm", np.max(np.linalg.norm(obj.stochastic_qs_objective.J_BSvsQS_perturbed[0].biotsavart.coils[0].sample[0], axis=1))*1e3)
+if args.ninsamples > 0:
+    info("Biggest deviation in first coil %.6fmm", np.max(np.linalg.norm(obj.stochastic_qs_objective.J_BSvsQS_perturbed[0].biotsavart.coils[0].sample[0], axis=1))*1e3)
 
 outdir = obj.outdir
 solver = args.optimizer

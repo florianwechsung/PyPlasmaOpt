@@ -306,7 +306,8 @@ class Problem2_Objective():
         self.dJvals.append((
             norm(self.dres), norm(self.dresetabar), norm(self.dresma), norm(self.drescurrent), norm(self.drescoil)
         ))
-        self.Jvals_quantiles.append((np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9)))
+        if self.ninsamples > 0:
+            self.Jvals_quantiles.append((np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9)))
         self.Jvals_no_noise.append(self.res - self.res1 + 0.5 * (self.J_BSvsQS.J_L2() + self.J_BSvsQS.J_H1()))
         self.xiterates.append(x.copy())
         self.Jvals_perturbed.append(self.perturbed_vals)
@@ -317,10 +318,11 @@ class Problem2_Objective():
         norm = np.linalg.norm
         info(f"Objective value:         {self.res:.6e}")
         info(f"Objective values:        {self.res1:.6e}, {self.res2:.6e}, {self.res3:.6e}, {self.res4:.6e}, {self.res5:.6e}, {self.res6:.6e}, {self.res7:.6e}, {self.res8:.6e}, {self.res9:.6e}, {self.res_tikhonov:.6e}")
-        info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(self.perturbed_vals, 0.1):.6e}, {np.mean(self.perturbed_vals):.6e}, {np.quantile(self.perturbed_vals, 0.9):.6e}")
-        cvar90 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9)))
-        cvar95 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95)))
-        info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
+        if self.ninsamples > 0:
+            info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(self.perturbed_vals, 0.1):.6e}, {np.mean(self.perturbed_vals):.6e}, {np.quantile(self.perturbed_vals, 0.9):.6e}")
+            cvar90 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9)))
+            cvar95 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95)))
+            info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
         info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
 
         max_curvature  = max(np.max(c.kappa) for c in self.stellarator._base_coils)
@@ -329,14 +331,14 @@ class Problem2_Objective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
-        if iteration % 25 == 0:
+        if iteration % 25 == 0 and comm.rank == 0:
+            self.plot('iteration-%04i.png' % iteration)
+        if iteration % 25 == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             self.out_of_sample_values.append(oos_vals)
             info("Out of sample")
             info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(oos_vals, 0.1):.6e}, {np.mean(oos_vals):.6e}, {np.quantile(oos_vals, 0.9):.6e}")
             info(f"CVaR(.9), CVaR(.95), Max:{np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.9))):.6e}, {np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.95))):.6e}, {max(oos_vals):.6e}")
-            if comm.rank == 0:
-                self.plot('iteration-%04i.png' % iteration)
 
     def plot(self, filename):
         import matplotlib

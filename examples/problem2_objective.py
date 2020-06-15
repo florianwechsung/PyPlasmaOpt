@@ -32,15 +32,6 @@ def get_objective():
     parser.add_argument("--lam", type=float, default=1e-5)
     args, _ = parser.parse_known_args()
 
-    nfp = 2
-    (coils, ma) = get_matt_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
-    if args.at_optimum:
-        currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-        eta_bar = -2.105800979374183
-    else:
-        currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-        eta_bar = -2.25
-    stellarator = CoilCollection(coils, currents, nfp, True)
     keys = list(args.__dict__.keys())
     assert keys[0] == "output"
     if not args.__dict__[keys[0]] == "":
@@ -57,6 +48,17 @@ def get_objective():
     os.makedirs(outdir, exist_ok=True)
     set_file_logger(outdir + "log.txt")
     info("Configuration: \n%s", args.__dict__)
+    
+    nfp = 2
+    (coils, ma) = get_matt_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
+    if args.at_optimum:
+        currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+        eta_bar = -2.105800979374183
+    else:
+        currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+        eta_bar = -2.25
+    stellarator = CoilCollection(coils, currents, nfp, True)
+
     obj = Problem2_Objective(
         stellarator, ma, curvature_scale=args.curvature_pen, torsion_scale=args.torsion_pen,
         tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
@@ -190,37 +192,6 @@ class Problem2_Objective():
 
 
         """ Objective values """
-        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
-
-        Jsamples = self.stochastic_qs_objective.J_samples()
-        assert len(Jsamples) == self.ninsamples
-        self.QSvsBS_perturbed.append(Jsamples)
-        if self.mode == "deterministic":
-            self.res1         = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
-            self.dresetabar  += 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
-            self.dresma      += 0.5 * J_BSvsQS.dJ_L2_by_dmagneticaxiscoefficients() + 0.5 * J_BSvsQS.dJ_H1_by_dmagneticaxiscoefficients()
-            self.drescoil    += 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
-                + 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
-            self.drescurrent += 0.5 * self.current_fak * (
-                self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
-            )
-        elif self.mode == "stochastic":
-            n = self.ninsamples
-            self.res1         = sum(Jsamples)/n
-            self.drescoil    += sum(self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())/n
-            self.drescurrent += self.current_fak * sum(self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())/n
-            self.dresetabar  += sum(self.stochastic_qs_objective.dJ_by_detabar_samples())/n
-            self.dresma      += sum(self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())/n
-        elif self.mode == "cvar":
-            t = x[-1]
-            self.res1         = self.cvar.J(t, Jsamples)
-            self.drescoil    += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())
-            self.drescurrent += self.current_fak * self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())
-            self.dresetabar  += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_detabar_samples())
-            self.dresma      += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())
-            self.drescvart   = self.cvar.dJ_dt(t, Jsamples)
-        else:
-            raise NotImplementedError
 
         self.res2      = 0.5 * sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
         self.drescoil += (1/coil_length_target)**2 * self.stellarator.reduce_coefficient_derivatives([
@@ -273,6 +244,51 @@ class Problem2_Objective():
         else:
             self.res_tikhonov = 0
 
+        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
+
+        Jsamples = self.stochastic_qs_objective.J_samples()
+        assert len(Jsamples) == self.ninsamples
+        self.QSvsBS_perturbed.append(Jsamples)
+
+        self.res1_det        = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
+        self.dresetabar_det  = 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
+        self.dresma_det      = 0.5 * J_BSvsQS.dJ_L2_by_dmagneticaxiscoefficients() + 0.5 * J_BSvsQS.dJ_H1_by_dmagneticaxiscoefficients()
+        self.drescoil_det    = 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
+            + 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
+        self.drescurrent_det = 0.5 * self.current_fak * (
+            self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
+        )
+        if self.mode == "deterministic":
+            self.res1         = self.res1_det
+            self.dresetabar  += self.dresetabar_det
+            self.dresma      += self.dresma_det
+            self.drescoil    += self.drescoil_det
+            self.drescurrent += self.drescurrent_det
+        else:
+            self.dresetabar_det  += self.dresetabar
+            self.dresma_det      += self.dresma
+            self.drescoil_det    += self.drescoil
+            self.drescurrent_det += self.drescurrent
+            if self.mode == "stochastic":
+                n = self.ninsamples
+                self.res1         = sum(Jsamples)/n
+                self.res1_det     = self.res1
+                self.drescoil    += sum(self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())/n
+                self.drescurrent += self.current_fak * sum(self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())/n
+                self.dresetabar  += sum(self.stochastic_qs_objective.dJ_by_detabar_samples())/n
+                self.dresma      += sum(self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())/n
+            elif self.mode == "cvar":
+                t = x[-1]
+                self.res1         = self.cvar.J(t, Jsamples)
+                self.res1_det     = self.res1
+                self.drescoil    += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())
+                self.drescurrent += self.current_fak * self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())
+                self.dresetabar  += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_detabar_samples())
+                self.dresma      += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dmagneticaxiscoefficients_samples())
+                self.drescvart   = self.cvar.dJ_dt(t, Jsamples)
+            else:
+                raise NotImplementedError
+
         self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov])
         self.res = sum(self.Jvals_individual[-1])
         self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
@@ -290,6 +306,13 @@ class Problem2_Objective():
             ))
         else:
             raise NotImplementedError
+
+        if self.mode == "stochastic":
+            self.dres_det = np.concatenate((
+                self.dresetabar_det, self.dresma_det,
+                self.drescurrent_det, self.drescoil_det
+            ))
+
 
     def compute_out_of_sample(self):
         if self.stochastic_qs_objective_out_of_sample is None:

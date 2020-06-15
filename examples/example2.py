@@ -124,7 +124,8 @@ elif solver.lower() in ["sgd"]:
         obj.update(x)
         res = obj.res
         dres = obj.dres
-        return res, dres
+        dres_det = obj.dres_det
+        return res, dres, dres_det
     P = res.hess_inv
     # # P = None
     import time
@@ -133,7 +134,8 @@ elif solver.lower() in ["sgd"]:
     # # xmin = ada_grad(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
     # # xmin = momentum(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
     # # xmin = rmsprop(J, x, learning_rate, maxiter, callback=obj.callback, P=P)
-    xmin = online_bfgs(J, x, maxiter, callback=obj.callback, B0=P, c=args.c, lr=args.lr, lam=args.lam, tau=args.tau)
+    # xmin = online_bfgs(J, x, maxiter, callback=obj.callback, B0=P, c=args.c, lr=args.lr, lam=args.lam, tau=args.tau)
+    xmin = hybrid_bfgs(J, x, maxiter, callback=obj.callback, B0=P, c=args.c, lr=args.lr, lam=args.lam, tau=args.tau)
     t2 = time.time()
 
 if comm.rank == 0 and solver is not None:

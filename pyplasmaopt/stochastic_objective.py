@@ -20,7 +20,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
         assert idxs[-1] == nsamples
         first = idxs[comm.rank]
         last = idxs[comm.rank+1]
-        assert last > first
+        assert last >= first
         self.J_BSvsQS_perturbed = []
 
         for i in range(first, last):

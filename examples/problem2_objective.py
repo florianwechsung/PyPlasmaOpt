@@ -5,11 +5,16 @@ import argparse
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 
+#A function which can be called from another script to get an instance of the objective function
 def get_objective():
+
+    #Define all available commandline arguments to be specified when starting optimization
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--output", type=str, default="")
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
+                        
+    #Select optimization mode - stochastic, deterministic, or something else.
     parser.add_argument("--mode", type=str, default="deterministic",
                         choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95"])
     parser.add_argument("--sigma", type=float, default=3e-3)
@@ -18,20 +23,23 @@ def get_objective():
     parser.add_argument("--ppp", type=int, default=20)
     parser.add_argument("--ninsamples", type=int, default=100)
     parser.add_argument("--noutsamples", type=int, default=100)
-    parser.add_argument("--curvature-pen", type=float, default=0.)
-    parser.add_argument("--torsion-pen", type=float, default=0.)
+    parser.add_argument("--curvature-pen", type=float, default=0.) #curvature penalty
+    parser.add_argument("--torsion-pen", type=float, default=0.) #torsion penalty
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
     parser.add_argument("--arclength", type=float, default=0.)
     parser.add_argument("--min-dist", type=float, default=0.04)
     parser.add_argument("--dist-weight", type=float, default=0.)
-    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd"])
+    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd"]) #deterministic optimization algorhithm
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--tau", type=float, default=100)
     parser.add_argument("--c", type=float, default=0.1)
     parser.add_argument("--lam", type=float, default=1e-5)
+    #parse the arguments and store in args
     args, _ = parser.parse_known_args()
 
+    #Check to make sure that first element of argument dictionary is labeled output
+    #Looks to be handling generating a name for the output directory
     keys = list(args.__dict__.keys())
     assert keys[0] == "output"
     if not args.__dict__[keys[0]] == "":
@@ -45,28 +53,38 @@ def get_objective():
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
     outdir += "/"
+    #make output director
     os.makedirs(outdir, exist_ok=True)
     set_file_logger(outdir + "log.txt")
+    #print the various arguments specified in the command line
     info("Configuration: \n%s", args.__dict__)
     
+    #Number of field periods: See Dr. Landreman's note
     nfp = 2
+    #calling the get_matt_data fucntion from the pyplasmaopt library. presumably returns some data from Dr. Landreman. 
     (coils, ma) = get_matt_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
+    
+    #Not s
     if args.at_optimum:
         currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
         eta_bar = -2.105800979374183
     else:
         currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
         eta_bar = -2.25
-    stellarator = CoilCollection(coils, currents, nfp, True)
-
+        
+        
+    stellarator = CoilCollection(coils, currents, nfp, True) #npf: number of field points. See Dr. Landreman's note for definition
+     
+    #initialize an objective function object (instance of Problem2_Objective class) and return it and the input arguments
     obj = Problem2_Objective(
         stellarator, ma, curvature_scale=args.curvature_pen, torsion_scale=args.torsion_pen,
         tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
         minimum_distance=args.min_dist, distance_weight=args.dist_weight,
         eta_bar=eta_bar, ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=0.003,#args.sigma,
         length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
-    return obj, args
+    return obj #, args
 
+#Class for creating appropriate objective functions 
 class Problem2_Objective():
 
     def __init__(self, stellarator, ma, 
@@ -77,6 +95,8 @@ class Problem2_Objective():
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
                  outdir="output/", seed=1
                  ):
+                 
+        
         self.stellarator = stellarator
         self.seed = seed
         self.ma = ma
@@ -169,7 +189,10 @@ class Problem2_Objective():
         self.qsf.clear_cached_properties()
 
     def update(self, x):
+    	#Not sure what this is doing but it seems important... what is x? independent variable?
         self.x[:] = x
+        
+        #Assuming this is for creating local references to object parameters so as to not have to use "self.blah" for each variable
         J_BSvsQS          = self.J_BSvsQS
         J_coil_lengths    = self.J_coil_lengths
         J_axis_length     = self.J_axis_length
@@ -183,6 +206,7 @@ class Problem2_Objective():
         torsion_scale               = self.torsion_scale
         qsf = self.qsf
 
+	#
         self.set_dofs(x)
 
         self.dresetabar  = np.zeros(1)
@@ -258,12 +282,18 @@ class Problem2_Objective():
         self.drescurrent_det = 0.5 * self.current_fak * (
             self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
         )
+        
+        #Deterministic code stuff
+        #########
         if self.mode == "deterministic":
             self.res1         = self.res1_det
             self.dresetabar  += self.dresetabar_det
             self.dresma      += self.dresma_det
             self.drescoil    += self.drescoil_det
             self.drescurrent += self.drescurrent_det
+        #########    
+        
+        #Having to do with stochastic methods:
         else:
             self.dresetabar_det  += self.dresetabar
             self.dresma_det      += self.dresma
@@ -322,6 +352,9 @@ class Problem2_Objective():
         Jsamples = np.array(self.stochastic_qs_objective_out_of_sample.J_samples())
         return Jsamples, Jsamples + sum(self.Jvals_individual[-1][1:])
 
+
+
+	#Function called after each iteration of the scipy minimise function
     def callback(self, x, verbose=True):
         assert np.allclose(self.x, x)
         self.Jvals.append(self.res)
@@ -347,13 +380,24 @@ class Problem2_Objective():
             cvar95 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95)))
             info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
         info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
-
+	
+	#compute max curvature by finding max curvature of each coil and then finding max among each coil
         max_curvature  = max(np.max(c.kappa) for c in self.stellarator._base_coils)
+        
+        #Mean curvature by averaging curvature of each coil and then averaging each average
         mean_curvature = np.mean([np.mean(c.kappa) for c in self.stellarator._base_coils])
+        
+        #compute max torsion by finding max torsion of each coil and then finding max among each coil
         max_torsion    = max(np.max(np.abs(c.torsion)) for c in self.stellarator._base_coils)
+        
+        #Mean torsion by averaging torsion of each coil and then averaging each average
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
+        
+        
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
+        
+        #generate plots of coils after each set of 25 iterations, see plot for plotting details
         if iteration % 25 == 0 and comm.rank == 0:
             self.plot('iteration-%04i.png' % iteration)
         if iteration % 25 == 0 and self.noutsamples > 0:
@@ -363,6 +407,10 @@ class Problem2_Objective():
             info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(oos_vals, 0.1):.6e}, {np.mean(oos_vals):.6e}, {np.quantile(oos_vals, 0.9):.6e}")
             info(f"CVaR(.9), CVaR(.95), Max:{np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.9))):.6e}, {np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.95))):.6e}, {max(oos_vals):.6e}")
 
+
+
+
+	#generates plots of the coil sets and exports them as images
     def plot(self, filename):
         import matplotlib
         matplotlib.use('Agg')
@@ -388,7 +436,7 @@ class Problem2_Objective():
         plt.savefig(self.outdir + filename, dpi=300)
         plt.close()
 
-
+	#Check to see if Mayavi is successfully installed and raise error if not.
         if "DISPLAY" in os.environ:
             try:
                 import mayavi.mlab as mlab

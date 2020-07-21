@@ -40,7 +40,7 @@ obj.callback(x)
 if True:
     taylor_test(obj, x)
 
-maxiter = 2000
+maxiter = 2000 #maximum number of optimization iterations
 memory = 200
 
 

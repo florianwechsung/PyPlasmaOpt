@@ -10,7 +10,7 @@ rc('text', usetex=True)
 
 from problem2_objective import get_objective
 obj, args = get_objective()
-outdir = obj.outdir
+outdir = "output_1/"
 # outdir = "output-deterministic-sigma-0.00300/"
 # outdir = "output-stochastic-sigma-0.00300/"
 # outdir = "output-stochastic-sigma-0.00300-seed-2-8/"

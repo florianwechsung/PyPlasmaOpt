@@ -1,0 +1,710 @@
+2020-06-24 10:57:58,652:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 10, 'ninsamples': 0, 'noutsamples': 0, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-24 10:57:58,657:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-24 10:58:05,740:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:05,740:PyPlasmaOpt:INFO Iteration 0
+2020-06-24 10:58:05,740:PyPlasmaOpt:INFO Objective value:         1.107081e+01
+2020-06-24 10:58:05,740:PyPlasmaOpt:INFO Objective values:        1.087253e+01, 4.077976e-32, 1.148359e-15, 1.982731e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:05,740:PyPlasmaOpt:INFO Objective gradients:     2.005767e-01, 4.771734e+01, 2.888911e+01, 2.884857e-16
+2020-06-24 10:58:05,744:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:05,744:PyPlasmaOpt:INFO Torsion   Max: 3.511e-16; Mean: 5.338e-17
+2020-06-24 10:58:09,113:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,113:PyPlasmaOpt:INFO Iteration 1
+2020-06-24 10:58:09,113:PyPlasmaOpt:INFO Objective value:         1.093784e+01
+2020-06-24 10:58:09,113:PyPlasmaOpt:INFO Objective values:        1.071785e+01, 4.077976e-32, 2.636333e-08, 2.199893e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,113:PyPlasmaOpt:INFO Objective gradients:     1.915096e-01, 8.250865e+01, 2.878105e+01, 2.539599e-02
+2020-06-24 10:58:09,117:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,117:PyPlasmaOpt:INFO Torsion   Max: 3.511e-16; Mean: 5.338e-17
+2020-06-24 10:58:09,323:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,324:PyPlasmaOpt:INFO Iteration 2
+2020-06-24 10:58:09,324:PyPlasmaOpt:INFO Objective value:         1.092038e+01
+2020-06-24 10:58:09,324:PyPlasmaOpt:INFO Objective values:        1.069831e+01, 2.094057e-16, 3.728679e-08, 2.220641e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,324:PyPlasmaOpt:INFO Objective gradients:     1.905821e-01, 4.292829e+01, 2.875851e+01, 3.000039e-02
+2020-06-24 10:58:09,328:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,328:PyPlasmaOpt:INFO Torsion   Max: 6.920e-07; Mean: 2.458e-07
+2020-06-24 10:58:09,525:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,526:PyPlasmaOpt:INFO Iteration 3
+2020-06-24 10:58:09,526:PyPlasmaOpt:INFO Objective value:         1.076811e+01
+2020-06-24 10:58:09,526:PyPlasmaOpt:INFO Objective values:        1.053591e+01, 1.111592e-13, 1.648022e-07, 2.321993e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,526:PyPlasmaOpt:INFO Objective gradients:     1.856362e-01, 1.283824e+02, 2.859380e+01, 7.201883e-02
+2020-06-24 10:58:09,530:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,530:PyPlasmaOpt:INFO Torsion   Max: 1.601e-05; Mean: 5.628e-06
+2020-06-24 10:58:09,690:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,690:PyPlasmaOpt:INFO Iteration 4
+2020-06-24 10:58:09,690:PyPlasmaOpt:INFO Objective value:         9.333857e+00
+2020-06-24 10:58:09,691:PyPlasmaOpt:INFO Objective values:        9.012735e+00, 1.074266e-11, 7.359144e-06, 3.211150e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,691:PyPlasmaOpt:INFO Objective gradients:     1.338489e-01, 7.608076e+01, 2.708019e+01, 3.522923e-01
+2020-06-24 10:58:09,696:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,696:PyPlasmaOpt:INFO Torsion   Max: 1.577e-04; Mean: 5.533e-05
+2020-06-24 10:58:09,797:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,809:PyPlasmaOpt:INFO Iteration 5
+2020-06-24 10:58:09,809:PyPlasmaOpt:INFO Objective value:         7.273613e+00
+2020-06-24 10:58:09,809:PyPlasmaOpt:INFO Objective values:        6.799525e+00, 2.462643e-10, 8.152046e-05, 4.740063e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,809:PyPlasmaOpt:INFO Objective gradients:     2.130524e-02, 2.071731e+02, 2.368989e+01, 4.243350e-01
+2020-06-24 10:58:09,812:PyPlasmaOpt:INFO Curvature Max: 1.429e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,812:PyPlasmaOpt:INFO Torsion   Max: 8.456e-04; Mean: 2.740e-04
+2020-06-24 10:58:09,925:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:09,925:PyPlasmaOpt:INFO Iteration 6
+2020-06-24 10:58:09,925:PyPlasmaOpt:INFO Objective value:         4.086170e+00
+2020-06-24 10:58:09,925:PyPlasmaOpt:INFO Objective values:        3.724558e+00, 1.029024e-06, 8.853528e-04, 3.607260e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:09,926:PyPlasmaOpt:INFO Objective gradients:     1.064529e-01, 1.636237e+02, 1.605413e+01, 2.799485e+00
+2020-06-24 10:58:09,935:PyPlasmaOpt:INFO Curvature Max: 1.452e+00; Mean: 1.429e+00
+2020-06-24 10:58:09,935:PyPlasmaOpt:INFO Torsion   Max: 8.149e-02; Mean: 2.530e-02
+2020-06-24 10:58:10,175:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:10,175:PyPlasmaOpt:INFO Iteration 7
+2020-06-24 10:58:10,175:PyPlasmaOpt:INFO Objective value:         1.986534e+00
+2020-06-24 10:58:10,175:PyPlasmaOpt:INFO Objective values:        1.637863e+00, 1.578086e-05, 1.008346e-02, 3.385726e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:10,176:PyPlasmaOpt:INFO Objective gradients:     1.145950e-01, 2.618477e+02, 1.036655e+01, 3.620125e+00
+2020-06-24 10:58:10,179:PyPlasmaOpt:INFO Curvature Max: 1.540e+00; Mean: 1.431e+00
+2020-06-24 10:58:10,179:PyPlasmaOpt:INFO Torsion   Max: 3.783e-01; Mean: 9.790e-02
+2020-06-24 10:58:10,381:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:10,381:PyPlasmaOpt:INFO Iteration 8
+2020-06-24 10:58:10,381:PyPlasmaOpt:INFO Objective value:         1.108908e+00
+2020-06-24 10:58:10,381:PyPlasmaOpt:INFO Objective values:        6.916657e-01, 2.300418e-05, 2.119651e-02, 3.960232e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:10,381:PyPlasmaOpt:INFO Objective gradients:     7.326287e-02, 2.304989e+02, 5.205959e+00, 4.258725e+00
+2020-06-24 10:58:10,385:PyPlasmaOpt:INFO Curvature Max: 1.612e+00; Mean: 1.433e+00
+2020-06-24 10:58:10,385:PyPlasmaOpt:INFO Torsion   Max: 6.725e-01; Mean: 1.651e-01
+2020-06-24 10:58:10,596:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:10,597:PyPlasmaOpt:INFO Iteration 9
+2020-06-24 10:58:10,597:PyPlasmaOpt:INFO Objective value:         7.099135e-01
+2020-06-24 10:58:10,597:PyPlasmaOpt:INFO Objective values:        2.443107e-01, 3.937391e-04, 2.920881e-02, 4.360003e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:10,597:PyPlasmaOpt:INFO Objective gradients:     4.363901e-02, 2.366127e+02, 2.055405e+00, 1.438559e+00
+2020-06-24 10:58:10,600:PyPlasmaOpt:INFO Curvature Max: 1.816e+00; Mean: 1.438e+00
+2020-06-24 10:58:10,601:PyPlasmaOpt:INFO Torsion   Max: 1.302e+00; Mean: 3.493e-01
+2020-06-24 10:58:10,831:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:10,831:PyPlasmaOpt:INFO Iteration 10
+2020-06-24 10:58:10,831:PyPlasmaOpt:INFO Objective value:         5.759454e-01
+2020-06-24 10:58:10,832:PyPlasmaOpt:INFO Objective values:        1.123796e-01, 5.288180e-04, 3.475290e-02, 4.282841e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:10,832:PyPlasmaOpt:INFO Objective gradients:     4.726229e-02, 1.980819e+02, 4.886902e-01, 1.469326e+00
+2020-06-24 10:58:10,837:PyPlasmaOpt:INFO Curvature Max: 2.385e+00; Mean: 1.469e+00
+2020-06-24 10:58:10,837:PyPlasmaOpt:INFO Torsion   Max: 3.172e+00; Mean: 7.301e-01
+2020-06-24 10:58:11,035:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,035:PyPlasmaOpt:INFO Iteration 11
+2020-06-24 10:58:11,035:PyPlasmaOpt:INFO Objective value:         5.166635e-01
+2020-06-24 10:58:11,035:PyPlasmaOpt:INFO Objective values:        7.170489e-02, 9.413512e-04, 3.576465e-02, 4.082526e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,035:PyPlasmaOpt:INFO Objective gradients:     5.945976e-02, 1.349832e+02, 8.157299e-01, 1.453840e+00
+2020-06-24 10:58:11,040:PyPlasmaOpt:INFO Curvature Max: 3.040e+00; Mean: 1.512e+00
+2020-06-24 10:58:11,040:PyPlasmaOpt:INFO Torsion   Max: 4.145e+00; Mean: 1.015e+00
+2020-06-24 10:58:11,165:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,165:PyPlasmaOpt:INFO Iteration 12
+2020-06-24 10:58:11,165:PyPlasmaOpt:INFO Objective value:         4.501579e-01
+2020-06-24 10:58:11,166:PyPlasmaOpt:INFO Objective values:        4.200475e-02, 2.516920e-03, 3.491308e-02, 3.707232e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,166:PyPlasmaOpt:INFO Objective gradients:     8.339281e-02, 7.429420e+01, 1.177161e+00, 2.188685e+00
+2020-06-24 10:58:11,170:PyPlasmaOpt:INFO Curvature Max: 3.594e+00; Mean: 1.573e+00
+2020-06-24 10:58:11,170:PyPlasmaOpt:INFO Torsion   Max: 4.877e+00; Mean: 1.341e+00
+2020-06-24 10:58:11,297:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,297:PyPlasmaOpt:INFO Iteration 13
+2020-06-24 10:58:11,297:PyPlasmaOpt:INFO Objective value:         3.900636e-01
+2020-06-24 10:58:11,297:PyPlasmaOpt:INFO Objective values:        4.030508e-02, 6.140977e-03, 3.236351e-02, 3.112540e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,297:PyPlasmaOpt:INFO Objective gradients:     1.208544e-01, 6.226150e+01, 1.224437e+00, 1.295443e+00
+2020-06-24 10:58:11,301:PyPlasmaOpt:INFO Curvature Max: 5.202e+00; Mean: 1.646e+00
+2020-06-24 10:58:11,301:PyPlasmaOpt:INFO Torsion   Max: 6.747e+00; Mean: 1.587e+00
+2020-06-24 10:58:11,395:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,396:PyPlasmaOpt:INFO Iteration 14
+2020-06-24 10:58:11,396:PyPlasmaOpt:INFO Objective value:         3.097821e-01
+2020-06-24 10:58:11,396:PyPlasmaOpt:INFO Objective values:        5.663584e-02, 1.607715e-02, 2.575639e-02, 2.113127e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,396:PyPlasmaOpt:INFO Objective gradients:     1.671266e-01, 6.060318e+01, 5.412199e-01, 2.106446e+00
+2020-06-24 10:58:11,402:PyPlasmaOpt:INFO Curvature Max: 7.394e+00; Mean: 1.738e+00
+2020-06-24 10:58:11,402:PyPlasmaOpt:INFO Torsion   Max: 1.269e+01; Mean: 1.803e+00
+2020-06-24 10:58:11,526:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,526:PyPlasmaOpt:INFO Iteration 15
+2020-06-24 10:58:11,526:PyPlasmaOpt:INFO Objective value:         2.614622e-01
+2020-06-24 10:58:11,526:PyPlasmaOpt:INFO Objective values:        1.113291e-01, 3.691023e-02, 1.896420e-02, 9.425872e-02, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,526:PyPlasmaOpt:INFO Objective gradients:     2.243861e-01, 4.036114e+01, 3.319730e-01, 2.169465e+00
+2020-06-24 10:58:11,530:PyPlasmaOpt:INFO Curvature Max: 6.765e+00; Mean: 1.837e+00
+2020-06-24 10:58:11,530:PyPlasmaOpt:INFO Torsion   Max: 3.238e+01; Mean: 2.190e+00
+2020-06-24 10:58:11,620:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,621:PyPlasmaOpt:INFO Iteration 16
+2020-06-24 10:58:11,621:PyPlasmaOpt:INFO Objective value:         2.223339e-01
+2020-06-24 10:58:11,621:PyPlasmaOpt:INFO Objective values:        1.121109e-01, 4.747905e-02, 1.773527e-02, 4.500862e-02, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,621:PyPlasmaOpt:INFO Objective gradients:     1.937226e-01, 8.453094e+01, 9.589004e-01, 1.821320e+00
+2020-06-24 10:58:11,627:PyPlasmaOpt:INFO Curvature Max: 6.105e+00; Mean: 1.807e+00
+2020-06-24 10:58:11,627:PyPlasmaOpt:INFO Torsion   Max: 1.921e+01; Mean: 2.102e+00
+2020-06-24 10:58:11,758:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,758:PyPlasmaOpt:INFO Iteration 17
+2020-06-24 10:58:11,758:PyPlasmaOpt:INFO Objective value:         1.663540e-01
+2020-06-24 10:58:11,758:PyPlasmaOpt:INFO Objective values:        8.579895e-02, 4.780575e-02, 1.700506e-02, 1.574426e-02, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,758:PyPlasmaOpt:INFO Objective gradients:     1.361230e-01, 1.092599e+02, 4.766518e-01, 1.399852e+00
+2020-06-24 10:58:11,762:PyPlasmaOpt:INFO Curvature Max: 6.132e+00; Mean: 1.806e+00
+2020-06-24 10:58:11,762:PyPlasmaOpt:INFO Torsion   Max: 2.818e+01; Mean: 2.180e+00
+2020-06-24 10:58:11,885:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,885:PyPlasmaOpt:INFO Iteration 18
+2020-06-24 10:58:11,885:PyPlasmaOpt:INFO Objective value:         1.102378e-01
+2020-06-24 10:58:11,885:PyPlasmaOpt:INFO Objective values:        5.056433e-02, 4.252536e-02, 1.649245e-02, 6.556572e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,885:PyPlasmaOpt:INFO Objective gradients:     5.548993e-02, 1.060317e+02, 4.352725e-01, 1.561080e+00
+2020-06-24 10:58:11,889:PyPlasmaOpt:INFO Curvature Max: 5.350e+00; Mean: 1.789e+00
+2020-06-24 10:58:11,889:PyPlasmaOpt:INFO Torsion   Max: 4.092e+01; Mean: 2.026e+00
+2020-06-24 10:58:11,985:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:11,985:PyPlasmaOpt:INFO Iteration 19
+2020-06-24 10:58:11,985:PyPlasmaOpt:INFO Objective value:         7.468160e-02
+2020-06-24 10:58:11,985:PyPlasmaOpt:INFO Objective values:        3.767892e-02, 2.005221e-02, 1.655756e-02, 3.929145e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:11,985:PyPlasmaOpt:INFO Objective gradients:     8.660034e-03, 9.367601e+01, 5.878015e-01, 2.770991e+00
+2020-06-24 10:58:11,989:PyPlasmaOpt:INFO Curvature Max: 6.514e+00; Mean: 1.776e+00
+2020-06-24 10:58:11,989:PyPlasmaOpt:INFO Torsion   Max: 1.604e+01; Mean: 1.780e+00
+2020-06-24 10:58:12,281:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,281:PyPlasmaOpt:INFO Iteration 20
+2020-06-24 10:58:12,281:PyPlasmaOpt:INFO Objective value:         6.408472e-02
+2020-06-24 10:58:12,281:PyPlasmaOpt:INFO Objective values:        3.100737e-02, 1.589340e-02, 1.663950e-02, 5.444438e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,281:PyPlasmaOpt:INFO Objective gradients:     1.851026e-02, 9.057373e+01, 5.426553e-01, 1.212801e+00
+2020-06-24 10:58:12,286:PyPlasmaOpt:INFO Curvature Max: 5.796e+00; Mean: 1.777e+00
+2020-06-24 10:58:12,286:PyPlasmaOpt:INFO Torsion   Max: 1.603e+01; Mean: 1.697e+00
+2020-06-24 10:58:12,390:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,390:PyPlasmaOpt:INFO Iteration 21
+2020-06-24 10:58:12,390:PyPlasmaOpt:INFO Objective value:         5.115562e-02
+2020-06-24 10:58:12,390:PyPlasmaOpt:INFO Objective values:        2.280851e-02, 1.110429e-02, 1.672663e-02, 5.161891e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,390:PyPlasmaOpt:INFO Objective gradients:     2.782269e-02, 5.804511e+01, 4.930994e-01, 1.080039e+00
+2020-06-24 10:58:12,395:PyPlasmaOpt:INFO Curvature Max: 5.558e+00; Mean: 1.782e+00
+2020-06-24 10:58:12,395:PyPlasmaOpt:INFO Torsion   Max: 1.663e+01; Mean: 1.707e+00
+2020-06-24 10:58:12,482:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,482:PyPlasmaOpt:INFO Iteration 22
+2020-06-24 10:58:12,483:PyPlasmaOpt:INFO Objective value:         3.746132e-02
+2020-06-24 10:58:12,483:PyPlasmaOpt:INFO Objective values:        1.443030e-02, 5.324757e-03, 1.724495e-02, 4.613153e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,483:PyPlasmaOpt:INFO Objective gradients:     3.560711e-02, 4.487342e+01, 3.223526e-01, 8.283708e-01
+2020-06-24 10:58:12,487:PyPlasmaOpt:INFO Curvature Max: 5.371e+00; Mean: 1.796e+00
+2020-06-24 10:58:12,487:PyPlasmaOpt:INFO Torsion   Max: 1.193e+01; Mean: 1.704e+00
+2020-06-24 10:58:12,594:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,595:PyPlasmaOpt:INFO Iteration 23
+2020-06-24 10:58:12,595:PyPlasmaOpt:INFO Objective value:         2.849501e-02
+2020-06-24 10:58:12,595:PyPlasmaOpt:INFO Objective values:        8.501660e-03, 1.704122e-03, 1.827648e-02, 1.274261e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,598:PyPlasmaOpt:INFO Objective gradients:     1.165326e-02, 1.497071e+01, 1.730819e-01, 4.477641e-01
+2020-06-24 10:58:12,602:PyPlasmaOpt:INFO Curvature Max: 6.117e+00; Mean: 1.828e+00
+2020-06-24 10:58:12,602:PyPlasmaOpt:INFO Torsion   Max: 1.819e+01; Mean: 1.819e+00
+2020-06-24 10:58:12,708:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,708:PyPlasmaOpt:INFO Iteration 24
+2020-06-24 10:58:12,708:PyPlasmaOpt:INFO Objective value:         2.442990e-02
+2020-06-24 10:58:12,708:PyPlasmaOpt:INFO Objective values:        5.792256e-03, 3.810981e-04, 1.788913e-02, 3.674077e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,710:PyPlasmaOpt:INFO Objective gradients:     2.526373e-02, 3.037794e+01, 1.770537e-01, 4.187348e-01
+2020-06-24 10:58:12,714:PyPlasmaOpt:INFO Curvature Max: 8.446e+00; Mean: 1.868e+00
+2020-06-24 10:58:12,714:PyPlasmaOpt:INFO Torsion   Max: 2.188e+01; Mean: 1.745e+00
+2020-06-24 10:58:12,807:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:12,807:PyPlasmaOpt:INFO Iteration 25
+2020-06-24 10:58:12,807:PyPlasmaOpt:INFO Objective value:         2.073544e-02
+2020-06-24 10:58:12,807:PyPlasmaOpt:INFO Objective values:        2.648220e-03, 5.332442e-04, 1.737684e-02, 1.771345e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:12,807:PyPlasmaOpt:INFO Objective gradients:     2.438101e-02, 1.790495e+01, 9.651634e-02, 2.490950e-01
+2020-06-24 10:58:12,813:PyPlasmaOpt:INFO Curvature Max: 8.644e+00; Mean: 1.871e+00
+2020-06-24 10:58:12,813:PyPlasmaOpt:INFO Torsion   Max: 9.859e+00; Mean: 1.661e+00
+2020-06-24 10:58:14,360:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,360:PyPlasmaOpt:INFO Iteration 26
+2020-06-24 10:58:14,360:PyPlasmaOpt:INFO Objective value:         1.951721e-02
+2020-06-24 10:58:14,360:PyPlasmaOpt:INFO Objective values:        2.246480e-03, 3.112560e-04, 1.691937e-02, 4.011250e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,360:PyPlasmaOpt:INFO Objective gradients:     8.830775e-03, 1.485695e+01, 1.532048e-01, 1.753401e-01
+2020-06-24 10:58:14,363:PyPlasmaOpt:INFO Curvature Max: 8.874e+00; Mean: 1.876e+00
+2020-06-24 10:58:14,363:PyPlasmaOpt:INFO Torsion   Max: 2.978e+01; Mean: 1.742e+00
+2020-06-24 10:58:14,457:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,457:PyPlasmaOpt:INFO Iteration 27
+2020-06-24 10:58:14,457:PyPlasmaOpt:INFO Objective value:         1.832302e-02
+2020-06-24 10:58:14,458:PyPlasmaOpt:INFO Objective values:        1.384050e-03, 1.323264e-04, 1.665302e-02, 1.536203e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,458:PyPlasmaOpt:INFO Objective gradients:     1.766349e-02, 1.555794e+01, 2.123480e-01, 1.827649e-01
+2020-06-24 10:58:14,462:PyPlasmaOpt:INFO Curvature Max: 9.016e+00; Mean: 1.874e+00
+2020-06-24 10:58:14,462:PyPlasmaOpt:INFO Torsion   Max: 1.969e+01; Mean: 1.713e+00
+2020-06-24 10:58:14,562:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,562:PyPlasmaOpt:INFO Iteration 28
+2020-06-24 10:58:14,562:PyPlasmaOpt:INFO Objective value:         1.785356e-02
+2020-06-24 10:58:14,562:PyPlasmaOpt:INFO Objective values:        1.239221e-03, 4.720402e-05, 1.640175e-02, 1.653760e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,562:PyPlasmaOpt:INFO Objective gradients:     2.085627e-02, 9.404109e+00, 1.920020e-01, 1.594447e-01
+2020-06-24 10:58:14,566:PyPlasmaOpt:INFO Curvature Max: 9.329e+00; Mean: 1.871e+00
+2020-06-24 10:58:14,566:PyPlasmaOpt:INFO Torsion   Max: 1.422e+01; Mean: 1.681e+00
+2020-06-24 10:58:14,673:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,673:PyPlasmaOpt:INFO Iteration 29
+2020-06-24 10:58:14,673:PyPlasmaOpt:INFO Objective value:         1.714523e-02
+2020-06-24 10:58:14,673:PyPlasmaOpt:INFO Objective values:        7.972805e-04, 8.001206e-05, 1.620212e-02, 6.581523e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,673:PyPlasmaOpt:INFO Objective gradients:     1.354322e-02, 5.023410e+00, 1.995923e-01, 1.076254e-01
+2020-06-24 10:58:14,679:PyPlasmaOpt:INFO Curvature Max: 9.356e+00; Mean: 1.868e+00
+2020-06-24 10:58:14,679:PyPlasmaOpt:INFO Torsion   Max: 1.202e+01; Mean: 1.662e+00
+2020-06-24 10:58:14,797:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,797:PyPlasmaOpt:INFO Iteration 30
+2020-06-24 10:58:14,797:PyPlasmaOpt:INFO Objective value:         1.661301e-02
+2020-06-24 10:58:14,797:PyPlasmaOpt:INFO Objective values:        8.903887e-04, 6.833225e-05, 1.563073e-02, 2.356481e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,797:PyPlasmaOpt:INFO Objective gradients:     4.832058e-03, 6.462493e+00, 2.180433e-01, 1.130164e-01
+2020-06-24 10:58:14,801:PyPlasmaOpt:INFO Curvature Max: 9.304e+00; Mean: 1.868e+00
+2020-06-24 10:58:14,801:PyPlasmaOpt:INFO Torsion   Max: 1.160e+01; Mean: 1.642e+00
+2020-06-24 10:58:14,857:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,857:PyPlasmaOpt:INFO Iteration 31
+2020-06-24 10:58:14,857:PyPlasmaOpt:INFO Objective value:         1.598066e-02
+2020-06-24 10:58:14,857:PyPlasmaOpt:INFO Objective values:        6.776285e-04, 3.553167e-05, 1.526073e-02, 6.773418e-06, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,857:PyPlasmaOpt:INFO Objective gradients:     8.845919e-04, 6.216179e+00, 1.781700e-01, 1.208481e-01
+2020-06-24 10:58:14,862:PyPlasmaOpt:INFO Curvature Max: 9.493e+00; Mean: 1.870e+00
+2020-06-24 10:58:14,862:PyPlasmaOpt:INFO Torsion   Max: 9.463e+00; Mean: 1.609e+00
+2020-06-24 10:58:14,971:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:14,972:PyPlasmaOpt:INFO Iteration 32
+2020-06-24 10:58:14,972:PyPlasmaOpt:INFO Objective value:         1.537180e-02
+2020-06-24 10:58:14,972:PyPlasmaOpt:INFO Objective values:        7.173771e-04, 2.452169e-05, 1.462903e-02, 8.620415e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:14,972:PyPlasmaOpt:INFO Objective gradients:     3.157787e-03, 4.488765e+00, 1.091717e-01, 1.241439e-01
+2020-06-24 10:58:14,980:PyPlasmaOpt:INFO Curvature Max: 1.010e+01; Mean: 1.875e+00
+2020-06-24 10:58:14,980:PyPlasmaOpt:INFO Torsion   Max: 1.010e+01; Mean: 1.588e+00
+2020-06-24 10:58:15,091:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,091:PyPlasmaOpt:INFO Iteration 33
+2020-06-24 10:58:15,092:PyPlasmaOpt:INFO Objective value:         1.447154e-02
+2020-06-24 10:58:15,092:PyPlasmaOpt:INFO Objective values:        8.111568e-04, 3.375030e-05, 1.358889e-02, 3.774410e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,092:PyPlasmaOpt:INFO Objective gradients:     9.235851e-03, 2.932285e+00, 1.441479e-01, 1.377896e-01
+2020-06-24 10:58:15,097:PyPlasmaOpt:INFO Curvature Max: 1.077e+01; Mean: 1.879e+00
+2020-06-24 10:58:15,097:PyPlasmaOpt:INFO Torsion   Max: 9.719e+00; Mean: 1.603e+00
+2020-06-24 10:58:15,205:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,205:PyPlasmaOpt:INFO Iteration 34
+2020-06-24 10:58:15,205:PyPlasmaOpt:INFO Objective value:         1.294404e-02
+2020-06-24 10:58:15,205:PyPlasmaOpt:INFO Objective values:        9.859524e-04, 4.066016e-05, 1.186607e-02, 5.136504e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,205:PyPlasmaOpt:INFO Objective gradients:     9.561905e-03, 3.468208e+00, 1.536049e-01, 1.076502e-01
+2020-06-24 10:58:15,209:PyPlasmaOpt:INFO Curvature Max: 1.197e+01; Mean: 1.893e+00
+2020-06-24 10:58:15,209:PyPlasmaOpt:INFO Torsion   Max: 9.865e+00; Mean: 1.626e+00
+2020-06-24 10:58:15,306:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,306:PyPlasmaOpt:INFO Iteration 35
+2020-06-24 10:58:15,306:PyPlasmaOpt:INFO Objective value:         1.052681e-02
+2020-06-24 10:58:15,306:PyPlasmaOpt:INFO Objective values:        1.202629e-03, 2.063010e-04, 9.079719e-03, 3.816022e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,306:PyPlasmaOpt:INFO Objective gradients:     6.920028e-03, 3.927518e+00, 1.082538e-01, 1.546998e-01
+2020-06-24 10:58:15,312:PyPlasmaOpt:INFO Curvature Max: 1.510e+01; Mean: 1.929e+00
+2020-06-24 10:58:15,312:PyPlasmaOpt:INFO Torsion   Max: 1.369e+01; Mean: 1.724e+00
+2020-06-24 10:58:15,423:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,424:PyPlasmaOpt:INFO Iteration 36
+2020-06-24 10:58:15,430:PyPlasmaOpt:INFO Objective value:         9.064359e-03
+2020-06-24 10:58:15,430:PyPlasmaOpt:INFO Objective values:        3.229496e-03, 5.380500e-04, 5.009899e-03, 2.869146e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,430:PyPlasmaOpt:INFO Objective gradients:     1.497654e-02, 1.574301e+01, 9.829766e-02, 2.850248e-01
+2020-06-24 10:58:15,433:PyPlasmaOpt:INFO Curvature Max: 2.298e+01; Mean: 2.032e+00
+2020-06-24 10:58:15,434:PyPlasmaOpt:INFO Torsion   Max: 1.620e+01; Mean: 1.953e+00
+2020-06-24 10:58:15,520:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,521:PyPlasmaOpt:INFO Iteration 37
+2020-06-24 10:58:15,521:PyPlasmaOpt:INFO Objective value:         7.412742e-03
+2020-06-24 10:58:15,521:PyPlasmaOpt:INFO Objective values:        2.358815e-03, 5.914824e-04, 4.146881e-03, 3.155642e-04, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,521:PyPlasmaOpt:INFO Objective gradients:     1.914814e-02, 1.106134e+01, 6.705529e-02, 1.522009e-01
+2020-06-24 10:58:15,524:PyPlasmaOpt:INFO Curvature Max: 2.277e+01; Mean: 2.057e+00
+2020-06-24 10:58:15,525:PyPlasmaOpt:INFO Torsion   Max: 1.927e+01; Mean: 2.029e+00
+2020-06-24 10:58:15,629:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,630:PyPlasmaOpt:INFO Iteration 38
+2020-06-24 10:58:15,631:PyPlasmaOpt:INFO Objective value:         5.935294e-03
+2020-06-24 10:58:15,631:PyPlasmaOpt:INFO Objective values:        1.619362e-03, 5.252326e-04, 3.750900e-03, 3.979909e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,632:PyPlasmaOpt:INFO Objective gradients:     9.887533e-03, 1.309824e+01, 7.326255e-02, 2.229544e-01
+2020-06-24 10:58:15,638:PyPlasmaOpt:INFO Curvature Max: 2.218e+01; Mean: 2.084e+00
+2020-06-24 10:58:15,638:PyPlasmaOpt:INFO Torsion   Max: 2.766e+01; Mean: 2.119e+00
+2020-06-24 10:58:15,736:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,738:PyPlasmaOpt:INFO Iteration 39
+2020-06-24 10:58:15,738:PyPlasmaOpt:INFO Objective value:         4.782537e-03
+2020-06-24 10:58:15,739:PyPlasmaOpt:INFO Objective values:        9.719688e-04, 3.867132e-04, 3.400444e-03, 2.341041e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,739:PyPlasmaOpt:INFO Objective gradients:     2.263372e-03, 7.588046e+00, 6.174513e-02, 1.992232e-01
+2020-06-24 10:58:15,743:PyPlasmaOpt:INFO Curvature Max: 2.121e+01; Mean: 2.111e+00
+2020-06-24 10:58:15,743:PyPlasmaOpt:INFO Torsion   Max: 4.238e+01; Mean: 2.247e+00
+2020-06-24 10:58:15,853:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,853:PyPlasmaOpt:INFO Iteration 40
+2020-06-24 10:58:15,853:PyPlasmaOpt:INFO Objective value:         4.331782e-03
+2020-06-24 10:58:15,853:PyPlasmaOpt:INFO Objective values:        1.390575e-03, 2.547233e-04, 2.650724e-03, 3.575898e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,853:PyPlasmaOpt:INFO Objective gradients:     7.146558e-03, 6.365105e+00, 1.063107e-01, 2.903037e-01
+2020-06-24 10:58:15,858:PyPlasmaOpt:INFO Curvature Max: 2.267e+01; Mean: 2.166e+00
+2020-06-24 10:58:15,858:PyPlasmaOpt:INFO Torsion   Max: 6.823e+01; Mean: 2.414e+00
+2020-06-24 10:58:15,969:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:15,969:PyPlasmaOpt:INFO Iteration 41
+2020-06-24 10:58:15,969:PyPlasmaOpt:INFO Objective value:         3.598271e-03
+2020-06-24 10:58:15,969:PyPlasmaOpt:INFO Objective values:        1.026330e-03, 2.014878e-04, 2.357310e-03, 1.314376e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:15,969:PyPlasmaOpt:INFO Objective gradients:     4.675643e-03, 4.301447e+00, 9.239906e-02, 2.016474e-01
+2020-06-24 10:58:15,973:PyPlasmaOpt:INFO Curvature Max: 2.305e+01; Mean: 2.186e+00
+2020-06-24 10:58:15,974:PyPlasmaOpt:INFO Torsion   Max: 9.032e+01; Mean: 2.546e+00
+2020-06-24 10:58:16,112:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,112:PyPlasmaOpt:INFO Iteration 42
+2020-06-24 10:58:16,113:PyPlasmaOpt:INFO Objective value:         2.636392e-03
+2020-06-24 10:58:16,113:PyPlasmaOpt:INFO Objective values:        7.203967e-04, 9.244768e-05, 1.823481e-03, 6.631768e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,113:PyPlasmaOpt:INFO Objective gradients:     6.028941e-04, 3.228343e+00, 4.178981e-02, 1.967558e-01
+2020-06-24 10:58:16,117:PyPlasmaOpt:INFO Curvature Max: 2.456e+01; Mean: 2.231e+00
+2020-06-24 10:58:16,117:PyPlasmaOpt:INFO Torsion   Max: 1.072e+02; Mean: 2.742e+00
+2020-06-24 10:58:16,236:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,236:PyPlasmaOpt:INFO Iteration 43
+2020-06-24 10:58:16,236:PyPlasmaOpt:INFO Objective value:         2.274063e-03
+2020-06-24 10:58:16,236:PyPlasmaOpt:INFO Objective values:        1.157632e-03, 8.780842e-05, 9.474974e-04, 8.112562e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,236:PyPlasmaOpt:INFO Objective gradients:     1.158340e-02, 3.655166e+00, 8.054640e-02, 2.013829e-01
+2020-06-24 10:58:16,241:PyPlasmaOpt:INFO Curvature Max: 2.624e+01; Mean: 2.324e+00
+2020-06-24 10:58:16,241:PyPlasmaOpt:INFO Torsion   Max: 1.364e+02; Mean: 2.981e+00
+2020-06-24 10:58:16,340:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,346:PyPlasmaOpt:INFO Iteration 44
+2020-06-24 10:58:16,347:PyPlasmaOpt:INFO Objective value:         1.785894e-03
+2020-06-24 10:58:16,347:PyPlasmaOpt:INFO Objective values:        8.384186e-04, 8.509370e-05, 7.864232e-04, 7.595819e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,347:PyPlasmaOpt:INFO Objective gradients:     1.122637e-02, 2.279768e+00, 3.824235e-02, 1.549284e-01
+2020-06-24 10:58:16,351:PyPlasmaOpt:INFO Curvature Max: 2.775e+01; Mean: 2.351e+00
+2020-06-24 10:58:16,351:PyPlasmaOpt:INFO Torsion   Max: 1.209e+02; Mean: 2.950e+00
+2020-06-24 10:58:16,571:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,571:PyPlasmaOpt:INFO Iteration 45
+2020-06-24 10:58:16,571:PyPlasmaOpt:INFO Objective value:         1.546473e-03
+2020-06-24 10:58:16,572:PyPlasmaOpt:INFO Objective values:        7.006142e-04, 8.080891e-05, 7.051922e-04, 5.985725e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,572:PyPlasmaOpt:INFO Objective gradients:     9.749328e-03, 3.884499e+00, 2.942214e-02, 1.373443e-01
+2020-06-24 10:58:16,578:PyPlasmaOpt:INFO Curvature Max: 2.868e+01; Mean: 2.365e+00
+2020-06-24 10:58:16,578:PyPlasmaOpt:INFO Torsion   Max: 9.061e+01; Mean: 2.859e+00
+2020-06-24 10:58:16,667:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,668:PyPlasmaOpt:INFO Iteration 46
+2020-06-24 10:58:16,668:PyPlasmaOpt:INFO Objective value:         1.243108e-03
+2020-06-24 10:58:16,668:PyPlasmaOpt:INFO Objective values:        5.385928e-04, 5.856440e-05, 6.189022e-04, 2.704895e-05, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,668:PyPlasmaOpt:INFO Objective gradients:     6.447455e-03, 2.253223e+00, 4.309780e-02, 6.413377e-02
+2020-06-24 10:58:16,674:PyPlasmaOpt:INFO Curvature Max: 2.944e+01; Mean: 2.386e+00
+2020-06-24 10:58:16,676:PyPlasmaOpt:INFO Torsion   Max: 7.614e+01; Mean: 2.808e+00
+2020-06-24 10:58:16,773:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,773:PyPlasmaOpt:INFO Iteration 47
+2020-06-24 10:58:16,774:PyPlasmaOpt:INFO Objective value:         1.139775e-03
+2020-06-24 10:58:16,774:PyPlasmaOpt:INFO Objective values:        6.099606e-04, 3.047230e-05, 4.972915e-04, 2.050070e-06, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,774:PyPlasmaOpt:INFO Objective gradients:     2.013276e-03, 3.231277e+00, 4.567560e-02, 1.052150e-01
+2020-06-24 10:58:16,779:PyPlasmaOpt:INFO Curvature Max: 3.053e+01; Mean: 2.413e+00
+2020-06-24 10:58:16,779:PyPlasmaOpt:INFO Torsion   Max: 1.718e+02; Mean: 3.295e+00
+2020-06-24 10:58:16,913:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:16,913:PyPlasmaOpt:INFO Iteration 48
+2020-06-24 10:58:16,913:PyPlasmaOpt:INFO Objective value:         9.983175e-04
+2020-06-24 10:58:16,913:PyPlasmaOpt:INFO Objective values:        5.192206e-04, 2.278264e-05, 4.562162e-04, 9.811361e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:16,913:PyPlasmaOpt:INFO Objective gradients:     2.703239e-04, 1.606353e+00, 3.324304e-02, 9.146144e-02
+2020-06-24 10:58:16,917:PyPlasmaOpt:INFO Curvature Max: 3.088e+01; Mean: 2.427e+00
+2020-06-24 10:58:16,917:PyPlasmaOpt:INFO Torsion   Max: 2.407e+02; Mean: 3.631e+00
+2020-06-24 10:58:17,040:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:17,040:PyPlasmaOpt:INFO Iteration 49
+2020-06-24 10:58:17,040:PyPlasmaOpt:INFO Objective value:         8.135022e-04
+2020-06-24 10:58:17,040:PyPlasmaOpt:INFO Objective values:        4.030202e-04, 1.442463e-05, 3.950893e-04, 9.681293e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:17,040:PyPlasmaOpt:INFO Objective gradients:     1.203598e-03, 2.369599e+00, 3.401528e-02, 7.015593e-02
+2020-06-24 10:58:17,045:PyPlasmaOpt:INFO Curvature Max: 3.145e+01; Mean: 2.450e+00
+2020-06-24 10:58:17,045:PyPlasmaOpt:INFO Torsion   Max: 2.049e+02; Mean: 3.527e+00
+2020-06-24 10:58:17,165:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:17,165:PyPlasmaOpt:INFO Iteration 50
+2020-06-24 10:58:17,165:PyPlasmaOpt:INFO Objective value:         7.539196e-04
+2020-06-24 10:58:17,165:PyPlasmaOpt:INFO Objective values:        4.461879e-04, 2.319311e-06, 3.020701e-04, 3.342299e-06, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:17,165:PyPlasmaOpt:INFO Objective gradients:     1.900836e-03, 2.694301e+00, 1.934756e-02, 7.646808e-02
+2020-06-24 10:58:17,169:PyPlasmaOpt:INFO Curvature Max: 3.107e+01; Mean: 2.486e+00
+2020-06-24 10:58:17,169:PyPlasmaOpt:INFO Torsion   Max: 1.434e+02; Mean: 3.319e+00
+2020-06-24 10:58:18,793:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:18,793:PyPlasmaOpt:INFO Iteration 51
+2020-06-24 10:58:18,793:PyPlasmaOpt:INFO Objective value:         6.644383e-04
+2020-06-24 10:58:18,793:PyPlasmaOpt:INFO Objective values:        4.111313e-04, 4.402671e-06, 2.477697e-04, 1.134518e-06, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:18,793:PyPlasmaOpt:INFO Objective gradients:     1.362174e-03, 2.525561e+00, 1.589532e-02, 5.802071e-02
+2020-06-24 10:58:18,798:PyPlasmaOpt:INFO Curvature Max: 3.139e+01; Mean: 2.506e+00
+2020-06-24 10:58:18,798:PyPlasmaOpt:INFO Torsion   Max: 1.413e+02; Mean: 3.342e+00
+2020-06-24 10:58:18,876:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:18,877:PyPlasmaOpt:INFO Iteration 52
+2020-06-24 10:58:18,877:PyPlasmaOpt:INFO Objective value:         5.592734e-04
+2020-06-24 10:58:18,877:PyPlasmaOpt:INFO Objective values:        3.738843e-04, 1.056571e-05, 1.748231e-04, 2.647152e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:18,877:PyPlasmaOpt:INFO Objective gradients:     1.128824e-04, 9.171365e-01, 1.114556e-02, 6.307602e-02
+2020-06-24 10:58:18,881:PyPlasmaOpt:INFO Curvature Max: 3.205e+01; Mean: 2.535e+00
+2020-06-24 10:58:18,881:PyPlasmaOpt:INFO Torsion   Max: 1.325e+02; Mean: 3.320e+00
+2020-06-24 10:58:19,001:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,001:PyPlasmaOpt:INFO Iteration 53
+2020-06-24 10:58:19,001:PyPlasmaOpt:INFO Objective value:         5.024823e-04
+2020-06-24 10:58:19,001:PyPlasmaOpt:INFO Objective values:        3.470604e-04, 1.275010e-05, 1.423283e-04, 3.435288e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,002:PyPlasmaOpt:INFO Objective gradients:     6.013780e-04, 2.104600e+00, 1.010976e-02, 4.508139e-02
+2020-06-24 10:58:19,009:PyPlasmaOpt:INFO Curvature Max: 3.261e+01; Mean: 2.552e+00
+2020-06-24 10:58:19,009:PyPlasmaOpt:INFO Torsion   Max: 1.230e+02; Mean: 3.269e+00
+2020-06-24 10:58:19,088:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,088:PyPlasmaOpt:INFO Iteration 54
+2020-06-24 10:58:19,088:PyPlasmaOpt:INFO Objective value:         4.410230e-04
+2020-06-24 10:58:19,088:PyPlasmaOpt:INFO Objective values:        3.198092e-04, 1.159124e-05, 1.085190e-04, 1.103551e-06, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,088:PyPlasmaOpt:INFO Objective gradients:     1.609415e-03, 1.155794e+00, 8.321074e-03, 3.849966e-02
+2020-06-24 10:58:19,101:PyPlasmaOpt:INFO Curvature Max: 3.287e+01; Mean: 2.570e+00
+2020-06-24 10:58:19,101:PyPlasmaOpt:INFO Torsion   Max: 1.029e+02; Mean: 3.181e+00
+2020-06-24 10:58:19,349:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,349:PyPlasmaOpt:INFO Iteration 55
+2020-06-24 10:58:19,349:PyPlasmaOpt:INFO Objective value:         4.110286e-04
+2020-06-24 10:58:19,350:PyPlasmaOpt:INFO Objective values:        3.061860e-04, 8.955979e-06, 9.503040e-05, 8.562249e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,350:PyPlasmaOpt:INFO Objective gradients:     1.218544e-03, 1.775994e+00, 7.712418e-03, 4.964659e-02
+2020-06-24 10:58:19,354:PyPlasmaOpt:INFO Curvature Max: 3.271e+01; Mean: 2.577e+00
+2020-06-24 10:58:19,354:PyPlasmaOpt:INFO Torsion   Max: 9.254e+01; Mean: 3.138e+00
+2020-06-24 10:58:19,444:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,446:PyPlasmaOpt:INFO Iteration 56
+2020-06-24 10:58:19,446:PyPlasmaOpt:INFO Objective value:         3.694799e-04
+2020-06-24 10:58:19,446:PyPlasmaOpt:INFO Objective values:        2.831547e-04, 9.007756e-06, 7.652373e-05, 7.937273e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,446:PyPlasmaOpt:INFO Objective gradients:     1.002258e-03, 2.670167e+00, 7.667246e-03, 5.003284e-02
+2020-06-24 10:58:19,455:PyPlasmaOpt:INFO Curvature Max: 3.288e+01; Mean: 2.589e+00
+2020-06-24 10:58:19,455:PyPlasmaOpt:INFO Torsion   Max: 8.511e+01; Mean: 3.104e+00
+2020-06-24 10:58:19,528:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,529:PyPlasmaOpt:INFO Iteration 57
+2020-06-24 10:58:19,535:PyPlasmaOpt:INFO Objective value:         3.153065e-04
+2020-06-24 10:58:19,535:PyPlasmaOpt:INFO Objective values:        2.524346e-04, 1.018465e-05, 5.212682e-05, 5.603426e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,536:PyPlasmaOpt:INFO Objective gradients:     6.815300e-04, 1.759231e+00, 1.429378e-02, 4.255013e-02
+2020-06-24 10:58:19,548:PyPlasmaOpt:INFO Curvature Max: 3.248e+01; Mean: 2.607e+00
+2020-06-24 10:58:19,548:PyPlasmaOpt:INFO Torsion   Max: 7.352e+01; Mean: 3.047e+00
+2020-06-24 10:58:19,679:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:19,679:PyPlasmaOpt:INFO Iteration 58
+2020-06-24 10:58:19,680:PyPlasmaOpt:INFO Objective value:         2.492602e-04
+2020-06-24 10:58:19,680:PyPlasmaOpt:INFO Objective values:        2.097570e-04, 5.991610e-06, 3.313471e-05, 3.768354e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:19,680:PyPlasmaOpt:INFO Objective gradients:     8.085797e-04, 4.856053e-01, 9.784069e-03, 2.167123e-02
+2020-06-24 10:58:19,683:PyPlasmaOpt:INFO Curvature Max: 3.216e+01; Mean: 2.623e+00
+2020-06-24 10:58:19,684:PyPlasmaOpt:INFO Torsion   Max: 5.942e+01; Mean: 2.979e+00
+2020-06-24 10:58:20,028:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,029:PyPlasmaOpt:INFO Iteration 59
+2020-06-24 10:58:20,029:PyPlasmaOpt:INFO Objective value:         2.248035e-04
+2020-06-24 10:58:20,029:PyPlasmaOpt:INFO Objective values:        1.951894e-04, 3.663016e-06, 2.573429e-05, 2.167310e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,029:PyPlasmaOpt:INFO Objective gradients:     6.566721e-04, 1.364298e+00, 7.708664e-03, 2.102842e-02
+2020-06-24 10:58:20,033:PyPlasmaOpt:INFO Curvature Max: 3.182e+01; Mean: 2.627e+00
+2020-06-24 10:58:20,033:PyPlasmaOpt:INFO Torsion   Max: 5.456e+01; Mean: 2.965e+00
+2020-06-24 10:58:20,141:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,141:PyPlasmaOpt:INFO Iteration 60
+2020-06-24 10:58:20,141:PyPlasmaOpt:INFO Objective value:         1.912408e-04
+2020-06-24 10:58:20,141:PyPlasmaOpt:INFO Objective values:        1.683476e-04, 1.932691e-06, 2.094585e-05, 1.462877e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,141:PyPlasmaOpt:INFO Objective gradients:     1.259529e-04, 8.609612e-01, 5.591431e-03, 1.736982e-02
+2020-06-24 10:58:20,145:PyPlasmaOpt:INFO Curvature Max: 3.150e+01; Mean: 2.627e+00
+2020-06-24 10:58:20,145:PyPlasmaOpt:INFO Torsion   Max: 4.454e+01; Mean: 2.938e+00
+2020-06-24 10:58:20,241:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,241:PyPlasmaOpt:INFO Iteration 61
+2020-06-24 10:58:20,241:PyPlasmaOpt:INFO Objective value:         1.619763e-04
+2020-06-24 10:58:20,241:PyPlasmaOpt:INFO Objective values:        1.373046e-04, 1.144452e-06, 2.292327e-05, 6.039888e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,242:PyPlasmaOpt:INFO Objective gradients:     7.643871e-04, 2.226915e+00, 8.492385e-03, 2.414957e-02
+2020-06-24 10:58:20,246:PyPlasmaOpt:INFO Curvature Max: 3.106e+01; Mean: 2.610e+00
+2020-06-24 10:58:20,246:PyPlasmaOpt:INFO Torsion   Max: 2.844e+01; Mean: 2.893e+00
+2020-06-24 10:58:20,368:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,368:PyPlasmaOpt:INFO Iteration 62
+2020-06-24 10:58:20,368:PyPlasmaOpt:INFO Objective value:         1.376498e-04
+2020-06-24 10:58:20,368:PyPlasmaOpt:INFO Objective values:        1.174178e-04, 2.642530e-06, 1.741656e-05, 1.729435e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,369:PyPlasmaOpt:INFO Objective gradients:     6.538756e-04, 1.379194e+00, 7.269069e-03, 1.549849e-02
+2020-06-24 10:58:20,373:PyPlasmaOpt:INFO Curvature Max: 3.104e+01; Mean: 2.598e+00
+2020-06-24 10:58:20,373:PyPlasmaOpt:INFO Torsion   Max: 2.405e+01; Mean: 2.847e+00
+2020-06-24 10:58:20,524:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,524:PyPlasmaOpt:INFO Iteration 63
+2020-06-24 10:58:20,524:PyPlasmaOpt:INFO Objective value:         1.315530e-04
+2020-06-24 10:58:20,524:PyPlasmaOpt:INFO Objective values:        1.185801e-04, 8.520581e-07, 1.208501e-05, 3.580741e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,524:PyPlasmaOpt:INFO Objective gradients:     2.083348e-04, 1.334661e+00, 1.079519e-02, 2.720357e-02
+2020-06-24 10:58:20,528:PyPlasmaOpt:INFO Curvature Max: 3.101e+01; Mean: 2.592e+00
+2020-06-24 10:58:20,528:PyPlasmaOpt:INFO Torsion   Max: 2.498e+01; Mean: 2.859e+00
+2020-06-24 10:58:20,629:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,630:PyPlasmaOpt:INFO Iteration 64
+2020-06-24 10:58:20,630:PyPlasmaOpt:INFO Objective value:         1.214402e-04
+2020-06-24 10:58:20,630:PyPlasmaOpt:INFO Objective values:        1.089061e-04, 5.956062e-07, 1.186806e-05, 7.041043e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,630:PyPlasmaOpt:INFO Objective gradients:     2.714525e-04, 1.045676e+00, 6.532138e-03, 2.143616e-02
+2020-06-24 10:58:20,635:PyPlasmaOpt:INFO Curvature Max: 3.111e+01; Mean: 2.591e+00
+2020-06-24 10:58:20,635:PyPlasmaOpt:INFO Torsion   Max: 2.487e+01; Mean: 2.871e+00
+2020-06-24 10:58:20,718:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,720:PyPlasmaOpt:INFO Iteration 65
+2020-06-24 10:58:20,720:PyPlasmaOpt:INFO Objective value:         1.073066e-04
+2020-06-24 10:58:20,720:PyPlasmaOpt:INFO Objective values:        9.313862e-05, 3.920088e-07, 1.365777e-05, 1.181719e-07, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,720:PyPlasmaOpt:INFO Objective gradients:     4.306336e-04, 4.046708e-01, 5.061011e-03, 1.142485e-02
+2020-06-24 10:58:20,729:PyPlasmaOpt:INFO Curvature Max: 3.137e+01; Mean: 2.586e+00
+2020-06-24 10:58:20,729:PyPlasmaOpt:INFO Torsion   Max: 2.524e+01; Mean: 2.896e+00
+2020-06-24 10:58:20,825:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,826:PyPlasmaOpt:INFO Iteration 66
+2020-06-24 10:58:20,826:PyPlasmaOpt:INFO Objective value:         9.203846e-05
+2020-06-24 10:58:20,826:PyPlasmaOpt:INFO Objective values:        8.156844e-05, 4.495334e-07, 9.936283e-06, 8.420978e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,826:PyPlasmaOpt:INFO Objective gradients:     3.416635e-04, 2.938682e-01, 3.442122e-03, 1.138587e-02
+2020-06-24 10:58:20,830:PyPlasmaOpt:INFO Curvature Max: 3.180e+01; Mean: 2.585e+00
+2020-06-24 10:58:20,830:PyPlasmaOpt:INFO Torsion   Max: 3.318e+01; Mean: 3.024e+00
+2020-06-24 10:58:20,942:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:20,942:PyPlasmaOpt:INFO Iteration 67
+2020-06-24 10:58:20,942:PyPlasmaOpt:INFO Objective value:         8.027604e-05
+2020-06-24 10:58:20,942:PyPlasmaOpt:INFO Objective values:        7.260523e-05, 5.690043e-07, 7.091394e-06, 1.041083e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:20,943:PyPlasmaOpt:INFO Objective gradients:     1.357632e-04, 4.999409e-01, 7.495916e-03, 1.468607e-02
+2020-06-24 10:58:20,947:PyPlasmaOpt:INFO Curvature Max: 3.252e+01; Mean: 2.575e+00
+2020-06-24 10:58:20,947:PyPlasmaOpt:INFO Torsion   Max: 9.291e+01; Mean: 3.308e+00
+2020-06-24 10:58:21,051:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,051:PyPlasmaOpt:INFO Iteration 68
+2020-06-24 10:58:21,051:PyPlasmaOpt:INFO Objective value:         7.095663e-05
+2020-06-24 10:58:21,051:PyPlasmaOpt:INFO Objective values:        6.433467e-05, 9.008968e-07, 5.719261e-06, 1.806813e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,051:PyPlasmaOpt:INFO Objective gradients:     1.300288e-04, 2.666960e-01, 4.491902e-03, 1.757456e-02
+2020-06-24 10:58:21,055:PyPlasmaOpt:INFO Curvature Max: 3.256e+01; Mean: 2.563e+00
+2020-06-24 10:58:21,055:PyPlasmaOpt:INFO Torsion   Max: 1.302e+02; Mean: 3.502e+00
+2020-06-24 10:58:21,139:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,139:PyPlasmaOpt:INFO Iteration 69
+2020-06-24 10:58:21,139:PyPlasmaOpt:INFO Objective value:         6.266847e-05
+2020-06-24 10:58:21,139:PyPlasmaOpt:INFO Objective values:        5.800947e-05, 9.291421e-07, 3.728251e-06, 1.611597e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,139:PyPlasmaOpt:INFO Objective gradients:     5.232906e-05, 5.412558e-01, 4.399033e-03, 7.396086e-03
+2020-06-24 10:58:21,143:PyPlasmaOpt:INFO Curvature Max: 3.250e+01; Mean: 2.553e+00
+2020-06-24 10:58:21,143:PyPlasmaOpt:INFO Torsion   Max: 1.213e+02; Mean: 3.482e+00
+2020-06-24 10:58:21,316:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,316:PyPlasmaOpt:INFO Iteration 70
+2020-06-24 10:58:21,316:PyPlasmaOpt:INFO Objective value:         5.889353e-05
+2020-06-24 10:58:21,316:PyPlasmaOpt:INFO Objective values:        5.558045e-05, 4.506150e-07, 2.862239e-06, 2.244495e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,316:PyPlasmaOpt:INFO Objective gradients:     7.358636e-05, 3.167429e-01, 6.715667e-03, 9.164777e-03
+2020-06-24 10:58:21,320:PyPlasmaOpt:INFO Curvature Max: 3.249e+01; Mean: 2.553e+00
+2020-06-24 10:58:21,320:PyPlasmaOpt:INFO Torsion   Max: 1.194e+02; Mean: 3.470e+00
+2020-06-24 10:58:21,437:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,438:PyPlasmaOpt:INFO Iteration 71
+2020-06-24 10:58:21,438:PyPlasmaOpt:INFO Objective value:         5.419336e-05
+2020-06-24 10:58:21,438:PyPlasmaOpt:INFO Objective values:        5.090877e-05, 1.142748e-07, 3.100703e-06, 6.961359e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,438:PyPlasmaOpt:INFO Objective gradients:     3.325150e-04, 5.196913e-01, 2.118697e-03, 6.088606e-03
+2020-06-24 10:58:21,442:PyPlasmaOpt:INFO Curvature Max: 3.232e+01; Mean: 2.548e+00
+2020-06-24 10:58:21,442:PyPlasmaOpt:INFO Torsion   Max: 1.253e+02; Mean: 3.474e+00
+2020-06-24 10:58:21,536:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,537:PyPlasmaOpt:INFO Iteration 72
+2020-06-24 10:58:21,537:PyPlasmaOpt:INFO Objective value:         4.782054e-05
+2020-06-24 10:58:21,537:PyPlasmaOpt:INFO Objective values:        4.622253e-05, 1.115612e-07, 1.481293e-06, 5.153406e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,537:PyPlasmaOpt:INFO Objective gradients:     1.415549e-04, 2.350170e-01, 4.482230e-03, 6.314647e-03
+2020-06-24 10:58:21,542:PyPlasmaOpt:INFO Curvature Max: 3.185e+01; Mean: 2.542e+00
+2020-06-24 10:58:21,542:PyPlasmaOpt:INFO Torsion   Max: 1.028e+02; Mean: 3.286e+00
+2020-06-24 10:58:21,653:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,654:PyPlasmaOpt:INFO Iteration 73
+2020-06-24 10:58:21,654:PyPlasmaOpt:INFO Objective value:         4.054387e-05
+2020-06-24 10:58:21,654:PyPlasmaOpt:INFO Objective values:        3.945662e-05, 2.628346e-07, 8.169808e-07, 7.431420e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,654:PyPlasmaOpt:INFO Objective gradients:     8.289246e-06, 3.552636e-01, 7.309761e-03, 1.135876e-02
+2020-06-24 10:58:21,663:PyPlasmaOpt:INFO Curvature Max: 3.110e+01; Mean: 2.526e+00
+2020-06-24 10:58:21,663:PyPlasmaOpt:INFO Torsion   Max: 8.658e+01; Mean: 3.076e+00
+2020-06-24 10:58:21,760:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,760:PyPlasmaOpt:INFO Iteration 74
+2020-06-24 10:58:21,760:PyPlasmaOpt:INFO Objective value:         3.672995e-05
+2020-06-24 10:58:21,760:PyPlasmaOpt:INFO Objective values:        3.573343e-05, 1.788002e-07, 7.959817e-07, 2.174477e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,761:PyPlasmaOpt:INFO Objective gradients:     1.828051e-04, 3.047185e-01, 2.565645e-03, 1.081175e-02
+2020-06-24 10:58:21,764:PyPlasmaOpt:INFO Curvature Max: 3.070e+01; Mean: 2.510e+00
+2020-06-24 10:58:21,764:PyPlasmaOpt:INFO Torsion   Max: 3.861e+01; Mean: 2.941e+00
+2020-06-24 10:58:21,845:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:21,845:PyPlasmaOpt:INFO Iteration 75
+2020-06-24 10:58:21,846:PyPlasmaOpt:INFO Objective value:         3.397030e-05
+2020-06-24 10:58:21,846:PyPlasmaOpt:INFO Objective values:        3.253738e-05, 6.135706e-08, 1.339721e-06, 3.184412e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:21,846:PyPlasmaOpt:INFO Objective gradients:     2.832452e-04, 3.284083e-01, 1.726963e-03, 4.334125e-03
+2020-06-24 10:58:21,858:PyPlasmaOpt:INFO Curvature Max: 3.080e+01; Mean: 2.505e+00
+2020-06-24 10:58:21,858:PyPlasmaOpt:INFO Torsion   Max: 3.332e+01; Mean: 2.927e+00
+2020-06-24 10:58:23,310:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,310:PyPlasmaOpt:INFO Iteration 76
+2020-06-24 10:58:23,310:PyPlasmaOpt:INFO Objective value:         3.250385e-05
+2020-06-24 10:58:23,310:PyPlasmaOpt:INFO Objective values:        3.121861e-05, 3.205893e-08, 1.244441e-06, 8.745745e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,310:PyPlasmaOpt:INFO Objective gradients:     1.279172e-04, 8.317269e-02, 1.797092e-03, 4.899807e-03
+2020-06-24 10:58:23,315:PyPlasmaOpt:INFO Curvature Max: 3.095e+01; Mean: 2.505e+00
+2020-06-24 10:58:23,315:PyPlasmaOpt:INFO Torsion   Max: 3.905e+01; Mean: 2.971e+00
+2020-06-24 10:58:23,389:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,389:PyPlasmaOpt:INFO Iteration 77
+2020-06-24 10:58:23,389:PyPlasmaOpt:INFO Objective value:         3.101092e-05
+2020-06-24 10:58:23,389:PyPlasmaOpt:INFO Objective values:        3.018891e-05, 7.490625e-08, 7.402733e-07, 6.824869e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,389:PyPlasmaOpt:INFO Objective gradients:     1.229268e-04, 1.848035e-01, 1.986620e-03, 5.391890e-03
+2020-06-24 10:58:23,393:PyPlasmaOpt:INFO Curvature Max: 3.112e+01; Mean: 2.503e+00
+2020-06-24 10:58:23,393:PyPlasmaOpt:INFO Torsion   Max: 4.327e+01; Mean: 2.998e+00
+2020-06-24 10:58:23,501:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,501:PyPlasmaOpt:INFO Iteration 78
+2020-06-24 10:58:23,502:PyPlasmaOpt:INFO Objective value:         2.908841e-05
+2020-06-24 10:58:23,502:PyPlasmaOpt:INFO Objective values:        2.839483e-05, 2.683635e-07, 4.070461e-07, 1.816575e-08, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,502:PyPlasmaOpt:INFO Objective gradients:     2.049456e-04, 2.696522e-01, 1.102360e-03, 3.987940e-03
+2020-06-24 10:58:23,507:PyPlasmaOpt:INFO Curvature Max: 3.127e+01; Mean: 2.499e+00
+2020-06-24 10:58:23,507:PyPlasmaOpt:INFO Torsion   Max: 4.601e+01; Mean: 2.992e+00
+2020-06-24 10:58:23,614:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,614:PyPlasmaOpt:INFO Iteration 79
+2020-06-24 10:58:23,614:PyPlasmaOpt:INFO Objective value:         2.693871e-05
+2020-06-24 10:58:23,614:PyPlasmaOpt:INFO Objective values:        2.643021e-05, 1.139121e-07, 3.896381e-07, 4.954006e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,614:PyPlasmaOpt:INFO Objective gradients:     1.061101e-04, 4.755598e-01, 2.098235e-03, 4.511849e-03
+2020-06-24 10:58:23,618:PyPlasmaOpt:INFO Curvature Max: 3.157e+01; Mean: 2.496e+00
+2020-06-24 10:58:23,618:PyPlasmaOpt:INFO Torsion   Max: 4.230e+01; Mean: 3.004e+00
+2020-06-24 10:58:23,685:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,685:PyPlasmaOpt:INFO Iteration 80
+2020-06-24 10:58:23,685:PyPlasmaOpt:INFO Objective value:         2.448047e-05
+2020-06-24 10:58:23,685:PyPlasmaOpt:INFO Objective values:        2.408665e-05, 1.287136e-07, 2.650784e-07, 3.423828e-11, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,685:PyPlasmaOpt:INFO Objective gradients:     6.294115e-05, 5.646501e-01, 1.624072e-03, 4.639622e-03
+2020-06-24 10:58:23,690:PyPlasmaOpt:INFO Curvature Max: 3.207e+01; Mean: 2.493e+00
+2020-06-24 10:58:23,690:PyPlasmaOpt:INFO Torsion   Max: 5.371e+01; Mean: 3.073e+00
+2020-06-24 10:58:23,793:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,793:PyPlasmaOpt:INFO Iteration 81
+2020-06-24 10:58:23,793:PyPlasmaOpt:INFO Objective value:         2.232206e-05
+2020-06-24 10:58:23,793:PyPlasmaOpt:INFO Objective values:        2.201988e-05, 1.207526e-07, 1.813615e-07, 6.277378e-11, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,793:PyPlasmaOpt:INFO Objective gradients:     1.963983e-05, 7.771435e-02, 1.632160e-03, 5.322550e-03
+2020-06-24 10:58:23,797:PyPlasmaOpt:INFO Curvature Max: 3.263e+01; Mean: 2.495e+00
+2020-06-24 10:58:23,797:PyPlasmaOpt:INFO Torsion   Max: 1.024e+02; Mean: 3.282e+00
+2020-06-24 10:58:23,889:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,889:PyPlasmaOpt:INFO Iteration 82
+2020-06-24 10:58:23,889:PyPlasmaOpt:INFO Objective value:         2.021631e-05
+2020-06-24 10:58:23,889:PyPlasmaOpt:INFO Objective values:        1.992157e-05, 7.047992e-08, 2.238100e-07, 4.488179e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,889:PyPlasmaOpt:INFO Objective gradients:     2.652092e-05, 1.561069e-01, 2.066819e-03, 5.308335e-03
+2020-06-24 10:58:23,893:PyPlasmaOpt:INFO Curvature Max: 3.280e+01; Mean: 2.492e+00
+2020-06-24 10:58:23,893:PyPlasmaOpt:INFO Torsion   Max: 1.493e+02; Mean: 3.463e+00
+2020-06-24 10:58:23,993:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:23,993:PyPlasmaOpt:INFO Iteration 83
+2020-06-24 10:58:23,993:PyPlasmaOpt:INFO Objective value:         1.815429e-05
+2020-06-24 10:58:23,993:PyPlasmaOpt:INFO Objective values:        1.768399e-05, 6.629174e-08, 4.036299e-07, 3.721991e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:23,993:PyPlasmaOpt:INFO Objective gradients:     1.520410e-05, 3.193896e-01, 1.596489e-03, 5.248530e-03
+2020-06-24 10:58:23,997:PyPlasmaOpt:INFO Curvature Max: 3.314e+01; Mean: 2.487e+00
+2020-06-24 10:58:23,997:PyPlasmaOpt:INFO Torsion   Max: 2.133e+02; Mean: 3.714e+00
+2020-06-24 10:58:24,093:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,093:PyPlasmaOpt:INFO Iteration 84
+2020-06-24 10:58:24,093:PyPlasmaOpt:INFO Objective value:         1.673511e-05
+2020-06-24 10:58:24,093:PyPlasmaOpt:INFO Objective values:        1.624939e-05, 4.840222e-08, 4.338548e-07, 3.458297e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,093:PyPlasmaOpt:INFO Objective gradients:     8.571065e-05, 4.966353e-02, 1.654042e-03, 3.150769e-03
+2020-06-24 10:58:24,097:PyPlasmaOpt:INFO Curvature Max: 3.360e+01; Mean: 2.483e+00
+2020-06-24 10:58:24,097:PyPlasmaOpt:INFO Torsion   Max: 2.473e+02; Mean: 3.837e+00
+2020-06-24 10:58:24,181:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,181:PyPlasmaOpt:INFO Iteration 85
+2020-06-24 10:58:24,181:PyPlasmaOpt:INFO Objective value:         1.593291e-05
+2020-06-24 10:58:24,181:PyPlasmaOpt:INFO Objective values:        1.548646e-05, 1.143063e-07, 3.275488e-07, 4.601928e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,181:PyPlasmaOpt:INFO Objective gradients:     1.049798e-04, 9.056373e-02, 9.642364e-04, 3.047312e-03
+2020-06-24 10:58:24,185:PyPlasmaOpt:INFO Curvature Max: 3.389e+01; Mean: 2.482e+00
+2020-06-24 10:58:24,185:PyPlasmaOpt:INFO Torsion   Max: 2.389e+02; Mean: 3.788e+00
+2020-06-24 10:58:24,299:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,299:PyPlasmaOpt:INFO Iteration 86
+2020-06-24 10:58:24,299:PyPlasmaOpt:INFO Objective value:         1.512282e-05
+2020-06-24 10:58:24,299:PyPlasmaOpt:INFO Objective values:        1.467353e-05, 1.610552e-07, 2.878909e-07, 3.394877e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,300:PyPlasmaOpt:INFO Objective gradients:     2.529217e-05, 1.045906e-01, 1.209403e-03, 3.319796e-03
+2020-06-24 10:58:24,304:PyPlasmaOpt:INFO Curvature Max: 3.407e+01; Mean: 2.479e+00
+2020-06-24 10:58:24,304:PyPlasmaOpt:INFO Torsion   Max: 2.316e+02; Mean: 3.740e+00
+2020-06-24 10:58:24,388:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,388:PyPlasmaOpt:INFO Iteration 87
+2020-06-24 10:58:24,388:PyPlasmaOpt:INFO Objective value:         1.399018e-05
+2020-06-24 10:58:24,388:PyPlasmaOpt:INFO Objective values:        1.379011e-05, 3.322733e-08, 1.667393e-07, 1.113015e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,388:PyPlasmaOpt:INFO Objective gradients:     9.457251e-06, 4.697495e-02, 9.750618e-04, 2.387566e-03
+2020-06-24 10:58:24,392:PyPlasmaOpt:INFO Curvature Max: 3.417e+01; Mean: 2.480e+00
+2020-06-24 10:58:24,392:PyPlasmaOpt:INFO Torsion   Max: 1.997e+02; Mean: 3.596e+00
+2020-06-24 10:58:24,466:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,466:PyPlasmaOpt:INFO Iteration 88
+2020-06-24 10:58:24,466:PyPlasmaOpt:INFO Objective value:         1.261636e-05
+2020-06-24 10:58:24,466:PyPlasmaOpt:INFO Objective values:        1.255764e-05, 3.524464e-08, 2.209040e-08, 1.382739e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,466:PyPlasmaOpt:INFO Objective gradients:     2.039102e-05, 1.326729e-01, 1.312889e-03, 2.904567e-03
+2020-06-24 10:58:24,470:PyPlasmaOpt:INFO Curvature Max: 3.447e+01; Mean: 2.479e+00
+2020-06-24 10:58:24,470:PyPlasmaOpt:INFO Torsion   Max: 8.888e+01; Mean: 3.101e+00
+2020-06-24 10:58:24,571:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,571:PyPlasmaOpt:INFO Iteration 89
+2020-06-24 10:58:24,572:PyPlasmaOpt:INFO Objective value:         1.113229e-05
+2020-06-24 10:58:24,572:PyPlasmaOpt:INFO Objective values:        1.094753e-05, 1.662249e-07, 1.598730e-08, 2.548054e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,572:PyPlasmaOpt:INFO Objective gradients:     5.910200e-05, 2.144617e-01, 1.878713e-03, 4.105307e-03
+2020-06-24 10:58:24,577:PyPlasmaOpt:INFO Curvature Max: 3.459e+01; Mean: 2.479e+00
+2020-06-24 10:58:24,577:PyPlasmaOpt:INFO Torsion   Max: 3.086e+01; Mean: 2.799e+00
+2020-06-24 10:58:24,640:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,640:PyPlasmaOpt:INFO Iteration 90
+2020-06-24 10:58:24,640:PyPlasmaOpt:INFO Objective value:         1.009303e-05
+2020-06-24 10:58:24,640:PyPlasmaOpt:INFO Objective values:        1.000361e-05, 3.927128e-08, 4.032927e-08, 9.824108e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,640:PyPlasmaOpt:INFO Objective gradients:     1.095611e-04, 3.179552e-02, 1.268251e-03, 2.905117e-03
+2020-06-24 10:58:24,644:PyPlasmaOpt:INFO Curvature Max: 3.482e+01; Mean: 2.476e+00
+2020-06-24 10:58:24,644:PyPlasmaOpt:INFO Torsion   Max: 3.388e+01; Mean: 2.676e+00
+2020-06-24 10:58:24,703:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,703:PyPlasmaOpt:INFO Iteration 91
+2020-06-24 10:58:24,703:PyPlasmaOpt:INFO Objective value:         8.972570e-06
+2020-06-24 10:58:24,703:PyPlasmaOpt:INFO Objective values:        8.762607e-06, 4.651432e-08, 1.631697e-07, 2.785419e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,704:PyPlasmaOpt:INFO Objective gradients:     1.392122e-05, 6.372366e-02, 1.032982e-03, 1.930651e-03
+2020-06-24 10:58:24,708:PyPlasmaOpt:INFO Curvature Max: 3.495e+01; Mean: 2.473e+00
+2020-06-24 10:58:24,708:PyPlasmaOpt:INFO Torsion   Max: 3.357e+01; Mean: 2.678e+00
+2020-06-24 10:58:24,791:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,791:PyPlasmaOpt:INFO Iteration 92
+2020-06-24 10:58:24,791:PyPlasmaOpt:INFO Objective value:         8.372576e-06
+2020-06-24 10:58:24,791:PyPlasmaOpt:INFO Objective values:        8.132940e-06, 6.163241e-08, 1.737391e-07, 4.264309e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,791:PyPlasmaOpt:INFO Objective gradients:     9.230442e-05, 3.022962e-02, 6.157157e-04, 1.677925e-03
+2020-06-24 10:58:24,795:PyPlasmaOpt:INFO Curvature Max: 3.516e+01; Mean: 2.474e+00
+2020-06-24 10:58:24,795:PyPlasmaOpt:INFO Torsion   Max: 3.348e+01; Mean: 2.665e+00
+2020-06-24 10:58:24,889:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,889:PyPlasmaOpt:INFO Iteration 93
+2020-06-24 10:58:24,889:PyPlasmaOpt:INFO Objective value:         7.878513e-06
+2020-06-24 10:58:24,890:PyPlasmaOpt:INFO Objective values:        7.718808e-06, 1.460569e-08, 1.450618e-07, 3.804294e-11, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,890:PyPlasmaOpt:INFO Objective gradients:     5.965689e-06, 8.806992e-02, 7.807677e-04, 2.307857e-03
+2020-06-24 10:58:24,896:PyPlasmaOpt:INFO Curvature Max: 3.527e+01; Mean: 2.474e+00
+2020-06-24 10:58:24,904:PyPlasmaOpt:INFO Torsion   Max: 3.265e+01; Mean: 2.665e+00
+2020-06-24 10:58:24,991:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:24,991:PyPlasmaOpt:INFO Iteration 94
+2020-06-24 10:58:24,991:PyPlasmaOpt:INFO Objective value:         7.290081e-06
+2020-06-24 10:58:24,991:PyPlasmaOpt:INFO Objective values:        7.184892e-06, 5.460846e-08, 4.929143e-08, 1.288669e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:24,991:PyPlasmaOpt:INFO Objective gradients:     3.949827e-05, 3.332112e-02, 1.201448e-03, 2.353648e-03
+2020-06-24 10:58:24,995:PyPlasmaOpt:INFO Curvature Max: 3.563e+01; Mean: 2.478e+00
+2020-06-24 10:58:24,996:PyPlasmaOpt:INFO Torsion   Max: 3.290e+01; Mean: 2.657e+00
+2020-06-24 10:58:25,063:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,063:PyPlasmaOpt:INFO Iteration 95
+2020-06-24 10:58:25,063:PyPlasmaOpt:INFO Objective value:         6.706552e-06
+2020-06-24 10:58:25,063:PyPlasmaOpt:INFO Objective values:        6.699212e-06, 6.093810e-09, 7.718064e-11, 1.169156e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,063:PyPlasmaOpt:INFO Objective gradients:     4.457938e-05, 9.642325e-02, 8.083459e-04, 2.685667e-03
+2020-06-24 10:58:25,067:PyPlasmaOpt:INFO Curvature Max: 3.588e+01; Mean: 2.483e+00
+2020-06-24 10:58:25,067:PyPlasmaOpt:INFO Torsion   Max: 3.158e+01; Mean: 2.666e+00
+2020-06-24 10:58:25,162:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,162:PyPlasmaOpt:INFO Iteration 96
+2020-06-24 10:58:25,162:PyPlasmaOpt:INFO Objective value:         6.316630e-06
+2020-06-24 10:58:25,162:PyPlasmaOpt:INFO Objective values:        6.306350e-06, 7.743405e-09, 1.948522e-09, 5.878034e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,162:PyPlasmaOpt:INFO Objective gradients:     3.701577e-05, 3.379026e-02, 3.792361e-04, 1.012904e-03
+2020-06-24 10:58:25,165:PyPlasmaOpt:INFO Curvature Max: 3.604e+01; Mean: 2.485e+00
+2020-06-24 10:58:25,166:PyPlasmaOpt:INFO Torsion   Max: 3.184e+01; Mean: 2.670e+00
+2020-06-24 10:58:25,274:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,274:PyPlasmaOpt:INFO Iteration 97
+2020-06-24 10:58:25,274:PyPlasmaOpt:INFO Objective value:         6.122566e-06
+2020-06-24 10:58:25,274:PyPlasmaOpt:INFO Objective values:        6.107349e-06, 1.278272e-08, 1.431538e-09, 1.002242e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,274:PyPlasmaOpt:INFO Objective gradients:     4.263935e-05, 6.095161e-02, 7.043843e-04, 3.055425e-03
+2020-06-24 10:58:25,278:PyPlasmaOpt:INFO Curvature Max: 3.617e+01; Mean: 2.485e+00
+2020-06-24 10:58:25,278:PyPlasmaOpt:INFO Torsion   Max: 3.189e+01; Mean: 2.671e+00
+2020-06-24 10:58:25,350:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,350:PyPlasmaOpt:INFO Iteration 98
+2020-06-24 10:58:25,350:PyPlasmaOpt:INFO Objective value:         5.876935e-06
+2020-06-24 10:58:25,350:PyPlasmaOpt:INFO Objective values:        5.853688e-06, 1.362178e-08, 9.154114e-09, 4.706007e-10, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,351:PyPlasmaOpt:INFO Objective gradients:     2.873016e-05, 5.905510e-02, 2.331614e-04, 1.373301e-03
+2020-06-24 10:58:25,357:PyPlasmaOpt:INFO Curvature Max: 3.625e+01; Mean: 2.485e+00
+2020-06-24 10:58:25,357:PyPlasmaOpt:INFO Torsion   Max: 3.192e+01; Mean: 2.675e+00
+2020-06-24 10:58:25,437:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,437:PyPlasmaOpt:INFO Iteration 99
+2020-06-24 10:58:25,437:PyPlasmaOpt:INFO Objective value:         5.612342e-06
+2020-06-24 10:58:25,437:PyPlasmaOpt:INFO Objective values:        5.574452e-06, 9.981136e-09, 2.662540e-08, 1.282567e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,437:PyPlasmaOpt:INFO Objective gradients:     4.865694e-05, 6.220227e-02, 3.312254e-04, 8.829514e-04
+2020-06-24 10:58:25,442:PyPlasmaOpt:INFO Curvature Max: 3.642e+01; Mean: 2.485e+00
+2020-06-24 10:58:25,442:PyPlasmaOpt:INFO Torsion   Max: 3.167e+01; Mean: 2.677e+00
+2020-06-24 10:58:25,551:PyPlasmaOpt:INFO ################################################################################
+2020-06-24 10:58:25,551:PyPlasmaOpt:INFO Iteration 100
+2020-06-24 10:58:25,552:PyPlasmaOpt:INFO Objective value:         5.362555e-06
+2020-06-24 10:58:25,552:PyPlasmaOpt:INFO Objective values:        5.288522e-06, 2.339568e-08, 4.935409e-08, 1.283376e-09, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
+2020-06-24 10:58:25,552:PyPlasmaOpt:INFO Objective gradients:     4.384914e-05, 5.244820e-02, 3.636636e-04, 9.891069e-04
+2020-06-24 10:58:25,559:PyPlasmaOpt:INFO Curvature Max: 3.665e+01; Mean: 2.486e+00
+2020-06-24 10:58:25,560:PyPlasmaOpt:INFO Torsion   Max: 3.147e+01; Mean: 2.675e+00

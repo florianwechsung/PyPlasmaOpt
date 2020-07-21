@@ -1,0 +1,138 @@
+2020-06-29 22:18:11,861:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:18:11,878:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:19:23,517:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:19:23,526:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:20:36,902:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:20:36,911:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:21:47,922:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:21:47,931:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:22:38,814:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:22:38,823:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:24:17,122:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:24:17,132:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 22:27:48,184:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 22:27:48,193:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 23:08:03,721:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 23:08:03,730:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 23:08:27,812:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 23:08:27,822:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 23:10:26,824:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 23:10:26,833:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 23:14:08,555:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 23:14:08,564:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-29 23:15:42,507:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-29 23:15:42,516:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:25:27,569:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:25:27,584:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:26:07,170:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:26:07,178:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:28:40,217:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:28:40,225:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:34:26,778:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:34:26,787:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:36:05,397:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:36:05,405:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:36:26,502:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:36:26,510:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:37:02,918:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:37:02,926:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:37:43,648:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:37:43,656:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:38:50,590:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:38:50,599:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:43:13,138:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:43:13,147:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:43:40,836:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:43:40,844:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:44:00,505:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:44:00,513:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:44:41,957:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:44:41,965:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:48:27,456:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:48:27,464:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:49:34,754:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:49:34,762:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:51:35,116:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:51:35,124:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:52:51,791:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:52:51,800:PyPlasmaOpt:INFO First solve: use fsolve
+2020-06-30 10:57:07,517:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-06-30 10:57:07,525:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-01 10:50:12,415:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-01 10:50:12,427:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-01 10:51:26,437:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-01 10:51:26,446:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-01 10:53:35,634:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-01 10:53:35,643:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:21:19,467:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:21:19,478:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:22:29,789:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:22:29,798:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:23:23,739:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:23:23,749:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:26:19,653:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:26:19,668:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:28:24,612:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:28:24,622:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:28:58,177:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:28:58,186:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:35:09,844:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:35:09,853:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-02 15:35:58,366:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-02 15:35:58,376:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-06 21:45:01,736:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-06 21:45:01,755:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-06 22:46:18,068:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-06 22:46:18,077:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-06 22:48:57,403:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-06 22:48:57,413:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-06 22:49:44,429:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-06 22:49:44,439:PyPlasmaOpt:INFO First solve: use fsolve
+2020-07-07 14:52:31,297:PyPlasmaOpt:INFO Configuration: 
+{'output': '', 'at_optimum': False, 'mode': 'deterministic', 'sigma': 0.003, 'length_scale': 0.2, 'seed': 1, 'ppp': 20, 'ninsamples': 100, 'noutsamples': 100, 'curvature_pen': 0.0, 'torsion_pen': 0.0, 'tikhonov': 0.0, 'sobolev': 0.0, 'arclength': 0.0, 'min_dist': 0.04, 'dist_weight': 0.0, 'optimizer': 'bfgs', 'lr': 0.1, 'tau': 100, 'c': 0.1, 'lam': 1e-05}
+2020-07-07 14:52:31,322:PyPlasmaOpt:INFO First solve: use fsolve

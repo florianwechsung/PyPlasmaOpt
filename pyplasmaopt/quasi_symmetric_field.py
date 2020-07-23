@@ -20,9 +20,16 @@ class QuasiSymmetricField(PropertyManager):
         import scipy
         n = self.n
         points = self.magnetic_axis.points.reshape((n, 1))
+        
         oneton = np.asarray(range(0, n)).reshape((n, 1))
+        self.oneton = oneton
+        
         fak = (2 * pi) / (points[-1] - points[0] + (points[1]-points[0]))
+        self.fak = fak
+        
         dists = fak * scipy.spatial.distance.cdist(points, points, lambda a, b: a-b)
+        self.dists = dists
+        
         np.fill_diagonal(dists, 1e-10)  # to shut up the warning
         if n % 2 == 0:
             D = 0.5 \

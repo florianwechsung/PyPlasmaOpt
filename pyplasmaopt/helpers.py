@@ -2,6 +2,8 @@ import os
 import numpy as np
 from .curve import CartesianFourierCurve, StelleratorSymmetricCylindricalFourierCurve
 
+#returns a set of coils and a magnetic axis based on some data from Dr. Landreman?
+#Arguments need to figured out
 def get_matt_data(Nt_coils=3, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -27,6 +29,8 @@ def get_matt_data(Nt_coils=3, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
     numpoints = (Nt_ma+1)*ppp
     if numpoints % 2 == 0:
         numpoints += 1
+        
+    #Important: Returns a curve object (the magnetic axis) in cylidrical fourier representation
     ma = StelleratorSymmetricCylindricalFourierCurve(Nt_ma, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
     if at_optimum:
         ma.coefficients[0][0] = 0.976141492438223

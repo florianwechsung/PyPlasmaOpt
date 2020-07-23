@@ -414,7 +414,7 @@ with
                 d4gamma_by_dphidphidphidcoeff[:, 0, 0, 0, i*(2*self.order+1) + 2*j  , i] = +(2*pi*j)**3*np.sin(2*pi*j*points)
         return d4gamma_by_dphidphidphidcoeff
 
-
+#Class used to define the magnetic axis in example 2
 class StelleratorSymmetricCylindricalFourierCurve(Curve):
 
     def __init__(self, order, nfp, *args):

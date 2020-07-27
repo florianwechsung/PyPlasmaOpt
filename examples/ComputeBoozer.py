@@ -17,18 +17,21 @@ def cross3(ax, ay, az, bx, by, bz):
 def compute_boozer(x_flat, surface_meta, coilCollection, sa_target):
 	total_points = surface_meta.np_theta * surface_meta.np_varphi
 	
-	import ipdb; ipdb.set_trace(context=21)
+	x_array = np.zeros(total_points)
+	y_array = np.zeros(total_points)
+	z_array = np.zeros(total_points)
+	
 	x_array = x_flat[0:total_points]
-	y_array = x_flat[total_points: 2*total_points - 1]
-	z_array = x_flat[2*total_points:3*total_points - 2]
+	y_array[1:] = x_flat[total_points: 2*total_points - 1]
+	z_array[1:] = x_flat[2*total_points - 1:3*total_points - 2]
 	iota = x_flat[3*total_points - 2]
 
 	#Initializing matrices to store the cartesian component of each surface point. 
 	#Each of these matrices stores one of the three cartesian components associated with each point on the surface. By applying the spectral derivative matrix we take the derivative of this coordinate with respect to theta or phi
 	
-	xpos = np.reshape(x_array, (surface_meta.np_theta, surface_meta.np_varphi))
-	ypos = np.reshape(y_array, (surface_meta.np_theta, surface_meta.np_varphi))
-	zpos = np.reshape(z_array, (surface_meta.np_theta, surface_meta.np_varphi))
+	xpos = np.reshape(x_array, (surface_meta.np_theta, surface_meta.np_varphi), order='F')
+	ypos = np.reshape(y_array, (surface_meta.np_theta, surface_meta.np_varphi), order='F')
+	zpos = np.reshape(z_array, (surface_meta.np_theta, surface_meta.np_varphi), order='F')
 	
 	#Construction of a matrix of 3 vectors 
 	#Add an additional dimension to each of the NxN matrices of vector componenets, and then concatenate the matrices along this new axis:
@@ -99,8 +102,7 @@ def compute_boozer(x_flat, surface_meta, coilCollection, sa_target):
 	
 	residual_sa = (4*np.pi**2)/(surface_meta.np_theta * surface_meta.np_varphi) * np.sum(np.sum(normal_mag)) - sa_target;
 	
-	residuals = np.concatenate((residual_x.flatten(), residual_y.flatten(), residual_z.flatten(), residual_sa.flatten()))
-	assert residuals.shape == x_flat.shape
+	residuals = np.concatenate((residual_x.flatten('F'), residual_y.flatten('F'), residual_z.flatten('F'), residual_sa.flatten('F')))
 	
 	#Compute Jacobian:
 	N = surface_meta.np_theta * surface_meta.nfp * surface_meta.np_varphi
@@ -163,10 +165,15 @@ def compute_boozer(x_flat, surface_meta, coilCollection, sa_target):
 	
 	dnmag = np.zeros((3, N2, N2))
 	
+	#import ipdb; ipdb.set_trace(context=21)
 	#Something is wrong here, these values do not quite agree with those in the MATLAB
 	dnmag[0] = np.divide(normal_x_vec * dn[0, 0] + normal_y_vec * dn[1, 0] + normal_z_vec * dn[2, 0], normal_mag_vec)
 	dnmag[1] = (normal_x_vec * dn[0, 1] + normal_y_vec * dn[1, 1] + normal_z_vec * dn[2, 1]) / normal_mag_vec
 	dnmag[2] = (normal_x_vec * dn[0, 2] + normal_y_vec * dn[1, 2] + normal_z_vec * dn[2, 2]) / normal_mag_vec
+	
+	np.savetxt('Py_dnmagx.txt', dnmag[0], delimiter=',')
+	np.savetxt('Py_dnmagy.txt', dnmag[1], delimiter=',')
+	np.savetxt('Py_dnmagz.txt', dnmag[2], delimiter=',')
 	
 	dB_dX_x_x_vec = np.reshape(dB_dX_Matrix[:, :, 0, 0], (N2, 1), order='F')
 	dB_dX_x_y_vec = np.reshape(dB_dX_Matrix[:, :, 0, 1], (N2, 1), order='F')
@@ -239,17 +246,17 @@ def compute_boozer(x_flat, surface_meta, coilCollection, sa_target):
 	rhs4_J = np.concatenate((rhs4_dx, rhs4_dy, rhs4_dz, np.array([rhs4_diota])))
 	rhs4_J = np.reshape(rhs4_J, (1, 3*N2 + 1))
 	
+	residuals = np.delete(residuals, (0, total_points))
+	
 	J = np.concatenate((rhs1_J, rhs2_J, rhs3_J, rhs4_J), 0)
 	#import ipdb; ipdb.set_trace(context=21)
 	
-	J = np.delete(J, (400, 800), 1)
-	J = np.delete(J, (0, 400), 0)
-	
-	print(J.shape)
-	
-	np.savetxt("Py_Jac_2.txt", J)
+	J = np.delete(J, (total_points, 2*total_points), 1)
+	J = np.delete(J, (0, total_points), 0)
 	
 	print("Max residual:", np.amax(np.abs(residuals)))
+	
+	#np.savetxt("Pyres.txt", residuals, delimiter=',')
 	
 	#print("X residual:", np.sum(residual_x**2))
 	#print("Y residual:", np.sum(residual_y**2))
@@ -276,14 +283,6 @@ def compute_boozer(x_flat, surface_meta, coilCollection, sa_target):
 	
 
 	return residuals, J
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	

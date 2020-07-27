@@ -4,6 +4,8 @@ import numpy as np
 from pyplasmaopt import *
 import surface as s
 import time
+from generate_toroidal_guess import toroidal_guess
+
 
 def main():
 	nfp = 2
@@ -26,10 +28,12 @@ def main():
 
 	sa_target = 7.895683520871486
 
-	X_flat = X.flatten()
-	Y_flat = Y.flatten()
+	#X, Y, Z, sa_target = toroidal_guess(1.5, .2, N, nfp)
+	
+	X_flat = X.flatten('F')
+	Y_flat = Y.flatten('F')
 	Y_flat = Y_flat[1:]
-	Z_flat = Z.flatten()
+	Z_flat = Z.flatten('F')
 	Z_flat = Z_flat[1:]
 	iota_init = -0.159453462942961
 
@@ -37,24 +41,46 @@ def main():
 	#Flattening all of the surface information and rotational transform into one very long 1-D array
 	x = np.concatenate((X_flat, Y_flat, Z_flat, np.array([iota_init])))
 
-	def booz_call(x, f):
-		print(np.max(np.abs(f)))
+	def iter_newton(X, imax = 1e6,tol = 1e-5):
+   		for i in range(int(imax)):
+   			Y, J = compute_boozer(X, surface_meta, cc, sa_target)
+   			print(np.amax(np.abs(Y)))
+   			res_prev = np.amax(np.abs(Y))
+   			dX = np.linalg.solve(J,Y) # solve for increment from JdX = Y 
+   			X_p = X - dX # step X by dX 
+   			
+   			Y_p, J_p = compute_boozer(X_p, surface_meta, cc, sa_target)
+   			
+   			while np.amax(np.abs(Y_p)) > res_prev:
+   				dX = dX/2
+   				X_p = X-dX 
+   				
+   				Y_p, J_p = compute_boozer(X_p, surface_meta, cc, sa_target)
+   				
+   			X = X_p
+   			
+   			if np.linalg.norm(dX)<tol: # break if converged
+   				print('converged.')
+   				break
+   				
+   		return X 
 
-	compute_boozer(x, surface_meta, cc, sa_target)
-
+	sol = iter_newton(x)
+	
 	return
 
-	sol = optimize.root(compute_boozer, x, args=(surface_meta, cc, sa_target), jac=True, method='lm', options={'col_deriv': 0, 'xtol': 1.49012e-08, 'ftol': 1.49012e-08, 'gtol': 0.0, 'maxiter': 25, 'eps': 0.0, 'factor': 0.1, 'diag': None}) 
-
-	print("Optimization successful?", sol.success)
 
 	#Reshape optimize.root output to be able to plot
 	total_points = surface_meta.np_theta * surface_meta.np_varphi
 
+	x_sol = np.zeros(total_points)
+	y_sol = np.zeros(total_points)
+	z_sol = np.zeros(total_points)
+
 	x_sol = sol.x[0:total_points]
-	y_sol = sol.x[total_points: 2*total_points]
-	z_sol = sol.x[2*total_points:3*total_points]
-	iota_sol = sol.x[3*total_points]
+	y_sol[1:] = sol.x[total_points: 2*total_points - 1]
+	z_sol[1:] = sol.x[2*total_points - 1:3*total_points - 2]
+	iota_sol = sol.x[3*total_points - 2]
 
 	x_sol = np.reshape(x_sol, X.shape)
 	y_sol = np.reshape(y_sol, X.shape)

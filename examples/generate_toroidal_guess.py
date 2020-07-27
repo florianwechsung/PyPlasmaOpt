@@ -1,7 +1,7 @@
 import numpy as np
 
 #making a toroidal initial guess
-def toroidal_guess(major_r, minor_r, N, nfp)
+def toroidal_guess(major_r, minor_r, N, nfp):
 
 	u = np.linspace(0, 2*np.pi / nfp, N + 1)
 	v = np.linspace(0, 2*np.pi / nfp, N + 1)

@@ -133,5 +133,7 @@ setup(
     setup_requires=['pybind11>=2.4'],
     cmdclass={'build_ext': BuildExt},
     packages = ["pyplasmaopt", "data"],
+    package_data={'data': ['*.dat']},
+    include_package_data=True,
     zip_safe=False,
 )

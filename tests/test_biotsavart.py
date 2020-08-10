@@ -125,7 +125,7 @@ def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp, idx):
     bs.compute(points, use_cpp=use_cpp)
     B0, dB_by_dX, d2B_by_dXdX = bs.B, bs.dB_by_dX, bs.d2B_by_dXdX
     for direction in [np.asarray((1., 0, 0)), np.asarray((0, 1., 0)), np.asarray((0, 0, 1.))]:
-        first_deriv = dB_by_dX[idx].dot(direction)
+        first_deriv = dB_by_dX[idx].T.dot(direction)
         second_deriv = np.einsum('ijk,i,j->k', d2B_by_dXdX[idx], direction, direction)
         err = 1e6
         for i in range(5, 10):

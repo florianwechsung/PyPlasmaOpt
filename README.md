@@ -2,7 +2,15 @@
 
 ## Requirements
 
-On a recent linux (e.g. Ubuntu > 18.04), all requirements should be met.
+On a recent linux (e.g. Ubuntu > 18.04), most requirements should be met.
+First install an MPI library of your choice via
+    
+    sudo apt install mpich
+
+or
+    
+    brew install mpich
+
 On mac, install gcc and python via
 
     brew install python gcc

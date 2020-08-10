@@ -1,46 +1,61 @@
 from pyplasmaopt import *
-from problem2_objective import get_objective
+from example3_get_objective import example3_get_objective
 from scipy.optimize import minimize
 import numpy as np
+import os
 
-obj, args = get_objective()
+obj, args = example3_get_objective()
+obj.plot('tmp.png')
+# import sys; sys.exit()
 
 outdir = obj.outdir
-solver = args.optimizer.lower()
-assert solver in ["bfgs", "lbfgs", "l-bfgs-b"]
-if solver == "lbfgs":
-    solver = "l-bfgs-b"
 
 
-def taylor_test(obj, x):
+def taylor_test(obj, x, order=6):
     obj.update(x)
     dj0 = obj.dres
     np.random.seed(1)
-    h = 0.1 * np.random.rand(*(x.shape))
+    h = np.random.rand(*(x.shape))
     djh = sum(dj0*h)
-    for i in range(1, 8):
-        eps = 0.1**i
+    if order == 1:
+        shifts = [0, 1]
+        weights = [-1, 1]
+    elif order == 2:
+        shifts = [-1, 1]
+        weights = [-0.5, 0.5]
+    elif order == 4:
+        shifts = [-2, -1, 1, 2]
+        weights = [1/12, -2/3, 2/3, -1/12]
+    elif order == 6:
         shifts = [-3, -2, -1, 1, 2, 3]
         weights = [-1/60, 3/20, -3/4, 3/4, -3/20, 1/60]
-
+    for i in range(10, 40):
+        eps = 0.5**i
         obj.update(x + shifts[0]*eps*h)
         fd = weights[0] * obj.res
         for i in range(1, len(shifts)):
             obj.update(x + shifts[i]*eps*h)
             fd += weights[i] * obj.res
         err = abs(fd/eps - djh)
-        info("%.6e, %.6e", err, err/np.linalg.norm(djh))
+        info("%.6e, %.6e, %.6e", eps, err, err/np.linalg.norm(djh))
     obj.update(x)
+    info("-----")
+
 
 
 x = obj.x0
 obj.update(x)
 obj.callback(x)
+# matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
+# np.savetxt(os.path.join(obj.outdir, 'coilsmatlab_init.txt'), np.hstack(matlabcoils))
 
-if True:
-    taylor_test(obj, x)
+# if True:
+#     taylor_test(obj, x, order=1)
+#     taylor_test(obj, x, order=2)
+    # taylor_test(obj, x, order=4)
+    # taylor_test(obj, x, order=6)
 
-maxiter = 2000
+maxiter = 5000
 memory = 200
 
 
@@ -51,12 +66,18 @@ def J_scipy(x):
     return res, dres
 
 
-res = minimize(J_scipy, x, jac=True, method=solver, tol=1e-20,
+res = minimize(J_scipy, x, jac=True, method='l-bfgs-b', tol=1e-20,
                options={"maxiter": maxiter, "maxcor": memory},
                callback=obj.callback)
+print(res)
 xmin = res.x
-
-self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
+J_distance = MinimumDistance(obj.stellarator.coils, 0)
+info("Minimum distance = %f" % J_distance.min_dist())
+obj.stellarator.savetotxt(outdir)
+matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
+np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
+np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
+import IPython; IPython.embed()
 
 # def approx_H(x):
 #     n = x.size

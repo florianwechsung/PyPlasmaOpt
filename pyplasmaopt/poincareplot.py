@@ -1,7 +1,7 @@
 import numpy as np
 import cppplasmaopt as cpp
 
-def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_radius=1, max_thickness=0.5, delta=0.01):
+def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_radius=1, max_thickness=0.5, delta=0.01, steps_per_period=100):
 
     def cylindrical_to_cartesian(rphiz):
         xyz = np.zeros(rphiz.shape)
@@ -54,7 +54,7 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
     from math import pi
 
     res = []
-    nt = int(100 * nperiods)
+    nt = int(steps_per_period * nperiods)
     tspan = [0, 2*pi*nperiods]
     t_eval = np.linspace(0, tspan[-1], nt+1)
     i = 0
@@ -62,12 +62,12 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
         y0 = np.zeros((batch_size, 2))
         y0[:, 0] = np.linspace(magnetic_axis_radius + i*batch_size*delta, magnetic_axis_radius+(i+1)*batch_size*delta, batch_size, endpoint=False)
         t = tspan[0]
-        solver = RK45(rhs, tspan[0], y0.flatten(), tspan[-1], rtol=1e-8, atol=1e-08)
+        solver = RK45(rhs, tspan[0], y0.flatten(), tspan[-1], rtol=1e-9, atol=1e-09)
         ts = [0]
         denseoutputs = []
         while t < tspan[-1]:
             solver.step()
-            if solver.t < t + 1e-8: # no progress --> abort
+            if solver.t < t + 1e-10: # no progress --> abort
                 break
             t = solver.t
             ts.append(solver.t)
@@ -85,6 +85,7 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
 
     rphiz = np.zeros((nparticles, nt, 3))
     xyz = np.zeros((nparticles, nt, 3))
+    phi_no_mod = t_eval.copy()
     for i in range(nt):
         while t_eval[i] >= np.pi:
             t_eval[i] -= 2*np.pi
@@ -98,4 +99,11 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
         xyz[:, i, :] = cylindrical_to_cartesian(rphiz[:, i, :])
 
 
-    return rphiz, xyz
+    absB = np.zeros((nparticles, nt))
+    tmp = np.zeros((nt, 3))
+    for j in range(nparticles):
+        tmp[:] = 0
+        cpp.biot_savart_B_only(xyz[j, :, :], gammas, dgamma_by_dphis, biotsavart.coil_currents, tmp)
+        absB[j, :] = np.linalg.norm(tmp, axis=1)
+
+    return rphiz, xyz, absB, phi_no_mod[:-1]

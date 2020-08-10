@@ -1,6 +1,7 @@
 import pytest
 from pyplasmaopt import BiotSavart, get_matt_data, CoilCollection, compute_field_lines
-    
+
+# Not a great test, essentially just checks that the code runs
 def test_poincareplot(nparticles=12, nperiods=20):
     nfp = 2
     coils, ma = get_matt_data(nfp=nfp, ppp=20, at_optimum=True)
@@ -12,7 +13,7 @@ def test_poincareplot(nparticles=12, nperiods=20):
 
     coil_collection = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)
-    rphiz, xyz = compute_field_lines(bs, nperiods=nperiods, batch_size=8, magnetic_axis_radius=1.1, max_thickness=0.6, delta=0.02)
+    rphiz, xyz, _, _ = compute_field_lines(bs, nperiods=nperiods, batch_size=8, magnetic_axis_radius=1.1, max_thickness=0.6, delta=0.02)
     nparticles = rphiz.shape[0]
 
     try:

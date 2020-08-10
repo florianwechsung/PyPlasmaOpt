@@ -25,7 +25,7 @@ def get_objective():
     parser.add_argument("--arclength", type=float, default=0.)
     parser.add_argument("--min-dist", type=float, default=0.04)
     parser.add_argument("--dist-weight", type=float, default=0.)
-    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd"])
+    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd", 'l-bfgs-b', 'newton-cg'])
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--tau", type=float, default=100)
     parser.add_argument("--c", type=float, default=0.1)
@@ -45,6 +45,10 @@ def get_objective():
         outdir += "_%s-%s" % (k, args.__dict__[k])
     outdir = outdir.replace(".", "p")
     outdir += "/"
+    # print(f"lr {args.lr}, tau {args.tau}, c {args.c}, lam {args.lam}")
+    # os.system('tail -n 1 voyager-output/' + outdir + 'out_of_sample_means.txt')
+    # import sys; sys.exit()
+
     os.makedirs(outdir, exist_ok=True)
     set_file_logger(outdir + "log.txt")
     info("Configuration: \n%s", args.__dict__)
@@ -94,15 +98,19 @@ class Problem2_Objective():
         coils = stellarator._base_coils
         self.J_coil_lengths    = [CurveLength(coil) for coil in coils]
         self.J_axis_length     = CurveLength(ma)
-        self.J_coil_curvatures = [CurveCurvature(coil, coil_length_target) for coil in coils]
+        if coil_length_target is not None:
+            self.coil_length_targets = [coil_length_target for coil in coils]
+        else:
+            self.coil_length_targets = [J.J() for J in self.J_coil_lengths]
+        self.magnetic_axis_length_target = magnetic_axis_length_target or self.J_axis_length.J()
+
+        self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
         self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
-        self.J_arclengths = [UniformArclength(coil, coil_length_target) for coil in coils]
+        self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target                 = iota_target
-        self.coil_length_target          = coil_length_target
-        self.magnetic_axis_length_target = magnetic_axis_length_target
         self.curvature_scale             = curvature_scale
         self.torsion_scale               = torsion_scale
         self.num_ma_dofs = len(ma.get_dofs())
@@ -177,7 +185,6 @@ class Problem2_Objective():
         J_coil_torsions   = self.J_coil_torsions
 
         iota_target                 = self.iota_target
-        coil_length_target          = self.coil_length_target
         magnetic_axis_length_target = self.magnetic_axis_length_target
         curvature_scale             = self.curvature_scale
         torsion_scale               = self.torsion_scale
@@ -193,9 +200,9 @@ class Problem2_Objective():
 
         """ Objective values """
 
-        self.res2      = 0.5 * sum( (1/coil_length_target)**2 * (J2.J() - coil_length_target)**2 for J2 in J_coil_lengths)
-        self.drescoil += (1/coil_length_target)**2 * self.stellarator.reduce_coefficient_derivatives([
-            (J_coil_lengths[i].J()-coil_length_target) * J_coil_lengths[i].dJ_by_dcoefficients() for i in range(len(J_coil_lengths))])
+        self.res2      = 0.5 * sum( (1/l)**2 * (J2.J() - l)**2 for (J2, l) in zip(J_coil_lengths, self.coil_length_targets))
+        self.drescoil += self.stellarator.reduce_coefficient_derivatives([
+            (1/l)**2 * (J_coil_lengths[i].J()-l) * J_coil_lengths[i].dJ_by_dcoefficients() for (i, l) in zip(list(range(len(J_coil_lengths))), self.coil_length_targets)])
 
         self.res3    = 0.5 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
         self.dresma += (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
@@ -415,14 +422,32 @@ class Problem2_Objective():
                 (0.39215686274509803, 0.7098039215686275, 0.803921568627451)
             ]
 
+            mlab.figure(bgcolor=(1, 1, 1))
             for i in range(0, len(self.stellarator.coils)):
                 gamma = self.stellarator.coils[i].gamma
                 gamma = np.concatenate((gamma, [gamma[0,:]]))
                 mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[i%len(self.stellarator._base_coils)])
+
+            gamma = self.ma.gamma
+            theta = 2*np.pi/self.ma.nfp
+            rotmat = np.asarray([
+                [cos(theta), -sin(theta), 0],
+                [sin(theta), cos(theta), 0],
+                [0, 0, 1]]).T
+            gamma0 = gamma.copy()
+            for i in range(1, self.ma.nfp):
+                gamma0 = gamma0 @ rotmat
+                gamma = np.vstack((gamma, gamma0))
+            mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[len(self.stellarator._base_coils)])
+
+
+
             mlab.view(azimuth=0, elevation=0)
             mlab.savefig(self.outdir + "mayavi_top_" + filename, magnification=4)
             mlab.view(azimuth=0, elevation=90)
             mlab.savefig(self.outdir + "mayavi_side1_" + filename, magnification=4)
             mlab.view(azimuth=90, elevation=90)
             mlab.savefig(self.outdir + "mayavi_side2_" + filename, magnification=4)
+            mlab.view(azimuth=45, elevation=45)
+            mlab.savefig(self.outdir + "mayavi_angled_" + filename, magnification=4)
             mlab.close()

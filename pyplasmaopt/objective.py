@@ -415,6 +415,16 @@ class MinimumDistance():
         self.curves = curves
         self.minimum_distance = minimum_distance
 
+    def min_dist(self):
+        res = 1e10
+        for i in range(len(self.curves)):
+            gamma1 = self.curves[i].gamma
+            for j in range(i):
+                gamma2 = self.curves[j].gamma
+                dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
+                res = min(res, np.min(dists))
+        return res
+
     def J(self):
         from scipy.spatial.distance import cdist
         res = 0

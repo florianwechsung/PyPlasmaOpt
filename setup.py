@@ -132,8 +132,9 @@ setup(
     install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy', 'argparse', 'mpi4py', 'matplotlib', 'randomgen', 'mayavi'],
     setup_requires=['pybind11>=2.4'],
     cmdclass={'build_ext': BuildExt},
-    packages = ["pyplasmaopt", "data"],
-    package_data={'data': ['*.dat']},
+    packages = ["pyplasmaopt"],
+    package_dir = {"pyplasmaopt": "pyplasmaopt"},
+    package_data={'pyplasmaopt': ['data/*', 'data/ncsx/*']},
     include_package_data=True,
     zip_safe=False,
 )

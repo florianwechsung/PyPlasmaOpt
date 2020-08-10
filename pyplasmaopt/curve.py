@@ -310,6 +310,15 @@ with
         self.coefficients = [np.zeros((2*order+1,)), np.zeros((2*order+1,)), np.zeros((2*order+1,))]
         self.order = order
 
+    def tomatlabformat(self):
+        dat = np.zeros((self.order+1, 6))
+        for d in range(3):
+            dat[0, 2*d+1] = self.coefficients[d][0]
+            for i in range(self.order):
+                dat[i+1, 2*d] = self.coefficients[d][2*i+1]
+                dat[i+1, 2*d+1] = self.coefficients[d][2*(i+1)]
+        return dat
+
     def num_coeff(self):
         return 3*(2*self.order+1)
 
@@ -632,11 +641,10 @@ class RotatedCurve(Curve):
 
 class GaussianSampler():
 
-    def __init__(self, points, sigma, length_scale):
+    def __init__(self, points, sigma, length_scale, n_derivs=3):
         self.points = points
         xs = self.points
         n = len(xs)
-        n_derivs = 3
         self.n_derivs = n_derivs
         cov_mat = np.zeros((n*(n_derivs+1), n*(n_derivs+1)))
         def kernel(x, y):

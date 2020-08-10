@@ -49,6 +49,8 @@ if obj.mode == "cvar":
 
 obj.update(x)
 obj.callback(x)
+obj.stellarator.savetotxt(outdir)
+import sys; sys.exit()
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 
@@ -56,7 +58,8 @@ if True:
     taylor_test(obj, x)
     # import sys; sys.exit()
 
-maxiter = 5000
+# maxiter = 2000
+maxiter = 2000
 # maxiter = 500
 memory = 200
 if solver is None:
@@ -109,7 +112,7 @@ elif solver.lower() in ["sgd"]:
     # oldmode = obj.mode
     # obj.mode = 'deterministic'
     for i in range(1):
-        res = minimize(J_scipy, x, jac=True, method="BFGS", tol=1e-20, options={"maxiter": 500}, callback=obj.callback)
+        res = minimize(J_scipy, x, jac=True, method="BFGS", tol=1e-20, options={"maxiter": 100}, callback=obj.callback)
         info(res)
         x = res.x
     xmin = x
@@ -148,8 +151,9 @@ if comm.rank == 0 and solver is not None:
     np.savetxt(outdir + "Jvals_individual.txt", obj.Jvals_individual)
     np.savetxt(outdir + "Jvals_insample.txt", obj.Jvals_perturbed)
     np.savetxt(outdir + "QSvsBS_insample.txt", obj.QSvsBS_perturbed)
-    np.savetxt(outdir + "out_of_sample_values.txt", obj.out_of_sample_values)
-    np.savetxt(outdir + "out_of_sample_means.txt", np.mean(obj.out_of_sample_values, axis=1))
+    if args.noutsamples > 0:
+        np.savetxt(outdir + "out_of_sample_values.txt", obj.out_of_sample_values)
+        np.savetxt(outdir + "out_of_sample_means.txt", np.mean(obj.out_of_sample_values, axis=1))
 
 # import IPython; IPython.embed()
 # import sys; sys.exit()

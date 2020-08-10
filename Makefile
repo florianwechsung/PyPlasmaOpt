@@ -1,6 +1,6 @@
 pip-mac:
 	rm -rf build
-	env CC=gcc-9 CXX=g++-9 pip3 install -vvv -e .
+	env CC=gcc-10 CXX=g++-10 pip3 install -vvv -e .
 
 pip-linux:
 	rm -rf build
@@ -8,15 +8,15 @@ pip-linux:
 
 cmake-mac:
 	rm -rf build-mac
-	rm -f cppplasmaopt.cpython-37m-darwin.so
+	rm -f cppplasmaopt.cpython-38m-darwin.so
 	mkdir build-mac
 	cd build-mac ; cmake \
-		-DCMAKE_CXX_COMPILER=g++-9 \
-		-DCMAKE_C_COMPILER=gcc-9 \
+		-DCMAKE_CXX_COMPILER=g++-10 \
+		-DCMAKE_C_COMPILER=gcc-10 \
 		-DCMAKE_BUILD_TYPE=Debug \
 		..
-	make -C build-mac -j 4
-	ln -s build-mac/cppplasmaopt.cpython-37m-darwin.so .
+	make -C build-mac -j 8
+	ln -s build-mac/cppplasmaopt.cpython-38m-darwin.so .
 
 cmake-linux:
 	rm -rf build-linux

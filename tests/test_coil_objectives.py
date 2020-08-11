@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from pyplasmaopt import CartesianFourierCurve, CurveLength, CurveCurvature, CurveTorsion, MinimumDistance, get_matt_data, CoilCollection, SobolevTikhonov, UniformArclength
+from pyplasmaopt import CartesianFourierCurve, CurveLength, CurveCurvature, CurveTorsion, MinimumDistance, get_24_coil_data, CoilCollection, SobolevTikhonov, UniformArclength
 
 def get_coil(rand_scale=0.01):
     coil = CartesianFourierCurve(3, np.linspace(0, 1, 20, endpoint=False))
@@ -115,7 +115,7 @@ def test_uniformarclength_taylor_test():
 
 def test_minimum_distance_taylor_test():
     nfp = 2
-    (coils, ma) = get_matt_data(nfp=nfp)
+    (coils, currents, ma, eta_bar) = get_24_coil_data(nfp=nfp)
     currents = len(coils) * [1e4]
     stellarator = CoilCollection(coils, currents, nfp, True)
     coils = stellarator.coils

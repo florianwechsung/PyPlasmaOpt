@@ -302,7 +302,7 @@ class CartesianFourierCurve(Curve):
 A curve of the form 
     \Gamma(\phi) = e_1 * x_1(\phi) + e_2 * x_2(\phi) + e_3 * x_3(\phi)
 with
-    x_i(\phi) = coeff[i][0] + \sum_{j=1}^terms coeff[i][2*j-1] * sin(2*pi*j*\phi) + coeff[i][2*j] * cos(2*pi*j*\phi)
+    x_i(\phi) = coeff[i][0] + \sum_{j=1}^order coeff[i][2*j-1] * sin(2*pi*j*\phi) + coeff[i][2*j] * cos(2*pi*j*\phi)
     """
 
     def __init__(self, order, *args):

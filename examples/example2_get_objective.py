@@ -5,13 +5,19 @@ import argparse
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 
-def example3_get_objective():
+def example2_get_objective():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--output", type=str, default="")
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
+    parser.add_argument("--mode", type=str, default="deterministic",
+                        choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95"])
+    parser.add_argument("--sigma", type=float, default=3e-3)
+    parser.add_argument("--length-scale", type=float, default=0.2)
+    parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--ppp", type=int, default=20)
-    parser.add_argument("--Nt", type=int, default=5)
+    parser.add_argument("--ninsamples", type=int, default=100)
+    parser.add_argument("--noutsamples", type=int, default=100)
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--torsion", type=float, default=0.)
     parser.add_argument("--tikhonov", type=float, default=0.)
@@ -19,6 +25,11 @@ def example3_get_objective():
     parser.add_argument("--arclength", type=float, default=0.)
     parser.add_argument("--min-dist", type=float, default=0.04)
     parser.add_argument("--dist-weight", type=float, default=0.)
+    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd", 'l-bfgs-b', 'newton-cg'])
+    parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--tau", type=float, default=100)
+    parser.add_argument("--c", type=float, default=0.1)
+    parser.add_argument("--lam", type=float, default=1e-5)
     args, _ = parser.parse_known_args()
 
     keys = list(args.__dict__.keys())
@@ -42,36 +53,21 @@ def example3_get_objective():
     set_file_logger(outdir + "log.txt")
     info("Configuration: \n%s", args.__dict__)
     
-    nfp = 3
-    (coils, ma, currents) = get_ncsx_data(Nt=args.Nt, ppp=args.ppp)
+    nfp = 2
+    (coils, currents, ma, eta_bar) = get_24_coil_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
     stellarator = CoilCollection(coils, currents, nfp, True)
-    eta_bar = -0.6
-    iota_target = 0.395938929522566
-    coil_length_target = None
-    magnetic_axis_length_target = None
 
-    # (coils, ma) = get_flat_data(ppp=args.ppp)
-    # currents = [0., 0., 0.]
-    # stellarator = CoilCollection(coils, currents, nfp, True)
-    # iota_target = 0.45
-    # coil_length_target = 2*np.pi * 0.35
-    # magnetic_axis_length_target = 2*np.pi
-    # eta_bar = -2.25
-
-    # nfp = 2
-    # (coils, ma, currents) = get_16_coil_data(ppp=args.ppp, at_optimum=args.at_optimum)
-    # stellarator = CoilCollection(coils, currents, nfp, True)
-    # coil_length_target = 2 * np.pi * 0.7
-    # magnetic_axis_length_target = 2 * np.pi
-    # iota_target = 0.103;
-    # eta_bar = 0.998578113525166 if args.at_optimum else 1.0
-
-
+    iota_target = 0.103
+    coil_length_target = 4.398229715025710
+    magnetic_axis_length_target = 6.356206812106860
+    eta_bar = -2.25
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
         curvature_weight=args.curvature, torsion_weight=args.torsion,
         tikhonov_weight=args.tikhonov, arclength_weight=args.arclength, sobolev_weight=args.sobolev,
         minimum_distance=args.min_dist, distance_weight=args.dist_weight,
-        mode='deterministic', outdir=outdir)
+        ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=args.sigma,
+        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
     return obj, args
+

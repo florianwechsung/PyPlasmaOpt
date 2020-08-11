@@ -1,14 +1,14 @@
 import pytest
-from pyplasmaopt import BiotSavart, get_matt_data, CoilCollection, compute_field_lines
+from pyplasmaopt import BiotSavart, get_24_coil_data, CoilCollection, compute_field_lines
 
 # Not a great test, essentially just checks that the code runs
 def test_poincareplot(nparticles=12, nperiods=20):
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20, at_optimum=True)
+    coils, currents, ma, eta_bar = get_24_coil_data(nfp=nfp, ppp=20, at_optimum=True)
     currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
 
-    # coils, ma = get_matt_data(nfp=nfp, ppp=20, at_optimum=False)
-    # currents = [1 for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
+    # coils, currents, ma, eta_bar = get_24_coil_data(nfp=nfp, ppp=20, at_optimum=False)
+    # currents = 6 * [1]
 
 
     coil_collection = CoilCollection(coils, currents, nfp, True)

@@ -1,9 +1,9 @@
 from pyplasmaopt import *
-from problem2_objective import get_objective
+from example2_get_objective import example2_get_objective
 from scipy.optimize import minimize
 import numpy as np
 
-obj, args = get_objective()
+obj, args = example2_get_objective()
 
 outdir = obj.outdir
 solver = args.optimizer.lower()
@@ -54,6 +54,7 @@ def J_scipy(x):
 res = minimize(J_scipy, x, jac=True, method=solver, tol=1e-20,
                options={"maxiter": maxiter, "maxcor": memory},
                callback=obj.callback)
+info("%s" % res)
 xmin = res.x
 
 self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)

@@ -1,82 +1,20 @@
-from pyplasmaopt import *
-import numpy as np
-from math import pi
-import argparse
+from .biotsavart import BiotSavart
+from .quasi_symmetric_field import QuasiSymmetricField
+from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance
+from .curve import GaussianSampler
+from .stochastic_objective import StochasticQuasiSymmetryObjective, CVaR
+from .logging import info
+
 from mpi4py import MPI
-comm = MPI.COMM_WORLD
+from math import pi, sin, cos
+import numpy as np
+import os
 
-def get_objective():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--output", type=str, default="")
-    parser.add_argument("--at-optimum", dest="at_optimum", default=False,
-                        action="store_true")
-    parser.add_argument("--mode", type=str, default="deterministic",
-                        choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95"])
-    parser.add_argument("--sigma", type=float, default=3e-3)
-    parser.add_argument("--length-scale", type=float, default=0.2)
-    parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--ppp", type=int, default=20)
-    parser.add_argument("--ninsamples", type=int, default=100)
-    parser.add_argument("--noutsamples", type=int, default=100)
-    parser.add_argument("--curvature-pen", type=float, default=0.)
-    parser.add_argument("--torsion-pen", type=float, default=0.)
-    parser.add_argument("--tikhonov", type=float, default=0.)
-    parser.add_argument("--sobolev", type=float, default=0.)
-    parser.add_argument("--arclength", type=float, default=0.)
-    parser.add_argument("--min-dist", type=float, default=0.04)
-    parser.add_argument("--dist-weight", type=float, default=0.)
-    parser.add_argument("--optimizer", type=str, default="bfgs", choices=["bfgs", "lbfgs", "sgd", 'l-bfgs-b', 'newton-cg'])
-    parser.add_argument("--lr", type=float, default=0.1)
-    parser.add_argument("--tau", type=float, default=100)
-    parser.add_argument("--c", type=float, default=0.1)
-    parser.add_argument("--lam", type=float, default=1e-5)
-    args, _ = parser.parse_known_args()
+class NearAxisQuasiSymmetryObjective():
 
-    keys = list(args.__dict__.keys())
-    assert keys[0] == "output"
-    if not args.__dict__[keys[0]] == "":
-        outdir = "output-%s" % args.__dict__[keys[0]]
-    else:
-        outdir = "output"
-    if args.__dict__[keys[1]]:
-        outdir += "_atopt"
-    for i in range(2, len(keys)):
-        k = keys[i]
-        outdir += "_%s-%s" % (k, args.__dict__[k])
-    outdir = outdir.replace(".", "p")
-    outdir += "/"
-    # print(f"lr {args.lr}, tau {args.tau}, c {args.c}, lam {args.lam}")
-    # os.system('tail -n 1 voyager-output/' + outdir + 'out_of_sample_means.txt')
-    # import sys; sys.exit()
-
-    os.makedirs(outdir, exist_ok=True)
-    set_file_logger(outdir + "log.txt")
-    info("Configuration: \n%s", args.__dict__)
-    
-    nfp = 2
-    (coils, ma) = get_matt_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
-    if args.at_optimum:
-        currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-        eta_bar = -2.105800979374183
-    else:
-        currents = [0 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
-        eta_bar = -2.25
-    stellarator = CoilCollection(coils, currents, nfp, True)
-
-    obj = Problem2_Objective(
-        stellarator, ma, curvature_scale=args.curvature_pen, torsion_scale=args.torsion_pen,
-        tikhonov=args.tikhonov, arclength=args.arclength, sobolev=args.sobolev,
-        minimum_distance=args.min_dist, distance_weight=args.dist_weight,
-        eta_bar=eta_bar, ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=0.003,#args.sigma,
-        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
-    return obj, args
-
-class Problem2_Objective():
-
-    def __init__(self, stellarator, ma, 
-                 iota_target=0.103, coil_length_target=4.398229715025710, magnetic_axis_length_target=6.356206812106860,
-                 eta_bar=-2.25,
-                 curvature_scale=1e-6, torsion_scale=1e-4, tikhonov=0., arclength=0., sobolev=0.,
+    def __init__(self, stellarator, ma, iota_target, eta_bar=-2.25,
+                 coil_length_target=None, magnetic_axis_length_target=None,
+                 curvature_weight=1e-6, torsion_weight=1e-4, tikhonov_weight=0., arclength_weight=0., sobolev_weight=0.,
                  minimum_distance=0.04, distance_weight=1.,
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
                  outdir="output/", seed=1
@@ -106,13 +44,13 @@ class Problem2_Objective():
 
         self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
-        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
-        self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
+        self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target                 = iota_target
-        self.curvature_scale             = curvature_scale
-        self.torsion_scale               = torsion_scale
+        self.curvature_weight             = curvature_weight
+        self.torsion_weight               = torsion_weight
         self.num_ma_dofs = len(ma.get_dofs())
         self.current_fak = 1./(4 * pi * 1e-7)
         self.ma_dof_idxs = (1, 1+self.num_ma_dofs)
@@ -125,9 +63,9 @@ class Problem2_Objective():
         else:
             raise NotImplementedError
         self.x = self.x0.copy()
-        self.sobolev = sobolev
-        self.tikhonov = tikhonov
-        self.arclength = arclength
+        self.sobolev_weight = sobolev_weight
+        self.tikhonov_weight = tikhonov_weight
+        self.arclength_weight = arclength_weight
         self.distance_weight = distance_weight
 
         sampler = GaussianSampler(coils[0].points, length_scale=length_scale_perturb, sigma=sigma_perturb)
@@ -186,8 +124,8 @@ class Problem2_Objective():
 
         iota_target                 = self.iota_target
         magnetic_axis_length_target = self.magnetic_axis_length_target
-        curvature_scale             = self.curvature_scale
-        torsion_scale               = self.torsion_scale
+        curvature_weight             = self.curvature_weight
+        torsion_weight               = self.torsion_weight
         qsf = self.qsf
 
         self.set_dofs(x)
@@ -211,27 +149,27 @@ class Problem2_Objective():
         self.dresetabar += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_detabar[:,0]
         self.dresma     += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_dcoeffs[:, 0]
 
-        if curvature_scale > 1e-15:
-            self.res5      = sum(curvature_scale * J.J() for J in J_coil_curvatures)
-            self.drescoil += self.curvature_scale * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+        if curvature_weight > 1e-15:
+            self.res5      = sum(curvature_weight * J.J() for J in J_coil_curvatures)
+            self.drescoil += self.curvature_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
         else:
             self.res5 = 0
-        if torsion_scale > 1e-15:
-            self.res6      = sum(torsion_scale * J.J() for J in J_coil_torsions)
-            self.drescoil += self.torsion_scale * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
+        if torsion_weight > 1e-15:
+            self.res6      = sum(torsion_weight * J.J() for J in J_coil_torsions)
+            self.drescoil += self.torsion_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
         else:
             self.res6 = 0
 
-        if self.sobolev > 1e-15:
-            self.res7 = sum(self.sobolev * J.J() for J in self.J_sobolevs)
-            self.drescoil += self.sobolev * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolevs[:-1]])
-            self.dresma += self.sobolev * self.J_sobolevs[-1].dJ_by_dcoefficients()
+        if self.sobolev_weight > 1e-15:
+            self.res7 = sum(self.sobolev_weight * J.J() for J in self.J_sobolev_weights)
+            self.drescoil += self.sobolev_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolev_weights[:-1]])
+            self.dresma += self.sobolev_weight * self.J_sobolev_weights[-1].dJ_by_dcoefficients()
         else:
             self.res7 = 0
 
-        if self.arclength > 1e-15:
-            self.res8 = sum(self.arclength * J.J() for J in self.J_arclengths)
-            self.drescoil += self.arclength * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclengths])
+        if self.arclength_weight > 1e-15:
+            self.res8 = sum(self.arclength_weight * J.J() for J in self.J_arclength_weights)
+            self.drescoil += self.arclength_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclength_weights])
         else:
             self.res8 = 0
 
@@ -241,15 +179,15 @@ class Problem2_Objective():
         else:
             self.res9 = 0
 
-        if self.tikhonov > 1e-15:
-            self.res_tikhonov = self.tikhonov * np.sum((x-self.x0)**2)
-            dres_tikhonov = self.tikhonov * 2. * (x-self.x0)
-            self.dresetabar += dres_tikhonov[0:1]
-            self.dresma += dres_tikhonov[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
-            self.drescurrent += dres_tikhonov[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
-            self.drescoil += dres_tikhonov[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        if self.tikhonov_weight > 1e-15:
+            self.res_tikhonov_weight = self.tikhonov_weight * np.sum((x-self.x0)**2)
+            dres_tikhonov_weight = self.tikhonov_weight * 2. * (x-self.x0)
+            self.dresetabar += dres_tikhonov_weight[0:1]
+            self.dresma += dres_tikhonov_weight[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
+            self.drescurrent += dres_tikhonov_weight[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
+            self.drescoil += dres_tikhonov_weight[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
         else:
-            self.res_tikhonov = 0
+            self.res_tikhonov_weight = 0
 
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
 
@@ -296,7 +234,7 @@ class Problem2_Objective():
             else:
                 raise NotImplementedError
 
-        self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov])
+        self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov_weight])
         self.res = sum(self.Jvals_individual[-1])
         self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
 
@@ -347,7 +285,7 @@ class Problem2_Objective():
         info(f"Iteration {iteration}")
         norm = np.linalg.norm
         info(f"Objective value:         {self.res:.6e}")
-        info(f"Objective values:        {self.res1:.6e}, {self.res2:.6e}, {self.res3:.6e}, {self.res4:.6e}, {self.res5:.6e}, {self.res6:.6e}, {self.res7:.6e}, {self.res8:.6e}, {self.res9:.6e}, {self.res_tikhonov:.6e}")
+        info(f"Objective values:        {self.res1:.6e}, {self.res2:.6e}, {self.res3:.6e}, {self.res4:.6e}, {self.res5:.6e}, {self.res6:.6e}, {self.res7:.6e}, {self.res8:.6e}, {self.res9:.6e}, {self.res_tikhonov_weight:.6e}")
         if self.ninsamples > 0:
             info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(self.perturbed_vals, 0.1):.6e}, {np.mean(self.perturbed_vals):.6e}, {np.quantile(self.perturbed_vals, 0.9):.6e}")
             cvar90 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9)))
@@ -361,6 +299,7 @@ class Problem2_Objective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
+        comm = MPI.COMM_WORLD
         if iteration % 25 == 0 and comm.rank == 0:
             self.plot('iteration-%04i.png' % iteration)
         if iteration % 25 == 0 and self.noutsamples > 0:
@@ -451,3 +390,13 @@ class Problem2_Objective():
             mlab.view(azimuth=45, elevation=45)
             mlab.savefig(self.outdir + "mayavi_angled_" + filename, magnification=4)
             mlab.close()
+
+    def save_to_matlab(self, dirname):
+        dirname = os.path.join(self.outdir, dirname)
+        os.makedirs(dirname, exist_ok=True)
+        matlabcoils = [c.tomatlabformat() for c in self.stellarator._base_coils]
+        np.savetxt(os.path.join(dirname, 'coils.txt'), np.hstack(matlabcoils))
+        np.savetxt(os.path.join(dirname, 'currents.txt'), self.stellarator._base_currents)
+        np.savetxt(os.path.join(dirname, 'eta_bar.txt'), [self.qsf.eta_bar])
+        np.savetxt(os.path.join(dirname, 'cR.txt'), self.ma.coefficients[0])
+        np.savetxt(os.path.join(dirname, 'sZ.txt'), np.concatenate(([0], self.ma.coefficients[1])))

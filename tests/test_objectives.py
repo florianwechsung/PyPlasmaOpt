@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, \
-    SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve, get_matt_data, CoilCollection, \
+    SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve, get_24_coil_data, CoilCollection, \
     QuasiSymmetricField, BiotSavartQuasiSymmetricFieldDifference
 
 
 @pytest.mark.parametrize("gradient", [True, False])
 def test_magnetic_field_objective_by_dcoilcoeffs(gradient):
     nfp = 2
-    (coils, ma) = get_matt_data(nfp=nfp)
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -36,7 +36,7 @@ def test_magnetic_field_objective_by_dcoilcoeffs(gradient):
 @pytest.mark.parametrize("gradient", [True, False])
 def test_magnetic_field_objective_by_dcurvecoeffs(gradient):
     nfp = 2
-    (coils, ma) = get_matt_data(nfp=nfp)
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
@@ -64,8 +64,8 @@ def test_magnetic_field_objective_by_dcurvecoeffs(gradient):
 def test_taylor_test_coil_coeffs(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20)
-    currents = num_coils * [1e4]
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
+    currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
     bs.set_points(ma.gamma)
@@ -106,8 +106,8 @@ def test_taylor_test_coil_coeffs(objective):
 def test_taylor_test_coil_currents(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20)
-    currents = num_coils * [1e4]
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
+    currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
     bs.set_points(ma.gamma)
@@ -141,8 +141,8 @@ def test_taylor_test_coil_currents(objective):
 def test_taylor_test_ma_coeffs(objective):
     num_coils = 6
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20)
-    currents = num_coils * [1e4]
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
+    currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
     bs.set_points(ma.gamma)
@@ -180,8 +180,8 @@ def test_taylor_test_ma_coeffs(objective):
 
 def test_taylor_test_iota_by_coeffs():
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20)
-    qsf = QuasiSymmetricField(-2.25, ma)
+    (_, _, ma, eta_bar) = get_24_coil_data(nfp=nfp, ppp=20)
+    qsf = QuasiSymmetricField(eta_bar, ma)
     ma_dofs = ma.get_dofs()
     np.random.seed(1)
     h = 1e-1 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)
@@ -208,8 +208,8 @@ def test_taylor_test_iota_by_coeffs():
 
 def test_taylor_test_sigma_by_coeffs():
     nfp = 2
-    coils, ma = get_matt_data(nfp=nfp, ppp=20)
-    qsf = QuasiSymmetricField(-2.25, ma)
+    (_, _, ma, eta_bar) = get_24_coil_data(nfp=nfp, ppp=20)
+    qsf = QuasiSymmetricField(eta_bar, ma)
     ma_dofs = ma.get_dofs()
     np.random.seed(1)
     h = 1e-1 * np.random.rand(len(ma_dofs)).reshape(ma_dofs.shape)

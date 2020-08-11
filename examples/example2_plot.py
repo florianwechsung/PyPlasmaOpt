@@ -8,8 +8,8 @@ from matplotlib import rc
 rc('font',**{'family':'serif', 'serif':['Computer Modern Roman']})
 rc('text', usetex=True)
 
-from problem2_objective import get_objective
-obj, args = get_objective()
+from example2_get_objective import example2_get_objective
+obj, args = example2_get_objective()
 outdir = obj.outdir
 # outdir = "output-deterministic-sigma-0.00300/"
 # outdir = "output-stochastic-sigma-0.00300/"

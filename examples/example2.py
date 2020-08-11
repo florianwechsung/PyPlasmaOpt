@@ -1,10 +1,10 @@
 from pyplasmaopt import *
-from problem2_objective import Problem2_Objective, get_objective
+from example2_get_objective import example2_get_objective
 from scipy.optimize import minimize
 import numpy as np
 import os
 
-obj, args = get_objective()
+obj, args = example2_get_objective()
 
 if args.ninsamples > 0:
     info("Biggest deviation in first coil %.6fmm", np.max(np.linalg.norm(obj.stochastic_qs_objective.J_BSvsQS_perturbed[0].biotsavart.coils[0].sample[0], axis=1))*1e3)
@@ -50,7 +50,7 @@ if obj.mode == "cvar":
 obj.update(x)
 obj.callback(x)
 obj.stellarator.savetotxt(outdir)
-import sys; sys.exit()
+# import sys; sys.exit()
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 
@@ -59,7 +59,7 @@ if True:
     # import sys; sys.exit()
 
 # maxiter = 2000
-maxiter = 2000
+maxiter = 200
 # maxiter = 500
 memory = 200
 if solver is None:

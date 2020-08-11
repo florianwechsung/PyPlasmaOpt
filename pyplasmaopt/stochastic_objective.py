@@ -24,7 +24,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
         self.J_BSvsQS_perturbed = []
 
         for i in range(first, last):
-            rg = Generator(PCG64(seed, i, mode="sequence"))
+            rg = np.random.Generator(PCG64(seed, i, mode="sequence"))
             perturbed_coils = [
                 GaussianPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
             perturbed_bs    = BiotSavart(perturbed_coils, stellarator.currents)

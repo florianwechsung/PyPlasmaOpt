@@ -46,9 +46,7 @@ def taylor_test(obj, x, order=6):
 x = obj.x0
 obj.update(x)
 obj.callback(x)
-# matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
-# np.savetxt(os.path.join(obj.outdir, 'coilsmatlab_init.txt'), np.hstack(matlabcoils))
-
+obj.save_to_matlab('matlab_init')
 # if True:
 #     taylor_test(obj, x, order=1)
 #     taylor_test(obj, x, order=2)
@@ -65,12 +63,13 @@ def J_scipy(x):
     dres = obj.dres
     return res, dres
 
-
 res = minimize(J_scipy, x, jac=True, method='l-bfgs-b', tol=1e-20,
                options={"maxiter": maxiter, "maxcor": memory},
                callback=obj.callback)
-print(res)
+
+info("%s" % res)
 xmin = res.x
+obj.save_to_matlab('matlab_optim')
 J_distance = MinimumDistance(obj.stellarator.coils, 0)
 info("Minimum distance = %f" % J_distance.min_dist())
 obj.stellarator.savetotxt(outdir)

@@ -11,11 +11,19 @@ obj.plot('tmp.png')
 outdir = obj.outdir
 
 
-def taylor_test(obj, x, order=6):
-    obj.update(x)
-    dj0 = obj.dres
+def taylor_test(obj, x, order=6, export=False):
     np.random.seed(1)
     h = np.random.rand(*(x.shape))
+    if export:
+        obj.update(h)
+        obj.save_to_matlab('h')
+        obj.update(x+h)
+        obj.save_to_matlab('xplush')
+        obj.update(x)
+        obj.save_to_matlab('x')
+    else:
+        obj.update(x)
+    dj0 = obj.dres
     djh = sum(dj0*h)
     if order == 1:
         shifts = [0, 1]
@@ -47,12 +55,13 @@ x = obj.x0
 obj.update(x)
 obj.callback(x)
 obj.save_to_matlab('matlab_init')
-# if True:
-#     taylor_test(obj, x, order=1)
-#     taylor_test(obj, x, order=2)
-    # taylor_test(obj, x, order=4)
-    # taylor_test(obj, x, order=6)
+if True:
+    taylor_test(obj, x, order=1, export=True)
+    taylor_test(obj, x, order=2)
+    taylor_test(obj, x, order=4)
+    taylor_test(obj, x, order=6)
 
+import sys; sys.exit()
 maxiter = 5000
 memory = 200
 

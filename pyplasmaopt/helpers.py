@@ -84,7 +84,7 @@ def get_flat_data(Nt=4, nfp=3, ppp=10):
     ma.update()
     return (coils, ma)
 
-def get_ncsx_data(Nt=31, ppp=10):
+def get_ncsx_data(Nt=25, ppp=10):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     coil_data = np.loadtxt(os.path.join(dir_path, "data", "NCSX_coil_coeffs.dat"), delimiter=',')

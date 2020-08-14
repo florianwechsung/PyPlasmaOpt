@@ -46,7 +46,7 @@ def example3_get_objective():
     (coils, ma, currents) = get_ncsx_data(Nt=args.Nt, ppp=args.ppp)
     stellarator = CoilCollection(coils, currents, nfp, True)
     eta_bar = -0.6
-    iota_target = 0.395938929522566
+    iota_target = -0.395938929522566
     coil_length_target = None
     magnetic_axis_length_target = None
 

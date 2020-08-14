@@ -14,13 +14,17 @@ outdir = obj.outdir
 def taylor_test(obj, x, order=6, export=False):
     np.random.seed(1)
     h = np.random.rand(*(x.shape))
+    np.savetxt(os.path.join(outdir, 'taylor_test_direction.txt'), h)
+    print(h)
     if export:
         obj.update(h)
         obj.save_to_matlab('h')
         obj.update(x+h)
         obj.save_to_matlab('xplush')
+        print('x+h', obj.res)
         obj.update(x)
         obj.save_to_matlab('x')
+        print('x', obj.res)
     else:
         obj.update(x)
     dj0 = obj.dres
@@ -55,13 +59,13 @@ x = obj.x0
 obj.update(x)
 obj.callback(x)
 obj.save_to_matlab('matlab_init')
-if True:
+if False:
     taylor_test(obj, x, order=1, export=True)
     taylor_test(obj, x, order=2)
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
+    import sys; sys.exit()
 
-import sys; sys.exit()
 maxiter = 5000
 memory = 200
 

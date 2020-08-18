@@ -274,20 +274,27 @@ class CurveCurvature():
     J = \int_{curve} \kappa ds
     """
 
-    def __init__(self, curve, desired_length=None):
+    def __init__(self, curve, desired_length=None, p=2, root=False):
         self.curve = curve
         if desired_length is None:
             self.desired_kappa = 0
         else:
             radius = desired_length/(2*pi)
             self.desired_kappa = 1/radius
+        self.p = p
+        self.root = root
 
     def J(self):
+        p = self.p
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         kappa = self.curve.kappa[:, 0]
-        return np.mean(np.maximum(kappa-self.desired_kappa, 0)**4 * arc_length)
+        if self.root:
+            return np.mean(np.maximum(kappa-self.desired_kappa, 0)**p * arc_length)**(1./p)
+        else:
+            return np.mean(np.maximum(kappa-self.desired_kappa, 0)**p * arc_length)
 
     def dJ_by_dcoefficients(self):
+        p = self.p
         kappa                 = self.curve.kappa[:,0]
         dkappa_by_dcoeff      = self.curve.dkappa_by_dcoeff[:,:,0]
         dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
@@ -297,8 +304,10 @@ class CurveCurvature():
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((np.maximum(kappa-self.desired_kappa, 0)**4/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(4*(np.maximum(kappa-self.desired_kappa, 0))**3 * dkappa_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((np.maximum(kappa-self.desired_kappa, 0)**p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(p*(np.maximum(kappa-self.desired_kappa, 0))**(p-1) * dkappa_by_dcoeff[:,i] * arc_length)
+            if self.root:
+                res[i] *= (1./p) * np.mean(np.maximum(kappa-self.desired_kappa, 0)**p * arc_length)**(1./p-1)
         return res
 
 
@@ -308,14 +317,18 @@ class CurveTorsion():
     J = \int_{curve} \tau^p ds
     """
 
-    def __init__(self, curve, p=2):
+    def __init__(self, curve, p=2, root=False):
         self.curve = curve
         self.p = p
+        self.root = root
 
     def J(self):
         arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
         torsion    = self.curve.torsion[:, 0]
-        return np.mean(torsion**self.p * arc_length)
+        if self.root:
+            return np.mean(np.abs(torsion)**self.p * arc_length)**(1./self.p)
+        else:
+            return np.mean(np.abs(torsion)**self.p * arc_length)
 
     def dJ_by_dcoefficients(self):
         torsion               = self.curve.torsion[:,0]
@@ -327,8 +340,10 @@ class CurveTorsion():
         num_coeff = d2gamma_by_dphidcoeff.shape[1]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((torsion**self.p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(self.p*torsion**(self.p-1) * dtorsion_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((np.abs(torsion)**self.p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i] += np.mean(self.p*np.abs(torsion)**(self.p-1) * np.sign(torsion) * dtorsion_by_dcoeff[:,i] * arc_length)
+            if self.root:
+                    res[i] *= (1./self.p) * np.mean(np.abs(torsion)**self.p * arc_length)**(1./self.p - 1.)
         return res
 
 
@@ -458,3 +473,24 @@ class MinimumDistance():
                 for jj in range(numcoeff2):
                     res[j][jj] -= np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma2[:, jj, :][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
         return res
+
+class CoilLpReduction():
+
+    def __init__(self, objectives, p=2, root=False):
+        self.objectives = objectives
+        self.p = p
+        self.root = root
+
+    def J(self):
+        p = self.p
+        if self.root:
+            return sum([J.J()**p for J in self.objectives])**(1./p)
+        else:
+            return sum([J.J()**p for J in self.objectives])
+
+    def dJ_by_dcoefficients(self):
+        p = self.p
+        if self.root:
+            return (1./p)*sum([J.J()**p for J in self.objectives])**(1./p-1) * np.concatenate([p*(J.J()**(p-1))*J.dJ_by_dcoefficients() for J in self.objectives], axis=0)
+        else:
+            return np.concatenate([p*(J.J()**(p-1))*J.dJ_by_dcoefficients() for J in self.objectives], axis=0)

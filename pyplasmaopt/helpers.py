@@ -15,7 +15,7 @@ def get_24_coil_data(Nt_coils=3, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
         coils[ic].coefficients[0][0] = coil_data[0, 6*ic + 1]
         coils[ic].coefficients[1][0] = coil_data[0, 6*ic + 3]
         coils[ic].coefficients[2][0] = coil_data[0, 6*ic + 5]
-        for io in range(0, Nt_coils):
+        for io in range(0, min(Nt_coils, 5)):
             coils[ic].coefficients[0][2*io+1] = coil_data[io+1, 6*ic + 0]
             coils[ic].coefficients[0][2*io+2] = coil_data[io+1, 6*ic + 1]
             coils[ic].coefficients[1][2*io+1] = coil_data[io+1, 6*ic + 2]
@@ -29,23 +29,23 @@ def get_24_coil_data(Nt_coils=3, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
         numpoints += 1
     ma = StelleratorSymmetricCylindricalFourierCurve(Nt_ma, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
     if at_optimum:
-        ma.coefficients[0][0] = 0.976141492438223
-        ma.coefficients[0][1] = 0.112424048908878
-        ma.coefficients[0][2] = 0.008616069597869
-        ma.coefficients[0][3] = 0.000481649520639
+        macoeff0 = [0.976141492438223, 0.112424048908878, 0.008616069597869, 0.000481649520639]
+        macoeff1 = [-0.149451871576844, -0.008946798078974, -0.000540954372519]
 
-        ma.coefficients[1][0] = -0.149451871576844
-        ma.coefficients[1][1] = -0.008946798078974
-        ma.coefficients[1][2] = -0.000540954372519
+        for i in range(min(Nt_ma+1, 4)):
+            ma.coefficients[0][i] = macoeff0[i]
+        for i in range(min(Nt_ma, 3)):
+            ma.coefficients[1][i] = macoeff1[i]
+
     else:
-        ma.coefficients[0][0] = 1.
-        ma.coefficients[0][1] = 0.076574
-        ma.coefficients[0][2] = 0.0032607
-        ma.coefficients[0][3] = 2.5405e-05
+        macoeff0 = [1., 0.076574, 0.0032607, 2.5405e-05]
+        macoeff1 = [-0.07605, -0.0031845, -3.1852e-05]
 
-        ma.coefficients[1][0] = -0.07605
-        ma.coefficients[1][1] = -0.0031845
-        ma.coefficients[1][2] = -3.1852e-05
+        for i in range(min(Nt_ma+1, 4)):
+            ma.coefficients[0][i] = macoeff0[i]
+        for i in range(min(Nt_ma, 3)):
+            ma.coefficients[1][i] = macoeff1[i]
+
     ma.update()
 
     if at_optimum:

@@ -1,6 +1,6 @@
 from .biotsavart import BiotSavart
 from .quasi_symmetric_field import QuasiSymmetricField
-from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance
+from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
 from .curve import GaussianSampler
 from .stochastic_objective import StochasticQuasiSymmetryObjective, CVaR
 from .logging import info
@@ -430,8 +430,10 @@ class SimpleNearAxisQuasiSymmetryObjective():
             self.coil_length_targets = [J.J() for J in self.J_coil_lengths]
         self.magnetic_axis_length_target = magnetic_axis_length_target or self.J_axis_length.J()
 
-        self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
-        self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
+        # self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
+        self.J_coil_curvatures = CoilLpReduction([CurveCurvature(coil, length, p=2, root=True) for (coil, length) in zip(coils, self.coil_length_targets)], p=2, root=True)
+        # self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
+        self.J_coil_torsions   = CoilLpReduction([CurveTorsion(coil, p=2, root=True) for coil in coils], p=2, root=True)
         self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
         self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
@@ -524,15 +526,19 @@ class SimpleNearAxisQuasiSymmetryObjective():
             self.dresma     += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_dcoeffs[:, 0]
 
         if curvature_weight > 0:
-            self.res5      = sum(curvature_weight * J.J() for J in J_coil_curvatures)
+            # self.res5      = sum(curvature_weight * J.J() for J in J_coil_curvatures)
+            self.res5      = curvature_weight  * J_coil_curvatures.J()
             if compute_derivative:
-                self.drescoil += self.curvature_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+                # self.drescoil += self.curvature_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
+                self.drescoil += self.curvature_weight * J_coil_curvatures.dJ_by_dcoefficients()
         else:
             self.res5 = 0
         if torsion_weight > 0:
-            self.res6      = sum(torsion_weight * J.J() for J in J_coil_torsions)
+            # self.res6      = sum(torsion_weight * J.J() for J in J_coil_torsions)
+            self.res6 = torsion_weight * J_coil_torsions.J() 
             if compute_derivative:
-                self.drescoil += self.torsion_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
+                # self.drescoil += self.torsion_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
+                self.drescoil += self.torsion_weight * J_coil_torsions.dJ_by_dcoefficients() 
         else:
             self.res6 = 0
 

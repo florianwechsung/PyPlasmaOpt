@@ -348,7 +348,7 @@ class QuasiSymmetricField(PropertyManager):
                 diff = np.linalg.norm(update)
                 count += 1
                 if count > 10:
-                    warning("Newton failed: use fsolve")
+                    # warning("Newton failed: use fsolve")
                     soln = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13)
                     break
 

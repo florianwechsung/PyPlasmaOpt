@@ -39,9 +39,7 @@ class get_numpy_include(object):
 ext_modules = [
     Extension(
         'cppplasmaopt',
-        ['cppplasmaopt/main.cpp', 'cppplasmaopt/biot_savart_all.cpp', 'cppplasmaopt/biot_savart_by_dcoilcoeff_all.cpp',
-         'cppplasmaopt/biot_savart_B.cpp', 'cppplasmaopt/biot_savart_dB_by_dX.cpp', 'cppplasmaopt/biot_savart_d2B_by_dXdX.cpp',
-         'cppplasmaopt/biot_savart_dB_by_dcoilcoeff.cpp', 'cppplasmaopt/biot_savart_d2B_by_dXdcoilcoeff.cpp'],
+        ['cppplasmaopt/main.cpp', 'cppplasmaopt/biot_savart_all.cpp', 'cppplasmaopt/biot_savart_by_dcoilcoeff_all.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_numpy_include(),

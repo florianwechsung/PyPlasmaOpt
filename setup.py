@@ -124,7 +124,7 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='PlasmaOpt',
+    name='PyPlasmaOpt',
     long_description='',
     ext_modules=ext_modules,
     install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy', 'argparse', 'mpi4py', 'matplotlib', 'randomgen'],

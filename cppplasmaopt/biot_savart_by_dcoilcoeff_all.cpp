@@ -137,8 +137,6 @@ void biot_savart_by_dcoilcoeff_all(Array& points, vector<Array>& gammas, vector<
     #pragma omp parallel for
     for(int i=0; i<num_coils; i++) {
         biot_savart_by_dcoilcoeff_all_simd<Array>(pointsx, pointsy, pointsz, gammas[i], dgamma_by_dphis[i],dgamma_by_dcoeffs[i], d2gamma_by_dphidcoeffs[i], dB_by_dcoilcoeffs[i], d2B_by_dXdcoilcoeff[i]);
-        //biot_savart_dB_by_dcoilcoeff(points, gammas[i], dgamma_by_dphis[i], dgamma_by_dcoeffs[i], d2gamma_by_dphidcoeffs[i], dB_by_dcoilcoeffs[i]);
-        //biot_savart_d2B_by_dXdcoilcoeff(points, gammas[i], dgamma_by_dphis[i], dgamma_by_dcoeffs[i], d2gamma_by_dphidcoeffs[i], d2B_by_dXdcoilcoeff[i]);
         double fak = (currents[i] * 1e-7/gammas[i].shape(0));
         dB_by_dcoilcoeffs[i] *= fak;
         d2B_by_dXdcoilcoeff[i] *= fak;

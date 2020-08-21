@@ -16,20 +16,13 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     xt::import_numpy();
 
     m.def("add", &add, R"pbdoc(
-        Add two numbers
-        Some other explanation about the add function.
+        Add two numbers.
+        Just here to test that the C++/Python interface works.
     )pbdoc");
 
     m.def("biot_savart_all",               & biot_savart_all);
     m.def("biot_savart_B_only",            & biot_savart_B_only);
     m.def("biot_savart_by_dcoilcoeff_all", & biot_savart_by_dcoilcoeff_all);
-    
-    m.def("biot_savart_B",           &biot_savart_B);
-    m.def("biot_savart_dB_by_dX",    &biot_savart_dB_by_dX);
-    m.def("biot_savart_d2B_by_dXdX", &biot_savart_d2B_by_dXdX);
-
-    m.def("biot_savart_dB_by_dcoilcoeff",    & biot_savart_dB_by_dcoilcoeff);
-    m.def("biot_savart_d2B_by_dXdcoilcoeff", & biot_savart_d2B_by_dXdcoilcoeff);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

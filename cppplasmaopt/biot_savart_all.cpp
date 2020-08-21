@@ -8,11 +8,9 @@ void biot_savart_all_simd(vector_type& pointsx, vector_type& pointsy, vector_typ
     for(int i = 0; i < num_points-num_points%simd_size; i += simd_size) {
         auto point_i = Vec3dSimd(&(pointsx[i]), &(pointsy[i]), &(pointsz[i]));
         auto B_i   = Vec3dSimd();
-        //auto dB_dX_i_data = vector<double, xs::aligned_allocator<double, XSIMD_DEFAULT_ALIGNMENT>>(12, 0.);
         auto dB_dX_i = vector<Vec3dSimd, xs::aligned_allocator<Vec3dSimd, XSIMD_DEFAULT_ALIGNMENT>>{
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd()
         };
-        //auto d2B_dXdX_i = vector<Vec3dSimd>{
         auto d2B_dXdX_i = vector<Vec3dSimd, xs::aligned_allocator<Vec3dSimd, XSIMD_DEFAULT_ALIGNMENT>>{
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd(), 
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd(), 
@@ -170,9 +168,6 @@ void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma
     #pragma omp parallel for
     for(int i=0; i<num_coils; i++) {
         biot_savart_all_simd<Array>(pointsx, pointsy, pointsz, gammas[i], dgamma_by_dphis[i], Bs[i], dB_by_dXs[i], d2B_by_dXdXs[i]);
-        //biot_savart_B(points, gammas[i], dgamma_by_dphis[i], Bs[i]);
-        //biot_savart_dB_by_dX(points, gammas[i], dgamma_by_dphis[i], dB_by_dXs[i]);
-        //biot_savart_d2B_by_dXdX(points, gammas[i], dgamma_by_dphis[i], d2B_by_dXdXs[i]);
     }
 
     for(int i=0; i<num_coils; i++) {

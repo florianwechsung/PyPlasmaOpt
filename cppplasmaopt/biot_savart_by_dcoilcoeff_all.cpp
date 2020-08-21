@@ -10,7 +10,7 @@ void biot_savart_by_dcoilcoeff_all_simd(vector_type& pointsx, vector_type& point
         auto point_i = Vec3dSimd(&(pointsx[i]), &(pointsy[i]), &(pointsz[i]));
         for(int k=0; k<num_coil_coeffs; k++) {
             auto B_i   = Vec3dSimd();
-            auto dB_dX_i = vector<Vec3dSimd, xs::aligned_allocator<double, XSIMD_DEFAULT_ALIGNMENT>>{
+            auto dB_dX_i = vector<Vec3dSimd, xs::aligned_allocator<Vec3dSimd, XSIMD_DEFAULT_ALIGNMENT>>{
                 Vec3dSimd(), Vec3dSimd(), Vec3dSimd()
             };
             for (int j = 0; j < num_quad_points; ++j) {

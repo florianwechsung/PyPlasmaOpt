@@ -8,12 +8,12 @@ void biot_savart_all_simd(vector_type& pointsx, vector_type& pointsy, vector_typ
     for(int i = 0; i < num_points-num_points%simd_size; i += simd_size) {
         auto point_i = Vec3dSimd(&(pointsx[i]), &(pointsy[i]), &(pointsz[i]));
         auto B_i   = Vec3dSimd();
-        //auto dB_dX_i = vector<Vec3dSimd>{
-        auto dB_dX_i = vector<Vec3dSimd, xs::aligned_allocator<double, XSIMD_DEFAULT_ALIGNMENT>>{
+        //auto dB_dX_i_data = vector<double, xs::aligned_allocator<double, XSIMD_DEFAULT_ALIGNMENT>>(12, 0.);
+        auto dB_dX_i = vector<Vec3dSimd, xs::aligned_allocator<Vec3dSimd, XSIMD_DEFAULT_ALIGNMENT>>{
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd()
         };
         //auto d2B_dXdX_i = vector<Vec3dSimd>{
-        auto d2B_dXdX_i = vector<Vec3dSimd, xs::aligned_allocator<double, XSIMD_DEFAULT_ALIGNMENT>>{
+        auto d2B_dXdX_i = vector<Vec3dSimd, xs::aligned_allocator<Vec3dSimd, XSIMD_DEFAULT_ALIGNMENT>>{
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd(), 
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd(), 
             Vec3dSimd(), Vec3dSimd(), Vec3dSimd() 

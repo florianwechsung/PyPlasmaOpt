@@ -106,12 +106,20 @@ struct Vec3dSimd {
 };
 
 
+inline simd_t inner(Vec3dSimd& a, Vec3dSimd& b){
+    return a.x*b.x+a.y*b.y+a.z*b.z;
+}
+
 inline simd_t inner(Vec3d& b, Vec3dSimd& a){
     return a.x*b[0]+a.y*b[1]+a.z*b[2];
 }
 
 inline simd_t inner(Vec3dSimd& a, Vec3d& b){
     return a.x*b[0]+a.y*b[1]+a.z*b[2];
+}
+
+inline Vec3dSimd cross(Vec3dSimd& a, Vec3dSimd& b){
+    return Vec3dSimd(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
 inline Vec3dSimd cross(Vec3dSimd& a, Vec3d& b){
@@ -130,13 +138,6 @@ void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma
 void biot_savart_B_only(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& B);
 
 void biot_savart_by_dcoilcoeff_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs, vector<double>& currents, vector<Array>& dB_by_dcoilcoeffs, vector<Array>& d2B_by_dXdcoilcoeff);
-
-void biot_savart_B(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& res);
-void biot_savart_dB_by_dX(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& res);
-void biot_savart_d2B_by_dXdX(Array& points, Array& gamma, Array& dgamma_by_dphi, Array& res);
-
-void biot_savart_dB_by_dcoilcoeff(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& dgamma_by_dcoeffs, Array& d2gamma_by_dphidcoeffs, Array& res);
-void biot_savart_d2B_by_dXdcoilcoeff(Array& points, Array& gammas, Array& dgamma_by_dphis, Array& dgamma_by_dcoeffs, Array& d2gamma_by_dphidcoeffs, Array& res);
 
 template<class T>
 void biot_savart_all_simd(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& B, T& dB_by_dX, T& d2B_by_dXdX);

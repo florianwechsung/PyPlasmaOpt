@@ -274,3 +274,63 @@ void biot_savart_B_only(Array& points, vector<Array>& gammas, vector<Array>& dga
 }
 
 
+template<class T>
+void biot_savart_B_only_vjp(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, vector_type& vx, vector_type& vy, vector_type& vz, T& res_gamma, T& res_dgamma_by_dphi) {
+    int num_points         = pointsx.size();
+    int num_quad_points    = gamma.shape(0);
+    constexpr int simd_size = xsimd::simd_type<double>::size;
+    for(int i = 0; i < num_points-num_points%simd_size; i += simd_size) {
+        auto point_i = Vec3dSimd(&(pointsx[i]), &(pointsy[i]), &(pointsz[i]));
+        auto B_i   = Vec3dSimd();
+        auto v_i   = Vec3dSimd(&(vx[i]), &(vy[i]), &(vz[i]));
+        for (int j = 0; j < num_quad_points; ++j) {
+            auto gamma_j          = Vec3d(3, &gamma(j, 0));
+            auto dgamma_by_dphi_j = Vec3d(3, &dgamma_by_dphi(j, 0));
+
+            auto diff = point_i - gamma_j;
+            auto norm_diff_2     = normsq(diff);
+            auto norm_diff       = sqrt(norm_diff_2);
+
+            auto norm_diff_3_inv = 1./(norm_diff_2 * norm_diff);
+            auto norm_diff_5_inv = norm_diff_3_inv/norm_diff_2;
+            auto dgamma_by_dphi_j_cross_diff = cross(dgamma_by_dphi_j, diff);
+            B_i += dgamma_by_dphi_j_cross_diff * norm_diff_3_inv;
+            for(int d=0; d<3; d++){
+                auto ed = Vec3dSimd();
+                ed[d] += 1.0;
+
+                auto diff_ed = point_i - ed;
+                auto term2 = dgamma_by_dphi_j_cross_diff * diff[d] * norm_diff_5_inv;
+                auto res_gamma_add = 3.*inner(term2, v_i);
+                auto term1 = cross(dgamma_by_dphi_j, diff_ed) * norm_diff_3_inv;
+                res_gamma_add -= inner(term1, v_i);
+                auto term3 = cross(ed, diff) * norm_diff_3_inv;
+                auto res_dgamma_by_dphi_add = inner(term3, v_i);
+                for(int k=0; k<simd_size; k++){
+                    res_gamma(i+k, d) += res_gamma_add[k];
+                    res_gamma(i+k, d) += res_gamma_add[k];
+                    res_dgamma_by_dphi(i+k, d) += res_dgamma_by_dphi_add[k];
+                }
+            }
+        }
+    }
+    //for (int i = num_points - num_points % simd_size; i < num_points; ++i) {
+    //    auto point = Vec3d{pointsx[i], pointsy[i], pointsz[i]};
+    //    B(i, 0) = 0;
+    //    B(i, 1) = 0;
+    //    B(i, 2) = 0;
+    //    for (int j = 0; j < num_quad_points; ++j) {
+    //        auto gamma_j = Vec3d(3, &gamma(j, 0));
+    //        auto dgamma_by_dphi_j = Vec3d(3, &dgamma_by_dphi(j, 0));
+    //        auto diff = point - gamma_j;
+    //        double norm_diff = norm(diff);
+    //        auto dgamma_by_dphi_j_cross_diff = cross(dgamma_by_dphi_j, diff);
+    //        auto B_i = dgamma_by_dphi_j_cross_diff / (norm_diff * norm_diff * norm_diff);
+
+    //        B(i, 0) += B_i[0];
+    //        B(i, 1) += B_i[1];
+    //        B(i, 2) += B_i[2];
+    //    }
+    //}
+}
+template void biot_savart_B_only_vjp<xt::xarray<double>>(vector_type&, vector_type&, vector_type&, xt::xarray<double>&, xt::xarray<double>&, vector_type&, vector_type&, vector_type&, xt::xarray<double>&, xt::xarray<double>&);

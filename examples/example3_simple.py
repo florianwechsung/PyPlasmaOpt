@@ -89,24 +89,21 @@ obj.stellarator.savetotxt(outdir)
 matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
 np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
 np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
-import IPython; IPython.embed()
 
 # def approx_H(x):
 #     n = x.size
 #     H = np.zeros((n, n))
 #     x0 = x
-#     d0 = J_scipy(x0)[1]
-#     eps = 1e-6
+#     eps = 1e-4
 #     for i in range(n):
-#         x1 = x0.copy()
-#         x1[i] += eps
-#         d1 = J_scipy(x1)[1]
-#         H[i, :] = (d1-d0)/eps
+#         x = x0.copy()
+#         x[i] += eps
+#         d1 = J_scipy(x)[1]
+#         x[i] -= 2*eps
+#         d0 = J_scipy(x)[1]
+#         H[i, :] = (d1-d0)/(2*eps)
 #     H = 0.5 * (H+H.T)
 #     return H
-
-# from scipy.linalg import eigh
-# x = xmin
 # for i in range(20):
 #     H = approx_H(x)
 #     f, d = J_scipy(x)

@@ -84,18 +84,18 @@ def get_flat_data(Nt=4, nfp=3, ppp=10):
     ma.update()
     return (coils, ma)
 
-def get_ncsx_data(Nt=25, ppp=10):
+def get_ncsx_data(Nt_coils= 25, Nt_ma=25, ppp=10):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     coil_data = np.loadtxt(os.path.join(dir_path, "data", "NCSX_coil_coeffs.dat"), delimiter=',')
     nfp = 3
     num_coils = 3
-    coils = [CartesianFourierCurve(Nt, np.linspace(0, 1, Nt*ppp, endpoint=False)) for i in range(num_coils)]
+    coils = [CartesianFourierCurve(Nt_coils, np.linspace(0, 1, Nt_coils*ppp, endpoint=False)) for i in range(num_coils)]
     for ic in range(num_coils):
         coils[ic].coefficients[0][0] = coil_data[0, 6*ic + 1]
         coils[ic].coefficients[1][0] = coil_data[0, 6*ic + 3]
         coils[ic].coefficients[2][0] = coil_data[0, 6*ic + 5]
-        for io in range(0, Nt):
+        for io in range(0, Nt_coils):
             coils[ic].coefficients[0][2*io+1] = coil_data[io+1, 6*ic + 0]
             coils[ic].coefficients[0][2*io+2] = coil_data[io+1, 6*ic + 1]
             coils[ic].coefficients[1][2*io+1] = coil_data[io+1, 6*ic + 2]
@@ -104,18 +104,18 @@ def get_ncsx_data(Nt=25, ppp=10):
             coils[ic].coefficients[2][2*io+2] = coil_data[io+1, 6*ic + 5]
         coils[ic].update()
 
-    numpoints = Nt*ppp+1 if ((Nt*ppp) % 2 == 0) else Nt*ppp
-    ma = StelleratorSymmetricCylindricalFourierCurve(Nt, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
+    numpoints = Nt_ma*ppp+1 if ((Nt_ma*ppp) % 2 == 0) else Nt_ma*ppp
+    ma = StelleratorSymmetricCylindricalFourierCurve(Nt_ma, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False))
     cR = [1.471415400740515, 0.1205306261840785, 0.008016125223436036, -0.000508473952304439, -0.0003025251710853062, -0.0001587936004797397, 3.223984137937924e-06, 3.524618949869718e-05, 2.539719080181871e-06, -9.172247073731266e-06, -5.9091166854661e-06, -2.161311017656597e-06, -5.160802127332585e-07, -4.640848016990162e-08, 2.649427979914062e-08, 1.501510332041489e-08, 3.537451979994735e-09, 3.086168230692632e-10, 2.188407398004411e-11, 5.175282424829675e-11, 1.280947310028369e-11, -1.726293760717645e-11, -1.696747733634374e-11, -7.139212832019126e-12, -1.057727690156884e-12, 5.253991686160475e-13]
     sZ = [0.06191774986623827, 0.003997436991295509, -0.0001973128955021696, -0.0001892615088404824, -2.754694372995494e-05, -1.106933185883972e-05, 9.313743937823742e-06, 9.402864564707521e-06, 2.353424962024579e-06, -1.910411249403388e-07, -3.699572817752344e-07, -1.691375323357308e-07, -5.082041581362814e-08, -8.14564855367364e-09, 1.410153957667715e-09, 1.23357552926813e-09, 2.484591855376312e-10, -3.803223187770488e-11, -2.909708414424068e-11, -2.009192074867161e-12, 1.775324360447656e-12, -7.152058893039603e-13, -1.311461207101523e-12, -6.141224681566193e-13, -6.897549209312209e-14]
 
-    for i in range(Nt):
+    for i in range(Nt_ma):
         ma.coefficients[0][i] = cR[i]
         ma.coefficients[1][i] = sZ[i]
-    ma.coefficients[0][Nt] = cR[Nt]
+    ma.coefficients[0][Nt_ma] = cR[Nt_ma]
 
     ma.update()
-    currents = [6.52271941985300E+05, 6.51868569367400E+05, 5.37743588647300E+05]
+    currents = [c/1.474 for c in [6.52271941985300E+05, 6.51868569367400E+05, 5.37743588647300E+05]] # normalise to get a magnetic field of around 1 at the axis
     return (coils, ma, currents)
 
 

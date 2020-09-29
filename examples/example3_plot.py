@@ -5,8 +5,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import rc
-rc('font',**{'family':'serif', 'serif':['Computer Modern Roman']})
-rc('text', usetex=True)
+rc('font',**{'family':'serif', 'serif':['Computer Modern Roman'], 'size': 5})
+# rc('text', usetex=True)
 
 from example3_get_objective import example3_get_objective
 obj, args = example3_get_objective()
@@ -14,10 +14,59 @@ outdir = obj.outdir
 
 xiterates = np.loadtxt(outdir + "xiterates.txt")
 it = -1
-obj.set_dofs(xiterates[it, :])
+x = xiterates[it, :]
+obj.set_dofs(x)
+
+################################################################################
+# Hessian ######################################################################
+################################################################################
+
+def approx_H(x):
+    n = x.size
+    H = np.zeros((n, n))
+    x0 = x
+    eps = 1e-4
+    for i in range(n):
+        x = x0.copy()
+        x[i] += eps
+        obj.update(x)
+        d1 = obj.dres
+        x[i] -= 2*eps
+        obj.update(x)
+        d0 = obj.dres
+        H[i, :] = (d1-d0)/(2*eps)
+    H = 0.5 * (H+H.T)
+    return H
+
+from scipy.linalg import eigh
+H = approx_H(x)
+evals = eigh(H, eigvals_only=True) 
+sortedabsevals = np.flip(np.sort(np.abs(evals)))
+print("Eigenvalues")
+print(evals)
+np.savetxt(outdir + "evals_it_%i.txt" % it, evals)
+np.savetxt(outdir + "sortedabsevals_it_%i.txt" % it, sortedabsevals)
+import matplotlib.pyplot as plt
+plt.semilogy(sortedabsevals)
+plt.xlabel('Index')
+plt.ylabel('Magnitude')
+plt.title(outdir)
+plt.savefig(outdir + 'sortedabsevals_it_%i.png' % it, dpi=600)
+plt.close()
+evals = eigh(H[obj.coil_dof_idxs[0]:obj.coil_dof_idxs[1], obj.coil_dof_idxs[0]:obj.coil_dof_idxs[1]], eigvals_only=True) 
+sortedabsevals = np.flip(np.sort(np.abs(evals)))
+print("Eigenvalues (coil only)")
+print(evals)
+np.savetxt(outdir + "evals_coil_only_it_%i.txt" % it, evals)
+np.savetxt(outdir + "sortedabsevals_coil_only_it_%i.txt" % it, sortedabsevals)
+
+################################################################################
+# Poincare plot ################################################################
+################################################################################
+
 nperiods = 200
 if it == 0:
-    magnetic_axis_radius=1.5845
+    magnetic_axis_radius=1.5908
 else:
     magnetic_axis_radius=obj.ma.gamma[0, 0]
 
@@ -75,3 +124,44 @@ for i in range(nparticles):
 plt.savefig(outdir + "poincare_%i.png" % it, dpi=300)
 plt.close()
 
+################################################################################
+# Plot coils ###################################################################
+################################################################################
+
+import mayavi.mlab as mlab
+mlab.options.offscreen = True
+mlab.figure(bgcolor=(1, 1, 1))
+colors = [
+    (0.2980392156862745, 0.4470588235294118, 0.6901960784313725),
+    (0.8666666666666667, 0.5176470588235295, 0.3215686274509804),
+    (0.3333333333333333, 0.6588235294117647, 0.40784313725490196),
+    (0.7686274509803922, 0.3058823529411765, 0.3215686274509804),
+    (0.5058823529411764, 0.4470588235294118, 0.7019607843137254),
+    (0.5764705882352941, 0.47058823529411764, 0.3764705882352941),
+    (0.8549019607843137, 0.5450980392156862, 0.7647058823529411),
+    (0.5490196078431373, 0.5490196078431373, 0.5490196078431373),
+    (0.8, 0.7254901960784313, 0.4549019607843137),
+    (0.39215686274509803, 0.7098039215686275, 0.803921568627451)
+]
+count = 0
+for coil in obj.stellarator.coils:
+    coil = coil.gamma
+    coil = np.vstack((coil, coil[0,:]))
+    mlab.plot3d(coil[:, 0], coil[:, 1], coil[:, 2], tube_radius = 0.015, color = colors[count%len(colors)] )
+    count +=1
+eo = 3
+gamma = obj.ma.gamma
+theta = 2*np.pi/obj.ma.nfp
+rotmat = np.asarray([
+    [cos(theta), -sin(theta), 0],
+    [sin(theta), cos(theta), 0],
+    [0, 0, 1]]).T
+gamma0 = gamma.copy()
+for i in range(1, obj.ma.nfp):
+    gamma0 = gamma0 @ rotmat
+    gamma = np.vstack((gamma, gamma0))
+mlab.points3d(gamma[::eo, 0], gamma[::eo, 1], gamma[::eo, 2], mode = 'sphere', scale_factor=0.05, color = (0,0,0))
+mlab.gcf().scene.parallel_projection = True
+mlab.view(azimuth=0, elevation=40)
+mlab.savefig(outdir + "coils-it-%i.png" % it, magnification=4)
+mlab.clf()

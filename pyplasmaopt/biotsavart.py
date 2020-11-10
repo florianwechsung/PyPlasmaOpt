@@ -16,6 +16,23 @@ class BiotSavart(PropertyManager):
         self.points = points
         self.clear_cached_properties()
 
+    def B_and_dB_vjp(self, v, vgrad):
+        gammas                 = [coil.gamma for coil in self.coils]
+        dgamma_by_dphis        = [coil.dgamma_by_dphi[:, 0, :] for coil in self.coils]
+        currents = self.coil_currents
+        res_gamma = [np.zeros((coil.gamma.shape[0], 3)) for coil in self.coils]
+        res_dgamma_by_dphi = [np.zeros((coil.dgamma_by_dphi.shape[0], 3)) for coil in self.coils]
+        res_grad_gamma = [np.zeros((coil.gamma.shape[0], 3)) for coil in self.coils]
+        res_grad_dgamma_by_dphi = [np.zeros((coil.dgamma_by_dphi.shape[0], 3)) for coil in self.coils]
+        dgamma_by_dcoeffs      = [coil.dgamma_by_dcoeff for coil in self.coils]
+        d2gamma_by_dphidcoeffs = [coil.d2gamma_by_dphidcoeff[:, 0, :, :] for coil in self.coils]
+        cpp.biot_savart_by_dcoilcoeff_all_vjp(self.points, gammas, dgamma_by_dphis, currents, v, res_gamma, res_dgamma_by_dphi, vgrad, res_grad_gamma, res_grad_dgamma_by_dphi)
+        n = len(self.coils)
+        return [
+            [np.einsum('ikj,ij->k', dgamma_by_dcoeffs[i], res_gamma[i]) + np.einsum('ikj,ij->k', d2gamma_by_dphidcoeffs[i], res_dgamma_by_dphi[i]) for i in range(n)], 
+            [np.einsum('ikj,ij->k', dgamma_by_dcoeffs[i], res_grad_gamma[i]) + np.einsum('ikj,ij->k', d2gamma_by_dphidcoeffs[i], res_grad_dgamma_by_dphi[i]) for i in range(n)]
+        ]
+
     @writable_cached_property
     def B(self):
         self.compute(self.points)

@@ -48,8 +48,8 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
     def dJ_by_dcoilcoefficients_samples(self, t=None):
         local_vals = [0.5 * 
                       (
-                          self.stellarator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients())
-                          + self.stellarator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients())
+                          self.stellarator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients)
+                          + self.stellarator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients)
                       ) for J in self.J_BSvsQS_perturbed]
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals

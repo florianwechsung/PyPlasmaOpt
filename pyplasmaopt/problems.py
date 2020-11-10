@@ -113,6 +113,9 @@ class NearAxisQuasiSymmetryObjective():
 
         self.biotsavart.clear_cached_properties()
         self.qsf.clear_cached_properties()
+        self.J_BSvsQS.clear_cached_properties()
+        for J in self.stochastic_qs_objective.J_BSvsQS_perturbed:
+            J.clear_cached_properties()
 
     def update(self, x):
         self.x[:] = x
@@ -198,8 +201,8 @@ class NearAxisQuasiSymmetryObjective():
         self.res1_det        = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
         self.dresetabar_det  = 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
         self.dresma_det      = 0.5 * J_BSvsQS.dJ_L2_by_dmagneticaxiscoefficients() + 0.5 * J_BSvsQS.dJ_H1_by_dmagneticaxiscoefficients()
-        self.drescoil_det    = 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients()) \
-            + 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients())
+        self.drescoil_det    = 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_L2_by_dcoilcoefficients) \
+            + 0.5 * self.stellarator.reduce_coefficient_derivatives(J_BSvsQS.dJ_H1_by_dcoilcoefficients)
         self.drescurrent_det = 0.5 * self.current_fak * (
             self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_L2_by_dcoilcurrents()) + self.stellarator.reduce_current_derivatives(J_BSvsQS.dJ_H1_by_dcoilcurrents())
         )
@@ -300,6 +303,7 @@ class NearAxisQuasiSymmetryObjective():
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         comm = MPI.COMM_WORLD
+        return
         if iteration % 25 == 0 and comm.rank == 0:
             self.plot('iteration-%04i.png' % iteration)
         if iteration % 25 == 0 and self.noutsamples > 0:

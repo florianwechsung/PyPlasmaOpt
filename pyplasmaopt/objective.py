@@ -1,8 +1,10 @@
 import numpy as np
 from math import pi
+from property_manager3 import cached_property, PropertyManager
+writable_cached_property = cached_property(writable=True)
 
 
-class BiotSavartQuasiSymmetricFieldDifference():
+class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
 
     def __init__(self, quasi_symmetric_field, biotsavart):
         self.quasi_symmetric_field = quasi_symmetric_field
@@ -14,16 +16,34 @@ class BiotSavartQuasiSymmetricFieldDifference():
         arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
         return np.sum(arc_length[:, None] * (Bbs-Bqs)**2)/len(arc_length)
 
-    def dJ_L2_by_dcoilcoefficients(self):
+
+    def compute_dcoilcoefficients(self, reverse_mode=True):
+        reverse_mode = False
         Bbs                = self.biotsavart.B
         Bqs                = self.quasi_symmetric_field.B
-        dBbs_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeffs
+        dBbs_by_dX            = self.biotsavart.dB_by_dX
+        dBqs_by_dX            = self.quasi_symmetric_field.dB_by_dX
         arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
-        res = []
-        temp = (Bbs-Bqs) * arc_length[:, None]
-        for dB in dBbs_by_dcoilcoeff:
-            res.append(np.einsum('ij,ikj->k', temp, dB) * 2 / len(arc_length))
-        return res
+        v = (Bbs-Bqs) * arc_length[:, None] * 2 / len(arc_length)
+        vgrad = (arc_length[:, None, None])*(dBbs_by_dX-dBqs_by_dX) * 2 / len(arc_length)
+        if reverse_mode:
+            res = self.biotsavart.B_and_dB_vjp(v, vgrad)
+            self.dJ_L2_by_dcoilcoefficients = res[0]
+            self.dJ_H1_by_dcoilcoefficients = res[1]
+        else:
+            dBbs_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeffs
+            self.dJ_L2_by_dcoilcoefficients = []
+            for dB in dBbs_by_dcoilcoeff:
+                self.dJ_L2_by_dcoilcoefficients.append(np.einsum('ij,ikj->k', v, dB))
+            d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeffs
+            self.dJ_H1_by_dcoilcoefficients = []
+            for dB in d2Bbs_by_dXdcoilcoeff:
+                self.dJ_H1_by_dcoilcoefficients.append(np.einsum('ijk,iljk->l', vgrad, dB))
+
+    @writable_cached_property
+    def dJ_L2_by_dcoilcoefficients(self):
+        self.compute_dcoilcoefficients(reverse_mode=True)
+        return self.dJ_L2_by_dcoilcoefficients
 
     def dJ_L2_by_dcoilcurrents(self):
         Bbs                   = self.biotsavart.B
@@ -70,16 +90,10 @@ class BiotSavartQuasiSymmetricFieldDifference():
         dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX
         return np.sum(arc_length[:, None, None] * (dBbs_by_dX-dBqs_by_dX)**2)/len(arc_length)
 
+    @writable_cached_property
     def dJ_H1_by_dcoilcoefficients(self):
-        dBbs_by_dX            = self.biotsavart.dB_by_dX
-        d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeffs
-        dBqs_by_dX            = self.quasi_symmetric_field.dB_by_dX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
-        res = []
-        temp = (arc_length[:, None, None])*(dBbs_by_dX-dBqs_by_dX)
-        for dB in d2Bbs_by_dXdcoilcoeff:
-            res.append(np.einsum('ijk,iljk->l', temp, dB) * 2 / len(arc_length))
-        return res
+        self.compute_dcoilcoefficients(reverse_mode=True)
+        return self.dJ_H1_by_dcoilcoefficients
 
     def dJ_H1_by_dcoilcurrents(self):
         dBbs_by_dX               = self.biotsavart.dB_by_dX

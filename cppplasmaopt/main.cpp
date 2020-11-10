@@ -23,6 +23,8 @@ PYBIND11_MODULE(cppplasmaopt, m) {
     m.def("biot_savart_all",               & biot_savart_all);
     m.def("biot_savart_B_only",            & biot_savart_B_only);
     m.def("biot_savart_by_dcoilcoeff_all", & biot_savart_by_dcoilcoeff_all);
+    m.def("biot_savart_by_dcoilcoeff_all_vjp", & biot_savart_by_dcoilcoeff_all_vjp);
+    
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

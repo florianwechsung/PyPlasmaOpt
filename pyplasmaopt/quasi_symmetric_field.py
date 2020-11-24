@@ -3,7 +3,7 @@ from .logging import info, warning
 import numpy as np
 from math import pi
 from scipy.optimize import fsolve
-from property_manager3 import cached_property, PropertyManager
+from property_manager import cached_property, PropertyManager
 writable_cached_property = cached_property(writable=True)
 
 

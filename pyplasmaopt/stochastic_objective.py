@@ -3,7 +3,7 @@ from .curve import GaussianPerturbedCurve
 from .objective import BiotSavartQuasiSymmetricFieldDifference
 from .biotsavart import BiotSavart
 from .cvar import CVaR
-from property_manager3 import cached_property, PropertyManager
+from property_manager import cached_property, PropertyManager
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 from randomgen import Generator, PCG64

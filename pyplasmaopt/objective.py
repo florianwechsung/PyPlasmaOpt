@@ -1,6 +1,6 @@
 import numpy as np
 from math import pi
-from property_manager3 import cached_property, PropertyManager
+from property_manager import cached_property, PropertyManager
 writable_cached_property = cached_property(writable=True)
 
 class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):

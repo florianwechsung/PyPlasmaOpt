@@ -127,7 +127,7 @@ setup(
     name='PyPlasmaOpt',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=2.4', 'sympy', 'property_manager3', 'numpy', 'scipy', 'argparse', 'mpi4py', 'matplotlib', 'randomgen'],
+    install_requires=['pybind11>=2.4', 'sympy', 'property-manager', 'numpy', 'scipy', 'argparse', 'mpi4py', 'matplotlib', 'randomgen'],
     setup_requires=['pybind11>=2.4'],
     cmdclass={'build_ext': BuildExt},
     packages = ["pyplasmaopt"],

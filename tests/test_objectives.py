@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve, \
-    SquaredMagneticFieldNormOnCurve, SquaredMagneticFieldGradientNormOnCurve, get_24_coil_data, CoilCollection, \
+from pyplasmaopt import BiotSavart, SquaredMagneticFieldNormOnCurve, \
+    SquaredMagneticFieldGradientNormOnCurve, get_24_coil_data, CoilCollection, \
     QuasiSymmetricField, BiotSavartQuasiSymmetricFieldDifference
 
 
@@ -68,7 +68,7 @@ def test_taylor_test_coil_coeffs(objective):
     currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
-    bs.set_points(ma.gamma)
+    bs.set_points(ma.gamma())
     qsf = QuasiSymmetricField(-2.25, ma)
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     coil_dofs = stellerator.get_dofs()
@@ -76,10 +76,10 @@ def test_taylor_test_coil_coeffs(objective):
     h = np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
     if objective == "l2":
         J0 = J.J_L2()
-        dJ = stellerator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients())
+        dJ = stellerator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients)
     else:
         J0 = J.J_H1()
-        dJ = stellerator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients())
+        dJ = stellerator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients)
     assert len(dJ) == len(h)
     deriv = np.sum(dJ * h)
     err = 1e6
@@ -89,10 +89,12 @@ def test_taylor_test_coil_coeffs(objective):
 
         stellerator.set_dofs(coil_dofs + eps * h)
         bs.clear_cached_properties()
+        J.clear_cached_properties()
         Jhp = J.J_L2() if objective == "l2" else J.J_H1()
 
         stellerator.set_dofs(coil_dofs - eps * h)
         bs.clear_cached_properties()
+        J.clear_cached_properties()
         Jhm = J.J_L2() if objective == "l2" else J.J_H1()
 
         deriv_est = (Jhp-Jhm)/(2*eps)
@@ -110,7 +112,7 @@ def test_taylor_test_coil_currents(objective):
     currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
-    bs.set_points(ma.gamma)
+    bs.set_points(ma.gamma())
     qsf = QuasiSymmetricField(-2.25, ma)
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     x0 = stellerator.get_currents()
@@ -139,13 +141,12 @@ def test_taylor_test_coil_currents(objective):
 
 @pytest.mark.parametrize("objective", ["l2", "h1"])
 def test_taylor_test_ma_coeffs(objective):
-    num_coils = 6
     nfp = 2
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
     stellerator = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(stellerator.coils, stellerator.currents)
-    bs.set_points(ma.gamma)
+    bs.set_points(ma.gamma())
     qsf = QuasiSymmetricField(-2.25, ma)
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     ma_dofs = ma.get_dofs()
@@ -161,14 +162,14 @@ def test_taylor_test_ma_coeffs(objective):
     deriv = np.sum(dJ * h)
     err = 1e6
     eps = 0.04
-    while err > 1e-11:
+    while err > 1e-10:
         eps *= 0.5
         deriv_est = 0
         shifts = [-2, -1, +1, +2]
         weights = [+1/12, -2/3, +2/3, -1/12]
         for i in range(4):
             ma.set_dofs(ma_dofs + shifts[i]*eps*h)
-            bs.set_points(ma.gamma)
+            bs.set_points(ma.gamma())
             qsf.clear_cached_properties()
             deriv_est += weights[i] * (J.J_L2() if objective == "l2" else J.J_H1())
         deriv_est *= 1/eps

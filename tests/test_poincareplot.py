@@ -21,7 +21,7 @@ def test_poincareplot(nparticles=12, nperiods=20):
         if not __name__  == "__main__":
             mlab.options.offscreen = True
         for coil in coil_collection.coils:
-            mlab.plot3d(coil.gamma[:, 0], coil.gamma[:, 1], coil.gamma[:, 2])
+            mlab.plot3d(coil.gamma()[:, 0], coil.gamma()[:, 1], coil.gamma()[:, 2])
         colors = [
             (0.298, 0.447, 0.690), (0.866, 0.517, 0.321),
             (0.333, 0.658, 0.407), (0.768, 0.305, 0.321),

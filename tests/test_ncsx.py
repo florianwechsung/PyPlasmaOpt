@@ -19,8 +19,8 @@ def test_magnetic_field_in_ncsx_is_correct():
     Rs = np.linspace(0.436, 2.436, 5, endpoint=True)
     phis = np.linspace(0, 2*np.pi/3, 4, endpoint=False)
     Zs = np.linspace(-1, 1, 9, endpoint=True)
-    gammas          = [coil.gamma for coil in stellarator.coils]
-    dgamma_by_dphis = [coil.dgamma_by_dphi[:, 0, :] for coil in stellarator.coils]
+    gammas          = [coil.gamma() for coil in stellarator.coils]
+    dgamma_by_dphis = [coil.gammadash() for coil in stellarator.coils]
     currents = stellarator.currents
     avg_rel_err = 0
     max_rel_err = 0

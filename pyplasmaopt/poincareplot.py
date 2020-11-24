@@ -10,8 +10,8 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
         xyz[:, 2] = rphiz[:, 2]
         return xyz
 
-    gammas                 = [coil.gamma for coil in biotsavart.coils]
-    dgamma_by_dphis        = [coil.dgamma_by_dphi[:, 0, :] for coil in biotsavart.coils]
+    gammas                 = [coil.gamma() for coil in biotsavart.coils]
+    dgamma_by_dphis        = [coil.gammadash() for coil in biotsavart.coils]
     largest = [0.]
 
     def rhs(phi, rz):

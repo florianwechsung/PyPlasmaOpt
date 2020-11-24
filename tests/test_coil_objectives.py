@@ -1,13 +1,15 @@
 import pytest
 import numpy as np
-from pyplasmaopt import CartesianFourierCurve, CurveLength, CurveCurvature, CurveTorsion, MinimumDistance, get_24_coil_data, CoilCollection, SobolevTikhonov, UniformArclength
+from pyplasmaopt import CurveLength, CurveCurvature, CurveTorsion, MinimumDistance, get_24_coil_data, CoilCollection, SobolevTikhonov, UniformArclength
+from simsgeo import FourierCurve
 
 def get_coil(rand_scale=0.01):
-    coil = CartesianFourierCurve(3, np.linspace(0, 1, 20, endpoint=False))
-    coil.coefficients[1][0] = 1.
-    coil.coefficients[1][1] = 0.5
-    coil.coefficients[2][2] = 0.5
-    dofs = coil.get_dofs()
+    coil = FourierCurve(20, 3)
+    coeffs = coil.dofs
+    coeffs[1][0] = 1.
+    coeffs[1][1] = 0.5
+    coeffs[2][2] = 0.5
+    dofs = np.concatenate(coeffs)
     coil.set_dofs(dofs + rand_scale * np.random.rand(len(dofs)).reshape(dofs.shape))
     return coil
 
@@ -34,7 +36,7 @@ def test_curve_length_taylor_test():
 def test_curve_curvature_taylor_test():
     coil = get_coil()
     from math import pi
-    J = CurveCurvature(coil, desired_length=2*pi/np.mean(coil.kappa))
+    J = CurveCurvature(coil, desired_length=2*pi/np.mean(coil.kappa()))
     J0 = J.J()
     coil_dofs = coil.get_dofs()
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
@@ -95,8 +97,8 @@ def test_sobolev_tikhonov_taylor_test():
 
 def test_uniformarclength_taylor_test():
     coil = get_coil()
-    J = UniformArclength(coil, np.mean(coil.incremental_arclength))
-    coil_dofs = coil.get_dofs()
+    J = UniformArclength(coil, np.mean(coil.incremental_arclength()))
+    coil_dofs = np.asarray(coil.get_dofs())
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
     J0 = J.J()
     dJ = J.dJ_by_dcoefficients()
@@ -123,18 +125,17 @@ def test_minimum_distance_taylor_test():
     J = MinimumDistance(coils, 0.1)
     coil_dofs = stellarator.get_dofs()
     h = np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    J0 = J.J()
     dJ = stellarator.reduce_coefficient_derivatives(J.dJ_by_dcoefficients())
     deriv = np.sum(dJ * h)
     err = 1e8
-    for i in range(1, 5):
-        eps = 0.1**i
+    for i in range(10, 20):
+        eps = 0.5**i
         stellarator.set_dofs(coil_dofs + eps * h)
-        Jp = J.J()
-        stellarator.set_dofs(coil_dofs - eps * h)
-        Jm = J.J()
-        deriv_est = 0.5 * (Jp-Jm)/eps
+        Jh = J.J()
+        deriv_est = (Jh-J0)/eps
         err_new = np.linalg.norm(deriv_est-deriv)
         print("err_new %s" % (err_new))
-        assert err_new < 0.55**2 * err
+        assert err_new < 0.6 * err
         err = err_new
     print("deriv_est %s" % (deriv_est))

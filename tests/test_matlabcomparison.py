@@ -74,7 +74,7 @@ def test_quasi_symmetric_difference_same_results_as_matlab():
     currents = num_coils * [1e4]
     coil_collection = CoilCollection(coils, currents, nfp, True)
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)
-    bs.set_points(ma.gamma)
+    bs.set_points(ma.gamma())
     qsf = QuasiSymmetricField(-2.25, ma)
     J = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
     print(0.5 * J.J_L2())

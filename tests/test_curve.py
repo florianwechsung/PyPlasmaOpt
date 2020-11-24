@@ -5,7 +5,7 @@ def taylor_test(f, df, x, epsilons=None, direction=None):
     f0 = f(x)
     if direction is None:
         direction = np.random.rand(*(x.shape))-0.5
-    dfx = direction@df(x)
+    dfx = df(x)@direction
     if epsilons is None:
         epsilons = np.power(2., -np.asarray(range(10, 15)))
     print("################################################################################")
@@ -19,26 +19,27 @@ def taylor_test(f, df, x, epsilons=None, direction=None):
         print(err)
     print("################################################################################")
 
-def get_coil(x=np.asarray([0.5])):
-    from pyplasmaopt import CartesianFourierCurve
+def get_coil(x=np.asarray([0.5]), rotated=True):
+    from simsgeo import FourierCurve
 
-    cfc = CartesianFourierCurve(3, x)
-    cfc.coefficients[1][0] = 1.
-    cfc.coefficients[1][1] = 0.5
-    cfc.coefficients[2][2] = 0.5
-    cfc.update()
-    return cfc
+    coil = FourierCurve(x, 3)
+    coeffs = coil.dofs
+    coeffs[1][0] = 1.
+    coeffs[1][1] = 0.5
+    coeffs[2][2] = 0.5
+    coil.set_dofs(np.concatenate(coeffs))
+    return coil
 
 def test_coil_first_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.6] + [0.6 + eps for eps in epss])
     cfc = get_coil(x)
-    f0 = cfc.gamma[0]
-    deriv = cfc.dgamma_by_dphi[0, 0]
+    f0 = cfc.gamma()[0]
+    deriv = cfc.gammadash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = cfc.gamma[i+1]
+        fh = cfc.gamma()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -47,13 +48,13 @@ def test_coil_first_derivative():
 def test_coil_second_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.6] + [0.6 + eps for eps in epss])
     cfc = get_coil(x)
-    f0 = cfc.dgamma_by_dphi[0, 0, :]
-    deriv = cfc.d2gamma_by_dphidphi[0, 0, 0, :]
+    f0 = cfc.gammadash()[0]
+    deriv = cfc.gammadashdash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = cfc.dgamma_by_dphi[i+1, 0, :]
+        fh = cfc.gammadash()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -62,13 +63,13 @@ def test_coil_second_derivative():
 def test_coil_third_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.6] + [0.6 + eps for eps in epss])
     cfc = get_coil(x)
-    f0 = cfc.d2gamma_by_dphidphi[0, 0, 0, :]
-    deriv = cfc.d3gamma_by_dphidphidphi[0, 0, 0, 0, :]
+    f0 = cfc.gammadashdash()[0]
+    deriv = cfc.gammadashdashdash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = cfc.d2gamma_by_dphidphi[i+1, 0, 0, :]
+        fh = cfc.gammadashdash()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -83,20 +84,23 @@ def test_coil_dof_numbering():
 def test_coil_coefficient_derivative():
     cfc = get_coil()
     coeffs = cfc.get_dofs()
+    print(coeffs)
+    print(cfc.gamma())
+    cfc.invalidate_cache()
     def f(dofs):
         cfc.set_dofs(dofs)
-        return cfc.gamma.copy()
+        return cfc.gamma().copy()
     def df(dofs):
         cfc.set_dofs(dofs)
-        return cfc.dgamma_by_dcoeff.copy()
+        return cfc.dgamma_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
     def f(dofs):
         cfc.set_dofs(dofs)
-        return cfc.dgamma_by_dphi[:, 0, :].copy()
+        return cfc.gammadash().copy()
     def df(dofs):
         cfc.set_dofs(dofs)
-        return cfc.d2gamma_by_dphidcoeff[:, 0, :, :].copy()
+        return cfc.dgammadash_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_coil_curvature_derivative():
@@ -106,32 +110,32 @@ def test_coil_curvature_derivative():
     coeffs = cfc.get_dofs()
     def f(dofs):
         cfc.set_dofs(dofs)
-        return cfc.kappa.copy()
+        return cfc.kappa().copy()
     def df(dofs):
         cfc.set_dofs(dofs)
-        return cfc.dkappa_by_dcoeff.copy()
+        return cfc.dkappa_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def get_magnetic_axis(x=np.asarray([0.12345])):
-    from pyplasmaopt import StelleratorSymmetricCylindricalFourierCurve
+    from simsgeo import StelleratorSymmetricCylindricalFourierCurve
 
-    ma = StelleratorSymmetricCylindricalFourierCurve(3, 2, x)
+    ma = StelleratorSymmetricCylindricalFourierCurve(x, 3, 2)
     ma.coefficients[0][0] = 1.
     ma.coefficients[0][1] = 0.1
     ma.coefficients[1][0] = 0.1
-    ma.update()
+    ma.invalidate_cache()
     return ma
 
 def test_magnetic_axis_first_derivative():
     h = 0.1
     epss = [0.5**i for i in range(5, 10)] 
-    x = np.asarray([1] + [1 + eps for eps in epss])
+    x = np.asarray([0.6] + [0.6 + eps for eps in epss])
     ma = get_magnetic_axis(x)
-    f0 = ma.gamma[0]
-    deriv = ma.dgamma_by_dphi[0, 0]
+    f0 = ma.gamma()[0]
+    deriv = ma.gammadash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = ma.gamma[i+1]
+        fh = ma.gamma()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -142,11 +146,11 @@ def test_magnetic_axis_second_derivative():
     epss = [0.5**i for i in range(5, 10)] 
     x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
     ma = get_magnetic_axis(x)
-    f0 = ma.dgamma_by_dphi[0, 0, :]
-    deriv = ma.d2gamma_by_dphidphi[0, 0, 0, :]
+    f0 = ma.gammadash()[0]
+    deriv = ma.gammadashdash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = ma.dgamma_by_dphi[i+1, 0, :]
+        fh = ma.gammadash()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -157,11 +161,11 @@ def test_magnetic_axis_third_derivative():
     epss = [0.5**i for i in range(5, 10)] 
     x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
     ma = get_magnetic_axis(x)
-    f0 = ma.d2gamma_by_dphidphi[0, 0, 0, :]
-    deriv = ma.d3gamma_by_dphidphidphi[0, 0, 0, 0, :]
+    f0 = ma.gammadashdash()[0]
+    deriv = ma.gammadashdashdash()[0]
     err_old = 1e6
     for i in range(len(epss)):
-        fh = ma.d2gamma_by_dphidphi[i+1, 0, 0, :]
+        fh = ma.gammadashdash()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
         assert err < 0.55 * err_old
@@ -172,12 +176,12 @@ def test_magnetic_axis_kappa_first_derivative():
     epss = [0.5**i for i in range(5, 10)] 
     x = np.asarray([0.1234] + [0.1234 + eps for eps in epss])
     ma = get_magnetic_axis(x)
-    f0 = ma.kappa[0]
-    deriv = ma.dkappa_by_dphi[0, 0]
+    f0 = ma.kappa()[0]
+    deriv = ma.kappadash()[0]
     err_old = 1e6
     print(deriv)
     for i in range(len(epss)):
-        fh = ma.kappa[i+1]
+        fh = ma.kappa()[i+1]
         deriv_est = (fh-f0)/epss[i]
         print(deriv_est)
         err = np.linalg.norm(deriv_est-deriv)
@@ -185,25 +189,25 @@ def test_magnetic_axis_kappa_first_derivative():
         err_old = err
 
 def test_magnetic_axis_kappa_derivative():
-    cfc = get_coil()
+    cfc = get_magnetic_axis()
     coeffs = cfc.get_dofs()
     def f(dofs):
         cfc.set_dofs(dofs)
-        return cfc.kappa.copy()
+        return cfc.kappa().copy()
     def df(dofs):
         cfc.set_dofs(dofs)
-        return cfc.dkappa_by_dcoeff.copy()
+        return cfc.dkappa_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_torsion_derivative():
-    cfc = get_coil()
+    cfc = get_magnetic_axis()
     coeffs = cfc.get_dofs()
     def f(dofs):
         cfc.set_dofs(dofs)
-        return cfc.torsion.copy()
+        return cfc.torsion().copy()
     def df(dofs):
         cfc.set_dofs(dofs)
-        return cfc.dtorsion_by_dcoeff.copy()
+        return cfc.dtorsion_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_dof_numbering():
@@ -217,10 +221,10 @@ def test_magnetic_axis_coefficient_derivative():
     coeffs = ma.get_dofs()
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.gamma.copy()
+        return ma.gamma().copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dgamma_by_dcoeff.copy()
+        return ma.dgamma_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_curvature_derivative():
@@ -230,10 +234,10 @@ def test_magnetic_axis_curvature_derivative():
     coeffs = ma.get_dofs()
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.kappa.copy()
+        return ma.kappa().copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dkappa_by_dcoeff.copy()
+        return ma.dkappa_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_incremental_arclength_derivative():
@@ -243,10 +247,10 @@ def test_magnetic_axis_incremental_arclength_derivative():
     coeffs = ma.get_dofs()
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.incremental_arclength.copy()
+        return ma.incremental_arclength().copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dincremental_arclength_by_dcoeff.copy()
+        return ma.dincremental_arclength_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_frenet_frame_derivative():
@@ -254,26 +258,26 @@ def test_magnetic_axis_frenet_frame_derivative():
     coeffs = ma.get_dofs()
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.frenet_frame[0].copy()
+        return ma.frenet_frame()[0].copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dfrenet_frame_by_dcoeff[0].copy()
+        return ma.dfrenet_frame_by_dcoeff()[0].copy()
     taylor_test(f, df, coeffs)
 
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.frenet_frame[1].copy()
+        return ma.frenet_frame()[1].copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dfrenet_frame_by_dcoeff[1].copy()
+        return ma.dfrenet_frame_by_dcoeff()[1].copy()
     taylor_test(f, df, coeffs)
 
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.frenet_frame[2].copy()
+        return ma.frenet_frame()[2].copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.dfrenet_frame_by_dcoeff[2].copy()
+        return ma.dfrenet_frame_by_dcoeff()[2].copy()
     taylor_test(f, df, coeffs)
 
 def test_magnetic_axis_dkappa_by_dphi_derivative():
@@ -281,16 +285,16 @@ def test_magnetic_axis_dkappa_by_dphi_derivative():
     coeffs = ma.get_dofs()
     def f(dofs):
         ma.set_dofs(dofs)
-        return ma.dkappa_by_dphi[:,0,:].copy()
+        return ma.kappadash().copy()
     def df(dofs):
         ma.set_dofs(dofs)
-        return ma.d2kappa_by_dphidcoeff[:, 0, :, :].copy()
+        return ma.dkappadash_by_dcoeff().copy()
     taylor_test(f, df, coeffs)
 
 
 def test_magnetic_axis_frenet_frame():
     ma = get_magnetic_axis()
-    (t, n, b) = ma.frenet_frame
+    (t, n, b) = ma.frenet_frame()
     assert np.allclose(np.sum(n*t, axis=1), 0)
     assert np.allclose(np.sum(n*b, axis=1), 0)
     assert np.allclose(np.sum(t*b, axis=1), 0)

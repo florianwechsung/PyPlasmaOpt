@@ -152,40 +152,43 @@ void biot_savart_all(Array& points, vector<Array>& gammas, vector<Array>& dgamma
 
     int num_coils  = gammas.size();
 
-    auto Bs           = vector<Array>();
-    auto dB_by_dXs    = vector<Array>();
+    //auto Bs           = vector<Array>(); // don't need these, store in the arrays that will contain the current derivatives
+    //auto dB_by_dXs    = vector<Array>();
     auto d2B_by_dXdXs = vector<Array>();
 
-    Bs.reserve(num_coils);
-    dB_by_dXs.reserve(num_coils);
+    //Bs.reserve(num_coils);
+    //dB_by_dXs.reserve(num_coils);
     d2B_by_dXdXs.reserve(num_coils);
     for(int i=0; i<num_coils; i++) {
-        Bs.push_back(xt::zeros<double>({num_points, 3}));
-        dB_by_dXs.push_back(xt::zeros<double>({num_points, 3, 3}));
+        //Bs.push_back(xt::zeros<double>({num_points, 3}));
+        //dB_by_dXs.push_back(xt::zeros<double>({num_points, 3, 3}));
         d2B_by_dXdXs.push_back(xt::zeros<double>({num_points, 3, 3, 3}));
     }
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for(int i=0; i<num_coils; i++) {
-        biot_savart_all_simd<Array>(pointsx, pointsy, pointsz, gammas[i], dgamma_by_dphis[i], Bs[i], dB_by_dXs[i], d2B_by_dXdXs[i]);
+        biot_savart_all_simd<Array>(pointsx, pointsy, pointsz, gammas[i], dgamma_by_dphis[i], dB_by_coilcurrents[i], d2B_by_dXdcoilcurrents[i], d2B_by_dXdXs[i]);
     }
 
     for(int i=0; i<num_coils; i++) {
         double fak1 = (currents[i] * 1e-7/gammas[i].shape(0));
-        double fak2 = (1e-7/gammas[i].shape(0));
         for (int j1 = 0; j1 < num_points; ++j1) {
             for (int j2 = 0; j2 < 3; ++j2) {
-                B(j1, j2) += fak1 * Bs[i](j1, j2);
-                dB_by_coilcurrents[i](j1, j2) += fak2 * Bs[i](j1, j2);
+                B(j1, j2) += fak1 * dB_by_coilcurrents[i](j1, j2);
                 for (int j3 = 0; j3 < 3; ++j3) {
-                    dB_by_dX(j1, j2, j3) += fak1 * dB_by_dXs[i](j1, j2, j3);
-                    d2B_by_dXdcoilcurrents[i](j1, j2, j3) += fak2 * dB_by_dXs[i](j1, j2, j3);
+                    dB_by_dX(j1, j2, j3) += fak1 * d2B_by_dXdcoilcurrents[i](j1, j2, j3);
                     for (int j4 = 0; j4 < 3; ++j4) {
                         d2B_by_dXdX(j1, j2, j3, j4) += fak1 * d2B_by_dXdXs[i](j1, j2, j3, j4);
                     }
                 }
             }
         }
+    }
+#pragma omp parallel for
+    for(int i=0; i<num_coils; i++) {
+        double fak2 = (1e-7/gammas[i].shape(0));
+        dB_by_coilcurrents[i] *= fak2;
+        d2B_by_dXdcoilcurrents[i] *= fak2;
     }
 }
 

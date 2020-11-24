@@ -11,9 +11,9 @@ or
     
     brew install mpich
 
-On mac, install gcc and python via
+On mac, install python via
 
-    brew install python gcc
+    brew install python3
 
 and make sure to follow the instructions under _Caveats_ when installing python.
 
@@ -31,12 +31,19 @@ change into the directory
 
     cd PyPlasmaOpt/
 
-and then depending on your platform run 
+and then run
 
-    make pip-mac
-or 
-    make pip-linux
+    pip3 install -e -vvv .
 
 To check the installation
 
     pytest tests/
+
+
+## Common issues:
+
+On macOS, sometimes the wrong python gets picked up. To make sure that you are using Homebrew installed python, run
+
+    /usr/local/Cellar/python@3.8/3.8.5/bin/python3 -m pip install -e -vvv .
+
+where you replace `3.8` and `3.8.5` by the appropriate version number.

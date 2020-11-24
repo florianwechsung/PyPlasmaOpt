@@ -3,7 +3,6 @@ from math import pi
 from property_manager3 import cached_property, PropertyManager
 writable_cached_property = cached_property(writable=True)
 
-
 class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
 
     def __init__(self, quasi_symmetric_field, biotsavart):
@@ -13,17 +12,18 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
     def J_L2(self):
         Bbs        = self.biotsavart.B
         Bqs        = self.quasi_symmetric_field.B
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         return np.sum(arc_length[:, None] * (Bbs-Bqs)**2)/len(arc_length)
 
 
     def compute_dcoilcoefficients(self, reverse_mode=True):
         reverse_mode = False
-        Bbs                = self.biotsavart.B
-        Bqs                = self.quasi_symmetric_field.B
-        dBbs_by_dX            = self.biotsavart.dB_by_dX
-        dBqs_by_dX            = self.quasi_symmetric_field.dB_by_dX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        Bbs        = self.biotsavart.B
+        Bqs        = self.quasi_symmetric_field.B
+        dBbs_by_dX = self.biotsavart.dB_by_dX
+        dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
+
         v = (Bbs-Bqs) * arc_length[:, None] * 2 / len(arc_length)
         vgrad = (arc_length[:, None, None])*(dBbs_by_dX-dBqs_by_dX) * 2 / len(arc_length)
         if reverse_mode:
@@ -34,11 +34,11 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
             dBbs_by_dcoilcoeff = self.biotsavart.dB_by_dcoilcoeffs
             self.dJ_L2_by_dcoilcoefficients = []
             for dB in dBbs_by_dcoilcoeff:
-                self.dJ_L2_by_dcoilcoefficients.append(np.einsum('ij,ikj->k', v, dB))
+                self.dJ_L2_by_dcoilcoefficients.append(np.einsum('ij,ijk->k', v, dB))
             d2Bbs_by_dXdcoilcoeff = self.biotsavart.d2B_by_dXdcoilcoeffs
             self.dJ_H1_by_dcoilcoefficients = []
             for dB in d2Bbs_by_dXdcoilcoeff:
-                self.dJ_H1_by_dcoilcoefficients.append(np.einsum('ijk,iljk->l', vgrad, dB))
+                self.dJ_H1_by_dcoilcoefficients.append(np.einsum('ijk,ijkl->l', vgrad, dB))
 
     @writable_cached_property
     def dJ_L2_by_dcoilcoefficients(self):
@@ -49,34 +49,38 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
         Bbs                   = self.biotsavart.B
         dBbs_by_dcoilcurrents = self.biotsavart.dB_by_dcoilcurrents
         Bqs                   = self.quasi_symmetric_field.B
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length            = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         res = []
-        temp = (Bbs-Bqs) * arc_length[:, None]
-        for dB in dBbs_by_dcoilcurrents:
-            res.append(np.einsum('ij,ij', temp, dB) * 2 / len(arc_length))
-        return res
+        tmp = (Bbs-Bqs) * (arc_length[:, None]*2/len(arc_length))
+        return np.einsum('ik,mik->m', tmp, np.asarray(dBbs_by_dcoilcurrents))
 
     def dJ_L2_by_dmagneticaxiscoefficients(self):
-        dgamma_by_dphi        = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dphi[:,0,:]
-        dgamma_by_dcoeff      = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dcoeff
-        d2gamma_by_dphidcoeff = self.quasi_symmetric_field.magnetic_axis.d2gamma_by_dphidcoeff[:, 0, :, :]
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        gammadash            = self.quasi_symmetric_field.magnetic_axis.gammadash()
+        dgamma_by_dcoeff     = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dcoeff()
+        dgammadash_by_dcoeff = self.quasi_symmetric_field.magnetic_axis.dgammadash_by_dcoeff()
+        arc_length           = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
 
-        Bbs        = self.biotsavart.B
-        dBbs_by_dX = self.biotsavart.dB_by_dX
-        Bqs        = self.quasi_symmetric_field.B
-        dBqs_by_dcoeffs = self.quasi_symmetric_field.dB_by_dcoeffs
+        Bbs                  = self.biotsavart.B
+        dBbs_by_dX           = self.biotsavart.dB_by_dX
+        Bqs                  = self.quasi_symmetric_field.B
+        dBqs_by_dcoeffs      = self.quasi_symmetric_field.dB_by_dcoeffs
+        diff = Bbs-Bqs
 
         num_coeff = dgamma_by_dcoeff.shape[1]
-        res = 2*np.einsum('ij,ikj,imk,i->m', (Bbs-Bqs), dBbs_by_dX, dgamma_by_dcoeff, arc_length)
-        res -= 2*np.einsum('ij,imj,i->m', (Bbs-Bqs), dBqs_by_dcoeffs, arc_length)
-        res += np.einsum('i,i,imj,ij->m', (1/arc_length), np.sum((Bbs-Bqs)**2, axis=1), d2gamma_by_dphidcoeff, dgamma_by_dphi)
+        # res = 2*np.einsum('ij,ikj,ikm,i->m', diff, dBbs_by_dX, dgamma_by_dcoeff, arc_length)
+        # res -= 2*np.einsum('ij,ijm,i->m', diff, dBqs_by_dcoeffs, arc_length)
+        # res += np.einsum('i,ijm,ij->m', np.sum(diff**2, axis=1)/arc_length, dgammadash_by_dcoeff, gammadash)
+
+        tmp = np.sum(dBbs_by_dX[:, :, :, None]*dgamma_by_dcoeff[:, :, None, :], axis=1)
+        res = 2*np.einsum('ij,ijm,i->m', diff, tmp-dBqs_by_dcoeffs, arc_length)
+        res += np.einsum('i,ijm,ij->m', np.sum(diff**2, axis=1)/arc_length, dgammadash_by_dcoeff, gammadash)
+
         res *= 1/arc_length.shape[0]
         return res
 
     def dJ_L2_by_detabar(self):
         Bbs             = self.biotsavart.B
-        arc_length      = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length      = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         Bqs             = self.quasi_symmetric_field.B
         dBqs_by_detabar = self.quasi_symmetric_field.dB_by_detabar
         res = np.zeros((1, ))
@@ -86,7 +90,7 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
 
     def J_H1(self):
         dBbs_by_dX = self.biotsavart.dB_by_dX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX
         return np.sum(arc_length[:, None, None] * (dBbs_by_dX-dBqs_by_dX)**2)/len(arc_length)
 
@@ -99,29 +103,37 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
         dBbs_by_dX               = self.biotsavart.dB_by_dX
         d2Bbs_by_dXdcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents
         dBqs_by_dX               = self.quasi_symmetric_field.dB_by_dX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         res = []
-        for dB in d2Bbs_by_dXdcoilcurrents:
-            res.append(np.einsum('ijk,ijk,i', dBbs_by_dX-dBqs_by_dX, dB, arc_length) * 2 / len(arc_length))
-        return res
+        fak = 2/len(arc_length)
+        tmp = fak*(dBbs_by_dX-dBqs_by_dX) * arc_length[:, None, None]
+        return np.einsum('ijk,mijk->m', tmp, np.asarray(d2Bbs_by_dXdcoilcurrents))
 
     def dJ_H1_by_dmagneticaxiscoefficients(self):
-
-        gamma                 = self.quasi_symmetric_field.magnetic_axis.gamma
-        dgamma_by_dphi        = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dphi[:,0,:]
-        dgamma_by_dcoeff      = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dcoeff
-        d2gamma_by_dphidcoeff = self.quasi_symmetric_field.magnetic_axis.d2gamma_by_dphidcoeff[:, 0, :, :]
-        d2Bqs_by_dcoeffsdX    = self.quasi_symmetric_field.d2B_by_dcoeffsdX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        gamma                = self.quasi_symmetric_field.magnetic_axis.gamma()
+        gammadash            = self.quasi_symmetric_field.magnetic_axis.gammadash()
+        dgamma_by_dcoeff     = self.quasi_symmetric_field.magnetic_axis.dgamma_by_dcoeff()
+        dgammadash_by_dcoeff = self.quasi_symmetric_field.magnetic_axis.dgammadash_by_dcoeff()
+        d2Bqs_by_dcoeffsdX   = self.quasi_symmetric_field.d2B_by_dcoeffsdX
+        arc_length           = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
 
         dBbs_by_dX    = self.biotsavart.dB_by_dX
         d2Bbs_by_dXdX = self.biotsavart.d2B_by_dXdX
         dBqs_by_dX    = self.quasi_symmetric_field.dB_by_dX
 
         num_coeff = dgamma_by_dcoeff.shape[1]
-        res = 2 * np.einsum('ijk,ijlk,iml,i->m',(dBbs_by_dX-dBqs_by_dX), d2Bbs_by_dXdX, dgamma_by_dcoeff, arc_length)
-        res -= 2*np.einsum('ijk,imjk,i->m', (dBbs_by_dX-dBqs_by_dX), d2Bqs_by_dcoeffsdX, arc_length)
-        res += np.einsum('i,i,iml,il->m', (1/arc_length), np.sum(np.sum((dBbs_by_dX-dBqs_by_dX)**2, axis=1), axis=1), d2gamma_by_dphidcoeff, dgamma_by_dphi)
+        diff = dBbs_by_dX-dBqs_by_dX
+
+        # res = 2 * np.einsum('ijk,ijlk,iml,i->m',(dBbs_by_dX-dBqs_by_dX), d2Bbs_by_dXdX, dgamma_by_dcoeff, arc_length)
+        # res -= 2*np.einsum('ijk,imjk,i->m', (dBbs_by_dX-dBqs_by_dX), d2Bqs_by_dcoeffsdX, arc_length)
+        # res += np.einsum('i,i,iml,il->m', (1/arc_length), np.sum(np.sum((dBbs_by_dX-dBqs_by_dX)**2, axis=1), axis=1), dgammadash_by_dcoeff, gammadash)
+
+        tmp = np.sum(d2Bbs_by_dXdX[:,:,:,:,None]*dgamma_by_dcoeff[:, None, :, None, :], axis=2)
+        res = 2 * np.einsum('ijk,ijkm,i->m',diff, tmp-d2Bqs_by_dcoeffsdX, arc_length)
+        res += np.einsum('i,ilm,il->m', np.sum(diff**2, axis=(1, 2))/arc_length, dgammadash_by_dcoeff, gammadash)
+
+
+
         res *= 1/gamma.shape[0]
         return res
 
@@ -129,7 +141,7 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
         dBbs_by_dX         = self.biotsavart.dB_by_dX
         dBqs_by_dX         = self.quasi_symmetric_field.dB_by_dX
         d2Bqs_by_detabardX = self.quasi_symmetric_field.d2B_by_detabardX
-        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength[:, 0]
+        arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
 
         res = np.zeros((1, ))
         res[0] -= np.sum(2*(dBbs_by_dX-dBqs_by_dX)*d2Bqs_by_detabardX[:, 0, :, :] * arc_length[:, None, None])
@@ -150,8 +162,8 @@ class SquaredMagneticFieldNormOnCurve(object):
         self.biotsavart = biotsavart
 
     def J(self):
-        quadrature_points = self.curve.gamma
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        quadrature_points = self.curve.gamma()
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
         B = self.biotsavart.compute(quadrature_points).B
         return np.sum(arc_length[:, None] * (B**2))/quadrature_points.shape[0]
 
@@ -160,14 +172,14 @@ class SquaredMagneticFieldNormOnCurve(object):
         Calculate the derivatives with respect to the coil coefficients.
         """
 
-        quadrature_points = self.curve.gamma
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        quadrature_points = self.curve.gamma()
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
 
         B = self.biotsavart.compute(quadrature_points).B
         dB_by_dcoilcoeff = self.biotsavart.compute_by_dcoilcoeff(quadrature_points).dB_by_dcoilcoeffs
         res = []
         for dB in dB_by_dcoilcoeff:
-            res.append(np.einsum('ij,ikj,i->k', B, dB, arc_length) * 2 / quadrature_points.shape[0])
+            res.append(np.einsum('ij,ijk,i->k', B, dB, arc_length) * 2 / quadrature_points.shape[0])
         return res
 
     def dJ_by_dcurvecoefficients(self):
@@ -176,23 +188,23 @@ class SquaredMagneticFieldNormOnCurve(object):
         the shape of the curve that we are integrating the magnetic field over.
         """
 
-        gamma                 = self.curve.gamma
-        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
-        dgamma_by_dcoeff      = self.curve.dgamma_by_dcoeff
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
+        gamma                = self.curve.gamma()
+        gammadash            = self.curve.gammadash()
+        dgamma_by_dcoeff     = self.curve.dgamma_by_dcoeff()
+        dgammadash_by_dcoeff = self.curve.dgammadash_by_dcoeff()
 
-        arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
+        arc_length = np.linalg.norm(gammadash, axis=1)
         self.biotsavart.compute(gamma)
         B        = self.biotsavart.B
         dB_by_dX = self.biotsavart.dB_by_dX
 
-        num_coeff = dgamma_by_dcoeff.shape[1]
+        num_coeff = dgamma_by_dcoeff.shape[2]
         res = np.zeros((num_coeff, ))
         for i in range(num_coeff):
             for k1 in range(3):
                 for k2 in range(3):
-                    res[i] += 2 * np.sum(B[:, k1] * dB_by_dX[:, k1, k2] * dgamma_by_dcoeff[:, i, k2] * arc_length)
-            res[i] += np.sum((1/arc_length) * np.sum(B**2, axis=1) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
+                    res[i] += 2 * np.sum(B[:, k1] * dB_by_dX[:, k1, k2] * dgamma_by_dcoeff[:, k2, i] * arc_length)
+            res[i] += np.sum((1/arc_length) * np.sum(B**2, axis=1) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis=1))
         res *= 1/gamma.shape[0]
         return res
 
@@ -209,8 +221,8 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         self.biotsavart = biotsavart
 
     def J(self):
-        quadrature_points = self.curve.gamma
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        quadrature_points = self.curve.gamma()
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
         dB_by_dX = self.biotsavart.compute(quadrature_points).dB_by_dX
         return np.sum(arc_length * (np.sum(np.sum(dB_by_dX**2, axis=1), axis=1)))/quadrature_points.shape[0]
 
@@ -219,14 +231,14 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         Calculate the derivatives with respect to the coil coefficients.
         """
 
-        quadrature_points = self.curve.gamma
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        quadrature_points = self.curve.gamma()
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
 
         dB_by_dX = self.biotsavart.compute(quadrature_points).dB_by_dX
         d2B_by_dXdcoilcoeff = self.biotsavart.compute_by_dcoilcoeff(quadrature_points).d2B_by_dXdcoilcoeffs
         res = []
         for dB in d2B_by_dXdcoilcoeff:
-            res.append(np.einsum('ijk,iljk,i->l', dB_by_dX, dB, arc_length) * 2 / quadrature_points.shape[0])
+            res.append(np.einsum('ijk,ijkl,i->l', dB_by_dX, dB, arc_length) * 2 / quadrature_points.shape[0])
         return res
 
     def dJ_by_dcurvecoefficients(self):
@@ -236,24 +248,24 @@ class SquaredMagneticFieldGradientNormOnCurve(object):
         magnetic field over.
         """
 
-        gamma                 = self.curve.gamma
-        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
-        dgamma_by_dcoeff      = self.curve.dgamma_by_dcoeff
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
+        gamma                = self.curve.gamma()
+        gammadash            = self.curve.gammadash()
+        dgamma_by_dcoeff     = self.curve.dgamma_by_dcoeff()
+        dgammadash_by_dcoeff = self.curve.dgammadash_by_dcoeff()
 
-        arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
+        arc_length = np.linalg.norm(gammadash, axis=1)
         self.biotsavart.compute(gamma)
         dB_by_dX = self.biotsavart.dB_by_dX
         d2B_by_dXdX = self.biotsavart.d2B_by_dXdX
 
-        num_coeff = dgamma_by_dcoeff.shape[1]
+        num_coeff = dgamma_by_dcoeff.shape[2]
         res = np.zeros((num_coeff, ))
         for i in range(num_coeff):
             for k1 in range(3):
                 for k2 in range(3):
                     for k3 in range(3):
-                        res[i] += 2.0 * np.sum(dB_by_dX[:, k1, k2] * d2B_by_dXdX[:, k1, k2, k3] * dgamma_by_dcoeff[:, i, k3] * arc_length)
-            res[i] += np.sum((1/arc_length) * np.sum(np.sum(dB_by_dX**2, axis=1), axis=1) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
+                        res[i] += 2.0 * np.sum(dB_by_dX[:, k1, k2] * d2B_by_dXdX[:, k1, k2, k3] * dgamma_by_dcoeff[:, k3, i] * arc_length)
+            res[i] += np.sum((1/arc_length) * np.sum(np.sum(dB_by_dX**2, axis=1), axis=1) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis=1))
         res *= 1/gamma.shape[0]
         return res
 
@@ -268,17 +280,17 @@ class CurveLength():
         self.curve = curve
 
     def J(self):
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
         return np.mean(arc_length)
 
     def dJ_by_dcoefficients(self):
-        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
-        num_coeff = d2gamma_by_dphidcoeff.shape[1]
+        gammadash            = self.curve.gammadash()
+        dgammadash_by_dcoeff = self.curve.dgammadash_by_dcoeff()
+        num_coeff            = dgammadash_by_dcoeff.shape[2]
         res = np.zeros((num_coeff, ))
-        arc_length = np.linalg.norm(dgamma_by_dphi, axis=1)
+        arc_length = np.linalg.norm(gammadash, axis=1)
         for i in range(num_coeff):
-            res[i] = np.mean((1/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis=1))
+            res[i] = np.mean((1/arc_length) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis=1))
         return res
 
 
@@ -300,8 +312,8 @@ class CurveCurvature():
 
     def J(self):
         p = self.p
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
-        kappa = self.curve.kappa[:, 0]
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
+        kappa = self.curve.kappa()
         if self.root:
             return np.mean(np.maximum(kappa-self.desired_kappa, 0)**p * arc_length)**(1./p)
         else:
@@ -309,16 +321,16 @@ class CurveCurvature():
 
     def dJ_by_dcoefficients(self):
         p = self.p
-        kappa                 = self.curve.kappa[:,0]
-        dkappa_by_dcoeff      = self.curve.dkappa_by_dcoeff[:,:,0]
-        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
-        arc_length            = np.linalg.norm(dgamma_by_dphi, axis=1)
+        kappa                = self.curve.kappa()
+        dkappa_by_dcoeff     = self.curve.dkappa_by_dcoeff()
+        gammadash            = self.curve.gammadash()
+        dgammadash_by_dcoeff = self.curve.dgammadash_by_dcoeff()
+        arc_length           = np.linalg.norm(gammadash, axis = 1)
 
-        num_coeff = d2gamma_by_dphidcoeff.shape[1]
+        num_coeff = dgammadash_by_dcoeff.shape[2]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((np.maximum(kappa-self.desired_kappa, 0)**p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
+            res[i]  = np.mean((np.maximum(kappa-self.desired_kappa, 0)**p/arc_length) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis  = 1))
             res[i] += np.mean(p*(np.maximum(kappa-self.desired_kappa, 0))**(p-1) * dkappa_by_dcoeff[:,i] * arc_length)
             if self.root:
                 res[i] *= (1./p) * np.mean(np.maximum(kappa-self.desired_kappa, 0)**p * arc_length)**(1./p-1)
@@ -337,25 +349,25 @@ class CurveTorsion():
         self.root = root
 
     def J(self):
-        arc_length = np.linalg.norm(self.curve.dgamma_by_dphi[:,0,:], axis=1)
-        torsion    = self.curve.torsion[:, 0]
+        arc_length = np.linalg.norm(self.curve.gammadash(), axis=1)
+        torsion    = self.curve.torsion()
         if self.root:
             return np.mean(np.abs(torsion)**self.p * arc_length)**(1./self.p)
         else:
             return np.mean(np.abs(torsion)**self.p * arc_length)
 
     def dJ_by_dcoefficients(self):
-        torsion               = self.curve.torsion[:,0]
-        dtorsion_by_dcoeff    = self.curve.dtorsion_by_dcoeff[:,:,0]
-        dgamma_by_dphi        = self.curve.dgamma_by_dphi[:,0,:]
-        d2gamma_by_dphidcoeff = self.curve.d2gamma_by_dphidcoeff[:, 0, :, :]
-        arc_length            = np.linalg.norm(dgamma_by_dphi, axis=1)
+        torsion              = self.curve.torsion()
+        dtorsion_by_dcoeff   = self.curve.dtorsion_by_dcoeff()
+        gammadash            = self.curve.gammadash()
+        dgammadash_by_dcoeff = self.curve.dgammadash_by_dcoeff()
+        arc_length           = np.linalg.norm(gammadash, axis=1)
 
-        num_coeff = d2gamma_by_dphidcoeff.shape[1]
+        num_coeff = dgammadash_by_dcoeff.shape[2]
         res       = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i]  = np.mean((np.abs(torsion)**self.p/arc_length) * np.sum(d2gamma_by_dphidcoeff[:, i, :] * dgamma_by_dphi, axis  = 1))
-            res[i] += np.mean(self.p*np.abs(torsion)**(self.p-1) * np.sign(torsion) * dtorsion_by_dcoeff[:,i] * arc_length)
+            res[i]  = np.mean((np.abs(torsion)**self.p/arc_length) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis=1))
+            res[i] += np.mean(self.p*np.abs(torsion)**(self.p-1) * np.sign(torsion) * dtorsion_by_dcoeff[:, i] * arc_length)
             if self.root:
                     res[i] *= (1./self.p) * np.mean(np.abs(torsion)**self.p * arc_length)**(1./self.p - 1.)
         return res
@@ -369,50 +381,52 @@ class SobolevTikhonov():
             raise ValueError(
                 "You should pass 4 weights: for the L^2, H^1, H^2 and H^3 norm.")
         self.weights = weights
-        self.initial_curve = (curve.gamma.copy(), curve.dgamma_by_dphi.copy(
-        ), curve.d2gamma_by_dphidphi.copy(), curve.d3gamma_by_dphidphidphi)
+        self.initial_curve = (
+            curve.gamma().copy(), curve.gammadash().copy(),
+            curve.gammadashdash().copy(), curve.gammadashdashdash().copy()
+        )
 
     def J(self):
         res = 0
         curve = self.curve
-        num_points = curve.gamma.shape[0]
+        num_points = curve.gamma().shape[0]
         weights = self.weights
         if weights[0] > 0:
             res += weights[0] * \
-                np.sum((curve.gamma-self.initial_curve[0])**2)/num_points
+                np.sum((curve.gamma()-self.initial_curve[0])**2)/num_points
         if weights[1] > 0:
-            res += weights[1] * np.sum((curve.dgamma_by_dphi -
+            res += weights[1] * np.sum((curve.gammadash() -
                                         self.initial_curve[1])**2)/num_points
         if weights[2] > 0:
-            res += weights[2] * np.sum((curve.d2gamma_by_dphidphi -
+            res += weights[2] * np.sum((curve.gammadashdash() -
                                         self.initial_curve[2])**2)/num_points
         if weights[3] > 0:
-            res += weights[3] * np.sum((curve.d3gamma_by_dphidphidphi -
+            res += weights[3] * np.sum((curve.gammadashdashdash() -
                                         self.initial_curve[3])**2)/num_points
         return res
 
     def dJ_by_dcoefficients(self):
         curve = self.curve
-        num_coeff = curve.dgamma_by_dcoeff.shape[1]
-        num_points = curve.gamma.shape[0]
+        num_coeff = curve.dgamma_by_dcoeff().shape[2]
+        num_points = curve.gamma().shape[0]
         res = np.zeros((num_coeff, ))
         weights = self.weights
         if weights[0] > 0:
             for i in range(num_coeff):
                 res[i] += weights[0] * np.sum(
-                    2*(curve.gamma-self.initial_curve[0])*curve.dgamma_by_dcoeff[:, i, :])/num_points
+                    2*(curve.gamma()-self.initial_curve[0])*curve.dgamma_by_dcoeff()[:, :, i])/num_points
         if weights[1] > 0:
             for i in range(num_coeff):
-                res[i] += weights[1] * np.sum(2*(curve.dgamma_by_dphi-self.initial_curve[1])
-                                              * curve.d2gamma_by_dphidcoeff[:, :, i, :])/num_points
+                res[i] += weights[1] * np.sum(2*(curve.gammadash()-self.initial_curve[1])
+                                              * curve.dgammadash_by_dcoeff()[:, :, i])/num_points
         if weights[2] > 0:
             for i in range(num_coeff):
-                res[i] += weights[2] * np.sum(2*(curve.d2gamma_by_dphidphi-self.initial_curve[2])
-                                              * curve.d3gamma_by_dphidphidcoeff[:, :, :, i, :])/num_points
+                res[i] += weights[2] * np.sum(2*(curve.gammadashdash()-self.initial_curve[2])
+                                              * curve.dgammadashdash_by_dcoeff()[:, :, i])/num_points
         if weights[3] > 0:
             for i in range(num_coeff):
-                res[i] += weights[3] * np.sum(2*(curve.d3gamma_by_dphidphidphi-self.initial_curve[3])
-                                              * curve.d4gamma_by_dphidphidphidcoeff[:, :, :, :, i, :])/num_points
+                res[i] += weights[3] * np.sum(2*(curve.gammadashdashdash()-self.initial_curve[3])
+                                              * curve.dgammadashdashdash_by_dcoeff()[:, :, i])/num_points
         return res
 
 
@@ -423,18 +437,17 @@ class UniformArclength():
         self.desired_arclength = desired_length
 
     def J(self):
-        num_points = self.curve.gamma.shape[0]
-        return np.sum((self.curve.incremental_arclength-self.desired_arclength)**2)/num_points
+        l = self.curve.incremental_arclength()
+        num_points = l.shape[0]
+        return np.mean((l-self.desired_arclength)**2)
 
     def dJ_by_dcoefficients(self):
-        num_points = self.curve.gamma.shape[0]
-        num_coeff = self.curve.dgamma_by_dcoeff.shape[1]
+        l = self.curve.incremental_arclength()
+        dl = self.curve.dincremental_arclength_by_dcoeff()
+        num_coeff = dl.shape[1]
         res = np.zeros((num_coeff, ))
         for i in range(num_coeff):
-            res[i] = np.sum(
-                2 * (self.curve.incremental_arclength-self.desired_arclength)
-                * self.curve.dincremental_arclength_by_dcoeff[:, i, :]
-            )/num_points
+            res[i] = np.mean(2 * (l-self.desired_arclength) * dl[:, i])
         return res
 
 
@@ -458,9 +471,9 @@ class MinimumDistance():
         from scipy.spatial.distance import cdist
         res = 0
         for i in range(len(self.curves)):
-            gamma1 = self.curves[i].gamma
+            gamma1 = self.curves[i].gamma()
             for j in range(i):
-                gamma2 = self.curves[j].gamma
+                gamma2 = self.curves[j].gamma()
                 dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
                 res += np.sum(np.maximum(self.minimum_distance-dists, 0)**2)/(gamma1.shape[0]*gamma2.shape[0])
         return res
@@ -468,14 +481,14 @@ class MinimumDistance():
     def dJ_by_dcoefficients(self):
         res = []
         for i in range(len(self.curves)):
-            gamma1 = self.curves[i].gamma
-            dgamma1 = self.curves[i].dgamma_by_dcoeff
-            numcoeff1 = self.curves[i].dgamma_by_dcoeff.shape[1]
+            gamma1 = self.curves[i].gamma()
+            dgamma1 = self.curves[i].dgamma_by_dcoeff()
+            numcoeff1 = dgamma1.shape[2]
             res.append(np.zeros((numcoeff1, )))
             for j in range(i):
-                gamma2 = self.curves[j].gamma
-                dgamma2 = self.curves[j].dgamma_by_dcoeff
-                numcoeff2 = self.curves[j].dgamma_by_dcoeff.shape[1]
+                gamma2 = self.curves[j].gamma()
+                dgamma2 = self.curves[j].dgamma_by_dcoeff()
+                numcoeff2 = dgamma2.shape[2]
                 diffs = gamma1[:, None, :] - gamma2[None, :, :]
 
                 dists = np.sqrt(np.sum(diffs**2, axis=2))
@@ -483,9 +496,9 @@ class MinimumDistance():
                     continue
 
                 for ii in range(numcoeff1):
-                    res[i][ii] += np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma1[:, ii, :][:, None, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[i][ii] += np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma1[:, :, ii][:, None, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
                 for jj in range(numcoeff2):
-                    res[j][jj] -= np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma2[:, jj, :][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[j][jj] -= np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma2[:, :, jj][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
         return res
 
 class CoilLpReduction():

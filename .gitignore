@@ -8,9 +8,13 @@ tmp/
 build/
 build-mac/
 build-linux/
+build-clang/
+build-gcc/
+examples/.ipynb_checkpoints/
 *.so
 *.png
 *.txt
 *.npy
 *.log
 *.stat
+*.zip

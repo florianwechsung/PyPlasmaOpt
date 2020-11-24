@@ -118,16 +118,46 @@ inline simd_t inner(Vec3dSimd& a, Vec3d& b){
     return a.x*b[0]+a.y*b[1]+a.z*b[2];
 }
 
+inline simd_t inner(int i, Vec3dSimd& a){
+    if(i==0)
+        return a.x;
+    else if(i==1)
+        return a.y;
+    else
+        return a.z;
+}
+
+
 inline Vec3dSimd cross(Vec3dSimd& a, Vec3dSimd& b){
     return Vec3dSimd(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
 inline Vec3dSimd cross(Vec3dSimd& a, Vec3d& b){
     return Vec3dSimd(a.y * b[2] - a.z * b[1], a.z * b[0] - a.x * b[2], a.x * b[1] - a.y * b[0]);
+
 }
 
 inline Vec3dSimd cross(Vec3d& a, Vec3dSimd& b){
     return Vec3dSimd(a[1] * b.z - a[2] * b.y, a[2] * b.x - a[0] * b.z, a[0] * b.y - a[1] * b.x);
+}
+
+
+inline Vec3dSimd cross(Vec3dSimd& a, int i){
+    if(i==0)
+        return Vec3dSimd(simd_t(0.), a.z, -a.y);
+    else if(i == 1)
+        return Vec3dSimd(-a.z, simd_t(0.), a.x);
+    else
+        return Vec3dSimd(a.y, -a.x, simd_t(0.));
+}
+
+inline Vec3dSimd cross(int i, Vec3dSimd& b){
+    if(i==0)
+        return Vec3dSimd(simd_t(0.), -b.z, b.y);
+    else if(i == 1)
+        return Vec3dSimd(b.z, simd_t(0.), -b.x);
+    else
+        return Vec3dSimd(-b.y, b.x, simd_t(0.));
 }
 
 inline simd_t normsq(Vec3dSimd& a){
@@ -142,4 +172,7 @@ void biot_savart_by_dcoilcoeff_all(Array& points, vector<Array>& gammas, vector<
 template<class T>
 void biot_savart_all_simd(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& B, T& dB_by_dX, T& d2B_by_dXdX);
 
+template<class T>
+void biot_savart_B_only_vjp_impl(vector_type& pointsx, vector_type& pointsy, vector_type& pointsz, T& gamma, T& dgamma_by_dphi, T& v, T& res_gamma, T& res_dgamma_by_dphi, T& vgrad, T& res_grad_gamma, T& res_grad_dgamma_by_dphi);
 void biot_savart_by_dcoilcoeff_all_vjp(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& v, vector<Array>& res_gamma, vector<Array>& res_dgamma_by_dphi, Array& vgrad, vector<Array>& res_grad_gamma, vector<Array>& res_grad_dgamma_by_dphi);
+void biot_savart_by_dcoilcoeff_all_vjp_full(Array& points, vector<Array>& gammas, vector<Array>& dgamma_by_dphis, vector<double>& currents, Array& v, Array& vgrad, vector<Array>& dgamma_by_dcoeffs, vector<Array>& d2gamma_by_dphidcoeffs, vector<Array>& res_B, vector<Array>& res_dB);

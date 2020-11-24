@@ -1,13 +1,15 @@
 import numpy as np
 import pytest
-from pyplasmaopt import CartesianFourierCurve, BiotSavart, StelleratorSymmetricCylindricalFourierCurve
+from pyplasmaopt import BiotSavart
+from simsgeo import FourierCurve, StelleratorSymmetricCylindricalFourierCurve
 
 def get_coil(num_quadrature_points=200):
-    coil = CartesianFourierCurve(3, np.linspace(0, 1, num_quadrature_points, endpoint=False))
-    coil.coefficients[1][0] = 1.
-    coil.coefficients[1][1] = 0.5
-    coil.coefficients[2][2] = 0.5
-    coil.update()
+    coil = FourierCurve(num_quadrature_points, 3)
+    coeffs = coil.dofs
+    coeffs[1][0] = 1.
+    coeffs[1][1] = 0.5
+    coeffs[2][2] = 0.5
+    coil.set_dofs(np.concatenate(coeffs))
     return coil
 
 @pytest.mark.parametrize("use_cpp", [True, False])
@@ -56,6 +58,58 @@ def test_biotsavart_gradient_symmetric_and_divergence_free(use_cpp, idx):
     assert abs(dB[idx][0, 0] + dB[idx][1, 1] + dB[idx][2, 2]) < 1e-14
     assert np.allclose(dB[idx], dB[idx].T)
 
+def test_dB_by_dcoilcoeff_reverse_taylortest():
+    np.random.seed(1)
+    coil = get_coil()
+    bs = BiotSavart([coil], [1e4])
+    points = np.asarray(17 * [[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+    points += 0.001 * (np.random.rand(*points.shape)-0.5)
+
+    bs.set_points(points)
+    coil_dofs = np.asarray(coil.get_dofs())
+    B = bs.compute(points, use_cpp=True).B
+    dBdX = bs.compute(points, use_cpp=True).dB_by_dX
+    J0 = np.sum(B**2)
+    dJ = bs.B_and_dB_vjp(B, dBdX)
+
+    h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    dJ_dh = 2*np.sum(dJ[0][0] * h)
+    err = 1e6
+    for i in range(5, 10):
+        eps = 0.5**i
+        coil.set_dofs(coil_dofs + eps * h)
+        Bh = bs.compute(points, use_cpp=True).B
+        Jh = np.sum(Bh**2)
+        deriv_est = (Jh-J0)/eps
+        err_new = np.linalg.norm(deriv_est-dJ_dh)
+        assert err_new < 0.55 * err
+        err = err_new
+
+def test_dBdX_by_dcoilcoeff_reverse_taylortest():
+    bs = BiotSavart([coil], [1e4])
+    points = np.asarray(17 * [[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
+    points += 0.001 * (np.random.rand(*points.shape)-0.5)
+
+    bs.set_points(points)
+    coil_dofs = np.asarray(coil.get_dofs())
+    B = bs.compute(points, use_cpp=True).B
+    dBdX = bs.compute(points, use_cpp=True).dB_by_dX
+    J0 = np.sum(dBdX**2)
+    dJ = bs.B_and_dB_vjp(B, dBdX)
+
+    h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
+    dJ_dh = 2*np.sum(dJ[1][0] * h)
+    err = 1e6
+    for i in range(5, 10):
+        eps = 0.5**i
+        coil.set_dofs(coil_dofs + eps * h)
+        dBdXh = bs.compute(points, use_cpp=True).dB_by_dX
+        Jh = np.sum(dBdXh**2)
+        deriv_est = (Jh-J0)/eps
+        err_new = np.linalg.norm(deriv_est-dJ_dh)
+        assert err_new < 0.55 * err
+        err = err_new
+
 @pytest.mark.parametrize("idx", [0, 16])
 @pytest.mark.parametrize("use_cpp", [True, False])
 def test_dB_by_dcoilcoeff_taylortest(use_cpp, idx):
@@ -64,11 +118,11 @@ def test_dB_by_dcoilcoeff_taylortest(use_cpp, idx):
     points = np.asarray(17 * [[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     points += 0.001 * (np.random.rand(*points.shape)-0.5)
 
-    coil_dofs = coil.get_dofs()
+    coil_dofs = np.asarray(coil.get_dofs())
     B0 = bs.compute(points, use_cpp=use_cpp).B[0]
 
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dB_dh = h @ bs.compute_by_dcoilcoeff(points, use_cpp=use_cpp).dB_by_dcoilcoeffs[0][0,:,:]
+    dB_dh = bs.compute_by_dcoilcoeff(points, use_cpp=use_cpp).dB_by_dcoilcoeffs[0][0,:,:] @ h
     err = 1e6
     for i in range(5, 10):
         eps = 0.5**i
@@ -88,11 +142,11 @@ def test_dB_dX_by_dcoilcoeff_taylortest(use_cpp, idx):
     points = np.asarray(17 * [[-1.41513202e-03,  8.99999382e-01, -3.14473221e-04 ]])
     points += 0.001 * (np.random.rand(*points.shape)-0.5)
 
-    coil_dofs = coil.get_dofs()
+    coil_dofs = np.asarray(coil.get_dofs())
     dB_dX0 = bs.compute(points, use_cpp=use_cpp).dB_by_dX[idx]
 
     h = 1e-2 * np.random.rand(len(coil_dofs)).reshape(coil_dofs.shape)
-    dB_dXdh = np.einsum('i,ijk->jk', h, bs.compute_by_dcoilcoeff(points, use_cpp=use_cpp).d2B_by_dXdcoilcoeffs[0][idx,:,:,:])
+    dB_dXdh = np.einsum('i,jki->jk', h, bs.compute_by_dcoilcoeff(points, use_cpp=use_cpp).d2B_by_dXdcoilcoeffs[0][idx,:,:,:])
     err = 1e6
     for i in range(5, 10):
         eps = 0.5**i
@@ -139,10 +193,11 @@ def test_biotsavart_d2B_by_dXdX_taylortest(use_cpp, idx):
 
 
 if __name__ == "__main__":
-    test_biotsavart_gradient_symmetric_and_divergence_free(True)
+    # test_biotsavart_gradient_symmetric_and_divergence_free(True)
+    test_dB_by_dcoilcoeff_reverse_taylortest()
     import sys
     sys.exit()
-    coil = CartesianFourierCurve(3)
+    coil = FourierCurve(3)
     coil.coefficients[1][0] = 1.
     coil.coefficients[1][1] = 0.5
     coil.coefficients[2][2] = 0.5

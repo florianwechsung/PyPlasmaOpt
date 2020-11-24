@@ -24,7 +24,7 @@ class NearAxisQuasiSymmetryObjective():
         self.ma = ma
         bs = BiotSavart(stellarator.coils, stellarator.currents)
         self.biotsavart = bs
-        self.biotsavart.set_points(self.ma.gamma)
+        self.biotsavart.set_points(self.ma.gamma())
         qsf = QuasiSymmetricField(eta_bar, ma)
         self.qsf = qsf
         sigma = qsf.sigma
@@ -68,7 +68,7 @@ class NearAxisQuasiSymmetryObjective():
         self.arclength_weight = arclength_weight
         self.distance_weight = distance_weight
 
-        sampler = GaussianSampler(coils[0].points, length_scale=length_scale_perturb, sigma=sigma_perturb)
+        sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
         # import IPython; IPython.embed()
         # import sys; sys.exit()
         self.sampler = sampler
@@ -107,7 +107,7 @@ class NearAxisQuasiSymmetryObjective():
 
         self.qsf.eta_bar = x_etabar
         self.ma.set_dofs(x_ma)
-        self.biotsavart.set_points(self.ma.gamma)
+        self.biotsavart.set_points(self.ma.gamma())
         self.stellarator.set_currents(self.current_fak * x_current)
         self.stellarator.set_dofs(x_coil)
 
@@ -192,7 +192,7 @@ class NearAxisQuasiSymmetryObjective():
         else:
             self.res_tikhonov_weight = 0
 
-        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
+        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma())
 
         Jsamples = self.stochastic_qs_objective.J_samples()
         assert len(Jsamples) == self.ninsamples
@@ -296,10 +296,10 @@ class NearAxisQuasiSymmetryObjective():
             info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
         info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
 
-        max_curvature  = max(np.max(c.kappa) for c in self.stellarator._base_coils)
-        mean_curvature = np.mean([np.mean(c.kappa) for c in self.stellarator._base_coils])
-        max_torsion    = max(np.max(np.abs(c.torsion)) for c in self.stellarator._base_coils)
-        mean_torsion   = np.mean([np.mean(np.abs(c.torsion)) for c in self.stellarator._base_coils])
+        max_curvature  = max(np.max(c.kappa()) for c in self.stellarator._base_coils)
+        mean_curvature = np.mean([np.mean(c.kappa()) for c in self.stellarator._base_coils])
+        max_torsion    = max(np.max(np.abs(c.torsion())) for c in self.stellarator._base_coils)
+        mean_torsion   = np.mean([np.mean(np.abs(c.torsion())) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         comm = MPI.COMM_WORLD
@@ -418,7 +418,7 @@ class SimpleNearAxisQuasiSymmetryObjective():
         self.ma = ma
         bs = BiotSavart(stellarator.coils, stellarator.currents)
         self.biotsavart = bs
-        self.biotsavart.set_points(self.ma.gamma)
+        self.biotsavart.set_points(self.ma.gamma())
         qsf = QuasiSymmetricField(eta_bar, ma)
         self.qsf = qsf
         sigma = qsf.sigma
@@ -474,7 +474,7 @@ class SimpleNearAxisQuasiSymmetryObjective():
 
         self.qsf.eta_bar = x_etabar
         self.ma.set_dofs(x_ma)
-        self.biotsavart.set_points(self.ma.gamma)
+        self.biotsavart.set_points(self.ma.gamma())
         self.stellarator.set_currents(self.current_fak * x_current)
         self.stellarator.set_dofs(x_coil)
 

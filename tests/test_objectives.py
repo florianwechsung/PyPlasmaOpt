@@ -177,7 +177,7 @@ def test_taylor_test_ma_coeffs(objective):
         print("err_new %s" % (err_new))
         assert err_new < (0.55)**4 * err
         err = err_new
-    assert eps < 1e-3
+    assert eps < 1e-2
 
 def test_taylor_test_iota_by_coeffs():
     nfp = 2

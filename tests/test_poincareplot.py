@@ -1,5 +1,5 @@
 import pytest
-from pyplasmaopt import BiotSavart, get_24_coil_data, CoilCollection, compute_field_lines
+from pyplasmaopt import BiotSavart, get_24_coil_data, CoilCollection, compute_field_lines, find_magnetic_axis, trace_particles_on_axis
 
 # Not a great test, essentially just checks that the code runs
 def test_poincareplot(nparticles=12, nperiods=20):
@@ -50,3 +50,38 @@ def test_poincareplot(nparticles=12, nperiods=20):
     plt.close()
 
     assert True # not quite sure how to test this, so we just check that it runs.
+
+# if __name__ == "__main__":
+#     test_poincareplot()
+
+if __name__ == "__main__":
+    from pyplasmaopt import get_ncsx_data
+    nfp = 3
+    (coils, ma, currents) = get_ncsx_data(Nt=4, ppp=15, case='orig')
+    # (coils, ma, currents) = get_ncsx_data(Nt=4, ppp=10, case='optim_no_reg')
+    # currents = [1.5 * c for c in currents]
+
+
+
+    # nfp = 2
+    # (coils, currents, ma, eta_bar) = get_24_coil_data(Nt_coils=5, Nt_ma=3, nfp=nfp, ppp=10, at_optimum=True)
+    # (coils, _, ma, eta_bar) = get_24_coil_data(Nt_coils=5, Nt_ma=3, nfp=nfp, ppp=10, at_optimum=False)
+    
+
+    coil_collection = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(coil_collection.coils, coil_collection.currents)
+    rguess = 1.5
+    axis = find_magnetic_axis(bs, 100, rguess, output='cartesian')
+    import time
+    tic = time.time()
+    tmax = 1e-4
+    res_gyro, res_gyro_t = trace_particles_on_axis(axis, bs, 101, mode='gyro', tmax=tmax)
+    toc = time.time()
+    print(res_gyro_t)
+    print('Fraction of escaped particles:', len([t for t in res_gyro_t if t<tmax-1e-14])/len(res_gyro_t))
+    print('time for tracing', toc-tic)
+    # res_orbit, res_orbit_t = trace_particles_on_axis(axis, bs, 51, mode='orbit', tmax=tmax)
+    from pyplasmaopt import plot_stellarator
+    plot_stellarator(coil_collection, extra_data=[axis] + res_gyro)
+    # plot_stellarator(coil_collection, extra_data=[axis] + res_gyro + res_orbit)
+    import IPython; IPython.embed()

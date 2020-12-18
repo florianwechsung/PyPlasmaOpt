@@ -1,5 +1,6 @@
 import pytest
-from pyplasmaopt import BiotSavart, get_24_coil_data, CoilCollection, compute_field_lines, find_magnetic_axis, trace_particles_on_axis
+from pyplasmaopt import get_24_coil_data, CoilCollection, compute_field_lines, find_magnetic_axis, trace_particles_on_axis
+from simsgeo import BiotSavart
 
 # Not a great test, essentially just checks that the code runs
 def test_poincareplot(nparticles=12, nperiods=20):
@@ -54,12 +55,33 @@ def test_poincareplot(nparticles=12, nperiods=20):
 # if __name__ == "__main__":
 #     test_poincareplot()
 
+
+import numpy as np
+def lossplot(loss_times, tmax, title):
+    print('Fraction of escaped particles:', len([t for t in loss_times if t<np.inf])/len(loss_times))
+    sorted_t = np.sort(loss_times)
+    sorted_t = [t for t in sorted_t if t < np.inf]
+    lost_percentage = [len([c for c in sorted_t if c <= t])/len(loss_times) for t in sorted_t]
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.semilogx(sorted_t + [tmax], lost_percentage + [lost_percentage[-1]], drawstyle='steps-post')
+    plt.xlabel('Time')
+    plt.ylabel('Loss percentage')
+    plt.title(title)
+    plt.xlim((1e-5, tmax))
+    plt.savefig(title.replace(' ', '-') + '.png')
+    plt.close()
+    # plt.show()
+
 if __name__ == "__main__":
-    from pyplasmaopt import get_ncsx_data
+    from pyplasmaopt import get_ncsx_data, plot_stellarator
+    import time
     nfp = 3
     (coils, ma, currents) = get_ncsx_data(Nt=4, ppp=15, case='orig')
-    # (coils, ma, currents) = get_ncsx_data(Nt=4, ppp=10, case='optim_no_reg')
+    title = 'NCSX'
+    # (coils, ma, currents) = get_ncsx_data(Nt=4, ppp=15, case='optim_no_reg')
     # currents = [1.5 * c for c in currents]
+    # title = 'NCSX optimised without regularisation'
 
 
 
@@ -72,16 +94,20 @@ if __name__ == "__main__":
     bs = BiotSavart(coil_collection.coils, coil_collection.currents)
     rguess = 1.5
     axis = find_magnetic_axis(bs, 100, rguess, output='cartesian')
-    import time
     tic = time.time()
-    tmax = 1e-4
-    res_gyro, res_gyro_t = trace_particles_on_axis(axis, bs, 101, mode='gyro', tmax=tmax)
+    tmax = 1e-2
+    nparticles = 1000
+    seed = 1
+    res_gyro, res_gyro_t = trace_particles_on_axis(axis, bs, nparticles, mode='gyro', tmax=tmax, seed=seed)
     toc = time.time()
-    print(res_gyro_t)
-    print('Fraction of escaped particles:', len([t for t in res_gyro_t if t<tmax-1e-14])/len(res_gyro_t))
-    print('time for tracing', toc-tic)
-    # res_orbit, res_orbit_t = trace_particles_on_axis(axis, bs, 51, mode='orbit', tmax=tmax)
-    from pyplasmaopt import plot_stellarator
-    plot_stellarator(coil_collection, extra_data=[axis] + res_gyro)
-    # plot_stellarator(coil_collection, extra_data=[axis] + res_gyro + res_orbit)
+    lossplot(res_gyro_t, tmax, title + f' (Guiding Center, seed={seed}, {nparticles} particles)')
+    print(f"Time for Guiding Center tracing {toc-tic}s")
+    # print("res_gyro_t", res_gyro_t)
+    # plot_stellarator(coil_collection, extra_data=[axis] + res_gyro)
+    import sys; sys.exit()
+
+    res_orbit, res_orbit_t = trace_particles_on_axis(axis, bs, nparticles, mode='orbit', tmax=tmax, seed=seed)
+    print("res_orbit_t", res_orbit_t)
+    lossplot(res_orbit_t, tmax, title + '-orbit')
+    plot_stellarator(coil_collection, extra_data=[axis] + res_gyro + res_orbit)
     import IPython; IPython.embed()

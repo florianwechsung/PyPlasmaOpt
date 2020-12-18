@@ -1,7 +1,7 @@
 import numpy as np
 from .curve import GaussianPerturbedCurve
 from .objective import BiotSavartQuasiSymmetricFieldDifference
-from .biotsavart import BiotSavart
+from simsgeo import BiotSavart
 from .cvar import CVaR
 from property_manager import cached_property, PropertyManager
 from mpi4py import MPI

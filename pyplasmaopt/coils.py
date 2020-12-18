@@ -9,12 +9,12 @@ class CoilCollection():
     rotation to generate a full set of stellerator coils.
     """
 
-    def __init__(self, coils, currents, nfp, stellerator_symmetrie):
+    def __init__(self, coils, currents, nfp, stellerator_symmetry):
         self._base_coils = coils
         self._base_currents = currents
         self.coils = []
         self.currents = []
-        flip_list = [False, True] if stellerator_symmetrie else [False] 
+        flip_list = [False, True] if stellerator_symmetry else [False] 
         self.map = []
         self.current_sign = []
         for k in range(0, nfp):

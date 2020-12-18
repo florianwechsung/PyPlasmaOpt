@@ -1,4 +1,4 @@
-from .biotsavart import BiotSavart
+from simsgeo import BiotSavart
 from .quasi_symmetric_field import QuasiSymmetricField
 from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
 from .curve import GaussianSampler
@@ -675,15 +675,15 @@ class SimpleNearAxisQuasiSymmetryObjective():
 
 def plot_stellarator(stellarator, axis=None, extra_data=None):
     coils = stellarator.coils
-    gamma = coils[0].gamma
+    gamma = coils[0].gamma()
     N = gamma.shape[0]
     l = len(stellarator.coils)
     data = np.zeros((l*(N+1), 3))
     labels = [None for i in range(l*(N+1))]
     groups = [None for i in range(l*(N+1))]
     for i in range(l):
-        data[(i*(N+1)):((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma
-        data[((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma[0, :]
+        data[(i*(N+1)):((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma()
+        data[((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma()[0, :]
         for j in range(i*(N+1), (i+1)*(N+1)):
             labels[j] = 'Coil %i ' % stellarator.map[i]
             groups[j] = i+1
@@ -701,7 +701,7 @@ def plot_stellarator(stellarator, axis=None, extra_data=None):
         for i in range(axis.nfp):
             ma_[(i*N):(((i+1)*N)), :] = ma0
             ma0 = ma0 @ rotmat
-        ma_[-1, :] = axis.gamma[0, :]
+        ma_[-1, :] = axis.gamma()[0, :]
         data = np.vstack((data, ma_))
         for i in range(ma_.shape[0]):
             labels.append('Magnetic Axis')

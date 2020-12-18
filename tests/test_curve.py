@@ -11,10 +11,11 @@ def taylor_test(f, df, x, epsilons=None, direction=None):
     print("################################################################################")
     err_old = 1e9
     for eps in epsilons:
-        feps = f(x + eps * direction)
-        dfest = (feps-f0)/eps
+        fpluseps = f(x + eps * direction)
+        fminuseps = f(x - eps * direction)
+        dfest = (fpluseps-fminuseps)/(2*eps)
         err = np.linalg.norm(dfest - dfx)
-        assert err < 1e-11 or err < 0.6 * err_old
+        assert err < 1e-11 or err < 0.3 * err_old
         err_old = err
         print(err)
     print("################################################################################")
@@ -120,9 +121,11 @@ def get_magnetic_axis(x=np.asarray([0.12345])):
     from simsgeo import StelleratorSymmetricCylindricalFourierCurve
 
     ma = StelleratorSymmetricCylindricalFourierCurve(x, 3, 2)
-    ma.coefficients[0][0] = 1.
-    ma.coefficients[0][1] = 0.1
-    ma.coefficients[1][0] = 0.1
+    coeffs = ma.dofs
+    coeffs[0][0] = 1.
+    coeffs[0][1] = 0.1
+    coeffs[1][0] = 0.1
+    ma.set_dofs(np.concatenate(coeffs))
     ma.invalidate_cache()
     return ma
 
@@ -303,6 +306,9 @@ def test_magnetic_axis_frenet_frame():
     assert np.allclose(np.sum(b*b, axis=1), 1)
 
 if __name__ == "__main__":
+    # test_magnetic_axis_curvature_derivative()
+    test_coil_curvature_derivative()
+    import sys; sys.exit()
     points = np.linspace(0, 1, 100)
     cfc = get_coil(points)
     ax = cfc.plot(plot_derivative=True, show=False)

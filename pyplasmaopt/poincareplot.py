@@ -215,51 +215,45 @@ def find_magnetic_axis(biotsavart, n, rguess, output='cylindrical'):
 
 
 
-def full_orbit_rhs(xyzvxyz, m, q, biotsavart):
-    p = xyzvxyz[:3]
-    v = xyzvxyz[3:]
-    biotsavart.set_points(np.asarray([p]))
-    B = biotsavart.B(compute_derivatives=0)[0, :]
-    # print('vtang', np.sum(v*B)/np.linalg.norm(B))
+def full_orbit_rhs_batch(xyzvxyz, m, q, biotsavart, active_idxs):
+    bs = xyzvxyz.shape[0]//6
+    xyzvxyz = xyzvxyz.reshape((6, bs))
+    p = xyzvxyz[np.ix_([0, 1, 2], active_idxs)].T
+    v = xyzvxyz[np.ix_([3, 4, 5], active_idxs)]
+    biotsavart.set_points(p)
+    Bs = biotsavart.B(compute_derivatives=0)
     rhs = np.zeros_like(xyzvxyz)
-    rhs[:3] = v
-    rhs[3:] = (q/m) * np.cross(v, B)
-    return rhs
+    rhs[np.ix_([0, 1, 2], active_idxs)] = v
+    rhs[np.ix_([3, 4, 5], active_idxs)] = (q/m) * np.cross(v.T, Bs, axis=1).T
+    return rhs.flatten()
 
-def guiding_center_rhs(xyzv, vtotal, mu, m, q, biotsavart):
-    xyz = xyzv[:3]
-    vtang = xyzv[3]
+def guiding_center_rhs_batch(xyzv, vtotal, mus, m, q, biotsavart, active_idxs):
+    bs = xyzv.shape[0]//4
+    xyzv = xyzv.reshape((4, bs))
+    xyzs = xyzv[:3, :].T
     res = np.zeros_like(xyzv)
-    biotsavart.set_points(np.asarray([xyz]))
-    B = biotsavart.B(compute_derivatives=1)[0, :]
-    GradB = biotsavart.dB_by_dX(compute_derivatives=1)[0, :, :]
-    AbsB = sqrt(B[0]**2 + B[1]**2 + B[2]**2)
-    GradAbsB = (B[0]*GradB[:, 0] + B[1]*GradB[:, 1] + B[2]*GradB[:, 2])/AbsB
-    vperp2 = 2 * mu * AbsB
-    # vperp2 = vtotal**2 - vtang**2
-    term_tang = vtang * B/AbsB
-    # print("AbsB", AbsB)
-    # print("vtang", vtang)
-    # mu = 0.5 * vperp2/AbsB
-    # print("mu", mu)
-    if vperp2 < 0:
-        print("vperp2", vperp2)
-        raise RuntimeError
-    #BcrossGradAbsB = np.cross(B, GradAbsB) # np.cross is shockingly slow
-    BcrossGradAbsB = np.asarray([
-        (B[1] * GradAbsB[2]) - (B[2] * GradAbsB[1]),
-        (B[2] * GradAbsB[0]) - (B[0] * GradAbsB[2]),
-        (B[0] * GradAbsB[1]) - (B[1] * GradAbsB[0])])
-    gradB_drift = (m/(q*AbsB**3)) * 0.5*vperp2 * BcrossGradAbsB
-    curv_drift = (m/(q*AbsB**3)) * vtang**2 * BcrossGradAbsB
-    # curv_drift = (m/(q*AbsB**4)) * vtang**2 * np.cross(B, np.asarray([np.sum(B*GradB[0, ]), np.sum(B*GradB[1, ]), np.sum(B*GradB[2, ])]))
-    term_perp = gradB_drift + curv_drift
-    res[:3] = term_tang + term_perp
-    #res[3] = - mu * np.sum(B * GradAbsB)/AbsB
-    res[3] = - mu * (B[0]*GradAbsB[0] + B[1]*GradAbsB[1] + B[2]*GradAbsB[2])/AbsB
-    return res
+    biotsavart.set_points(xyzs[active_idxs, :])
+    Bs = biotsavart.B(compute_derivatives=1)
+    GradBs = biotsavart.dB_by_dX(compute_derivatives=1)
+    AbsBs = np.linalg.norm(Bs, axis=1)
+    GradAbsBs = (Bs[:, None, 0]*GradBs[:, :, 0] + Bs[:, None, 1]*GradBs[:, :, 1] + Bs[:, None, 2]*GradBs[:, :, 2])/AbsBs[:, None]
+    BcrossGradAbsBs = np.asarray([
+        (Bs[:, 1] * GradAbsBs[:, 2]) - (Bs[:, 2] * GradAbsBs[:, 1]),
+        (Bs[:, 2] * GradAbsBs[:, 0]) - (Bs[:, 0] * GradAbsBs[:, 2]),
+        (Bs[:, 0] * GradAbsBs[:, 1]) - (Bs[:, 1] * GradAbsBs[:, 0])]).T
 
-def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4):
+    vtangs = (xyzv[3, :])[active_idxs]
+    rhsxyz = (vtangs/AbsBs)[:, None] * Bs
+    vperp2s = 2 * mus[active_idxs] * AbsBs
+    rhsxyz += ((m/(q*AbsBs**3)) * 0.5*vperp2s)[:, None] * BcrossGradAbsBs
+    rhsxyz += ((m/(q*AbsBs**3)) * vtangs**2)[:, None] * BcrossGradAbsBs
+    rhsv = - mus[active_idxs] * (Bs[:, 0]*GradAbsBs[:, 0] + Bs[:, 1]*GradAbsBs[:, 1] + Bs[:, 2]*GradAbsBs[:, 2])/AbsBs
+    res[np.ix_([0, 1, 2], active_idxs)] = rhsxyz.T
+    res[np.ix_([3], active_idxs)] = rhsv
+    return res.flatten()
+
+
+def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1):
     assert mode in ['gyro', 'orbit']
 
     e = 1.6e-19
@@ -273,69 +267,75 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     max_step = 1.0/vtotal
 
 
-    xyz_init = axis[0, :]
-    biotsavart.set_points(np.asarray([xyz_init]))
-    B = biotsavart.B(compute_derivatives=0)[0, :]
-    AbsB = sqrt(B[0]**2+B[1]**2+B[2]**2)
-    print("|B| = %.2E T" % AbsB)
+    np.random.seed(seed)
+    xyz_inits = axis[np.random.randint(0, axis.shape[0], size=(nparticles, )), :]
+    biotsavart.set_points(xyz_inits)
+    Bs = biotsavart.B(compute_derivatives=0)
+    AbsBs = np.linalg.norm(Bs, axis=1)
+    print("Mean(|B|) = %.2E T" % np.mean(AbsBs))
 
-    def solve_for_u(u):
-        # u = 1: all tangential velocity, u = 0: all perpendicular velocity
-        vtang = u * vtotal
-        vperp2 = vtotal**2 - vtang**2
-        mu = vperp2/(2*AbsB)
-
-        from scipy.integrate import solve_ivp, RK45, OdeSolution, DOP853
-        tspan = [0, tmax]
-        if mode == 'gyro':
-            yinit = np.asarray([xyz_init[0], xyz_init[1], xyz_init[2], vtang])
-            rhs = lambda t, xyz: guiding_center_rhs(xyz, vtotal, mu, m, q, biotsavart)
-            # solver = RK45(rhs, tspan[0], yinit, tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-            solver = DOP853(rhs, tspan[0], yinit, tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-        else:
-            rhs = lambda t, xyzvyz: full_orbit_rhs(xyzvyz, m, q, biotsavart)
-            Bnorm = B/AbsB
-            ez = np.asarray([0., 0., 1.])
-            ez -= Bnorm * np.sum(Bnorm*ez)
-            ez *= 1./np.linalg.norm(ez)
-            Bperp = np.cross(Bnorm, ez)
-            Bperp *= 1./np.linalg.norm(Bperp)
-            rg = m*sqrt(vperp2)/(abs(q)*AbsB)
-            yinit = np.zeros((6, ))
-            yinit[:3] = xyz_init + rg * ez
-            yinit[3:] = -sqrt(vperp2) * Bperp + vtang * Bnorm
-            # solver = RK45(rhs, tspan[0], yinit, tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-            solver = DOP853(rhs, tspan[0], yinit, tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-        ts = [0]
-        denseoutputs = []
-        t = tspan[0]
-        while t < tspan[-1]:
-            try:
-                solver.step()
-            except:
-                print('abort (except) at t =', solver.t)
-                break
-            if solver.t < t + 1e-17: # no progress --> abort
-                print('abort (timestep) at t =', solver.t)
-                break
-            xyz = solver.y[:3]
+    us = np.linspace(-1., 1.0, nparticles, endpoint=True)
+    # u = 1: all tangential velocity, u = 0: all perpendicular velocity
+    print("us", us)
+    vtangs = us * vtotal
+    vperp2s = vtotal**2 - vtangs**2
+    mus = vperp2s/(2*AbsBs)
+    from scipy.integrate import solve_ivp, RK45, OdeSolution, DOP853
+    tspan = [0, tmax]
+    active_idxs = list(range(0, nparticles))
+    if mode == 'gyro':
+        yinit = np.zeros((4, nparticles))
+        yinit[:3, :] = xyz_inits.T
+        yinit[3, :] = vtangs
+        rhs = lambda t, xyzvs: guiding_center_rhs_batch(xyzvs, vtotal, mus, m, q, biotsavart, active_idxs)
+        # solver = RK45(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
+        solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
+    else:
+        rhs = lambda t, xyzvyz: full_orbit_rhs_batch(xyzvyz, m, q, biotsavart, active_idxs)
+        eB = Bs/AbsBs[:, None]
+        ez = np.asarray(nparticles*[[0., 0., 1.]])
+        ez -= eB * np.sum(eB*ez, axis=1)[:, None]
+        ez *= 1./np.linalg.norm(ez)
+        Bperp = np.cross(eB, ez, axis=1)
+        Bperp *= 1./np.linalg.norm(Bperp, axis=1)
+        yinit = np.zeros((6, nparticles))
+        for i in range(nparticles):
+            rg = m*sqrt(vperp2s[i])/(abs(q)*AbsBs[i])
+            yinit[:3, i] = xyz_inits[i] + rg * ez[i, :]
+            yinit[3:, i] = -sqrt(vperp2s[i]) * Bperp[i, :] + vtangs[i] * eB[:, i]
+            # solver = RK45(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
+            solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
+    ts = [0]
+    denseoutputs = []
+    t = tspan[0]
+    loss_time = nparticles * [np.inf]
+    vsize = 6 if mode == 'orbit' else 4
+    while t < tspan[-1]:
+        try:
+            solver.step()
+        except:
+            print('abort (except) at t =', solver.t)
+            break
+        y = solver.y.reshape((vsize, nparticles))
+        for i in reversed(range(len(active_idxs))):
+            idx = active_idxs[i]
+            xyz = y[:3, idx]
             dists = np.linalg.norm(xyz[None, :] - axis, axis=1)
             if min(dists) > 0.3:
-                print('abort (distance) at t =', solver.t)
-                break
-            t = solver.t
-            ts.append(solver.t)
-            denseoutputs.append(solver.dense_output())
-        odesol = OdeSolution(ts, denseoutputs)
-        t_eval = np.linspace(ts[0], ts[-1], 10000)
-        res = odesol(t_eval).T
-        return res[:, :3], ts[-1]
+                print(f'abort for u={us[idx]} (distance) at t={solver.t}')
+                del active_idxs[i]
+                loss_time[idx] = solver.t
+        if len(active_idxs) == 0:
+            break
+        t = solver.t
+        ts.append(solver.t)
+        denseoutputs.append(solver.dense_output())
+    odesol = OdeSolution(ts, denseoutputs)
+    N = 1000
+    t_eval = np.linspace(ts[0], ts[-1], N)
+    res = odesol(t_eval).T.reshape((N, vsize, nparticles))
+
     res_x = []
-    res_t = []
-    # for u in [0.10]:
-    for u in np.linspace(-1., 1., nparticles, endpoint=True):
-        print("u", u)
-        tmp = solve_for_u(u)
-        res_x.append(tmp[0])
-        res_t.append(tmp[1])
-    return res_x, res_t
+    for i in range(nparticles):
+        res_x.append(res[:, :3, i])
+    return res_x, loss_time

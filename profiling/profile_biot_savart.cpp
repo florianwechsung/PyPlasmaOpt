@@ -6,22 +6,22 @@
 
 
 
-int main() {
-    xt::xarray<double> points         = xt::load_npy<double>("points_200.npy");
-    xt::xarray<double> gamma          = xt::load_npy<double>("gamma_200.npy");
-    xt::xarray<double> dgamma_by_dphi = xt::load_npy<double>("dgamma_by_dphi_200.npy");
-    int n = 1000;
+//int main() {
+//    xt::xarray<double> points         = xt::load_npy<double>("points_200.npy");
+//    xt::xarray<double> gamma          = xt::load_npy<double>("gamma_200.npy");
+//    xt::xarray<double> dgamma_by_dphi = xt::load_npy<double>("dgamma_by_dphi_200.npy");
+//    int n = 10000;
 
-    auto pointsx = vector_type(points.shape(0), 0);
-    auto pointsy = vector_type(points.shape(0), 0);
-    auto pointsz = vector_type(points.shape(0), 0);
-    for (int i = 0; i < points.shape(0); ++i) {
-        pointsx[i] = points(i, 0);
-        pointsy[i] = points(i, 1);
-        pointsz[i] = points(i, 2);
-    }
+//    auto pointsx = vector_type(points.shape(0), 0);
+//    auto pointsy = vector_type(points.shape(0), 0);
+//    auto pointsz = vector_type(points.shape(0), 0);
+//    for (int i = 0; i < points.shape(0); ++i) {
+//        pointsx[i] = points(i, 0);
+//        pointsy[i] = points(i, 1);
+//        pointsz[i] = points(i, 2);
+//    }
 //    auto t2 = std::chrono::high_resolution_clock::now();
-//#pragma omp parallel for
+////#pragma omp parallel for
 //    for (int i = 0; i < n; ++i) {
 //        auto B = xt::xarray<double>::from_shape({points.shape(0), 3});
 //        auto dB_by_dX = xt::xarray<double>::from_shape({points.shape(0), 3, 3});
@@ -37,6 +37,22 @@ int main() {
 //    double simdtime = std::chrono::duration_cast<std::chrono::milliseconds>( t3 - t2 ).count();
 //    std::cout << "Time: " << simdtime << " ms." << std::endl;
 
+//}
+
+int main() {
+    xt::xarray<double> points         = xt::load_npy<double>("points_200.npy");
+    xt::xarray<double> gamma          = xt::load_npy<double>("gamma_200.npy");
+    xt::xarray<double> dgamma_by_dphi = xt::load_npy<double>("dgamma_by_dphi_200.npy");
+    int n = 10000;
+
+    auto pointsx = vector_type(points.shape(0), 0);
+    auto pointsy = vector_type(points.shape(0), 0);
+    auto pointsz = vector_type(points.shape(0), 0);
+    for (int i = 0; i < points.shape(0); ++i) {
+        pointsx[i] = points(i, 0);
+        pointsy[i] = points(i, 1);
+        pointsz[i] = points(i, 2);
+    }
     auto v = xt::xarray<double>::from_shape({gamma.shape(0), 3});
     auto vgrad = xt::xarray<double>::from_shape({gamma.shape(0), 3, 3});
     for (int i = 0; i < gamma.shape(0); ++i) {
@@ -47,8 +63,6 @@ int main() {
             }
         }
     }
-    //xt::xarray<double> v = xt::random::randn<double>({gamma.shape(0), 3});
-    //xt::xarray<double> vgrad = xt::random::randn<double>({gamma.shape(0), 3, 3});
 
     auto res_gamma = xt::xarray<double>::from_shape({points.shape(0), 3});
     auto res_dgamma_by_dphi = xt::xarray<double>::from_shape({points.shape(0), 3});

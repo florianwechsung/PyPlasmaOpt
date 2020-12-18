@@ -11,7 +11,8 @@ def example3_get_objective():
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
     parser.add_argument("--ppp", type=int, default=20)
-    parser.add_argument("--Nt", type=int, default=5)
+    parser.add_argument("--Nt_ma", type=int, default=4)
+    parser.add_argument("--Nt_coils", type=int, default=4)
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--torsion", type=float, default=0.)
     parser.add_argument("--tikhonov", type=float, default=0.)
@@ -43,9 +44,9 @@ def example3_get_objective():
     info("Configuration: \n%s", args.__dict__)
     
     nfp = 3
-    (coils, ma, currents) = get_ncsx_data(Nt=args.Nt, ppp=args.ppp)
+    (coils, ma, currents) = get_ncsx_data(Nt_ma=args.Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
     stellarator = CoilCollection(coils, currents, nfp, True)
-    eta_bar = -0.6
+    eta_bar = 0.685
     iota_target = -0.395938929522566
     coil_length_target = None
     magnetic_axis_length_target = None

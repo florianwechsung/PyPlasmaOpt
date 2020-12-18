@@ -8,7 +8,7 @@ import os
 
 def test_magnetic_field_in_ncsx_is_correct():
     nfp = 3
-    (coils, ma, currents) = get_ncsx_data(Nt=25, ppp=20)
+    (coils, ma, currents) = get_ncsx_data(ppp=20)
     stellarator = CoilCollection(coils, currents, nfp, True)
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filepath = os.path.join(dir_path, "..", "pyplasmaopt", "data", "ncsx", "mgrid_c09r00_modularOnly.nc")
@@ -36,6 +36,7 @@ def test_magnetic_field_in_ncsx_is_correct():
                 trueBy = np.sin(phi) * Br[i, j, k] + np.cos(phi) * Bp[i, j, k]
                 trueBz = Bz[i, j, k]
                 trueB = np.asarray([[trueBx, trueBy, trueBz]])
+                trueB *= 1./1.474 # we normalise the currents in `get_ncsx_data`
                 err = np.linalg.norm(Bxyz-trueB)/np.linalg.norm(trueB)
                 avg_rel_err += err
                 max_rel_err = max(max_rel_err, err)

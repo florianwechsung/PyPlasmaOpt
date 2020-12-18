@@ -43,7 +43,7 @@ class NearAxisQuasiSymmetryObjective():
         self.magnetic_axis_length_target = magnetic_axis_length_target or self.J_axis_length.J()
 
         self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
-        self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
+        self.J_coil_torsions   = [CurveTorsion(coil, p=2) for coil in coils]
         self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
         self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
@@ -303,10 +303,9 @@ class NearAxisQuasiSymmetryObjective():
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         comm = MPI.COMM_WORLD
-        return
-        if iteration % 25 == 0 and comm.rank == 0:
+        if ((iteration in list(range(6))) or iteration % 250 == 0) and comm.rank == 0:
             self.plot('iteration-%04i.png' % iteration)
-        if iteration % 25 == 0 and self.noutsamples > 0:
+        if iteration % 250 == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             self.out_of_sample_values.append(oos_vals)
             info("Out of sample")

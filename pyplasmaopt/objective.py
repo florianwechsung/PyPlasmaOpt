@@ -383,10 +383,13 @@ class MinimumDistance():
         res = 0
         for i in range(len(self.curves)):
             gamma1 = self.curves[i].gamma()
+            l1 = self.curves[i].incremental_arclength()[:, None]
             for j in range(i):
                 gamma2 = self.curves[j].gamma()
+                l2 = self.curves[j].incremental_arclength()[None, :]
                 dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
-                res += np.sum(np.maximum(self.minimum_distance-dists, 0)**2)/(gamma1.shape[0]*gamma2.shape[0])
+                alen = l1 * l2
+                res += np.sum(alen * np.maximum(self.minimum_distance-dists, 0)**2)/(gamma1.shape[0]*gamma2.shape[0])
         return res
 
     def dJ_by_dcoefficients(self):
@@ -395,21 +398,29 @@ class MinimumDistance():
             gamma1 = self.curves[i].gamma()
             dgamma1 = self.curves[i].dgamma_by_dcoeff()
             numcoeff1 = dgamma1.shape[2]
+            l1 = self.curves[i].incremental_arclength()[:, None]
+            dl1 = self.curves[i].dincremental_arclength_by_dcoeff()[:, None, :]
             res.append(np.zeros((numcoeff1, )))
             for j in range(i):
                 gamma2 = self.curves[j].gamma()
                 dgamma2 = self.curves[j].dgamma_by_dcoeff()
+                l2 = self.curves[j].incremental_arclength()[None, :]
+                dl2 = self.curves[j].dincremental_arclength_by_dcoeff()[None, :, :]
                 numcoeff2 = dgamma2.shape[2]
                 diffs = gamma1[:, None, :] - gamma2[None, :, :]
 
                 dists = np.sqrt(np.sum(diffs**2, axis=2))
-                if np.sum(np.maximum(self.minimum_distance - dists, 0)) < 1e-15:
+                npmax = np.maximum(self.minimum_distance - dists, 0)
+                if np.sum(npmax) < 1e-15:
                     continue
 
+                l1l2npmax = l1*l2*npmax
                 for ii in range(numcoeff1):
-                    res[i][ii] += np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma1[:, :, ii][:, None, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[i][ii] += np.sum(dl1[:, :, ii] * l2 * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[i][ii] += np.sum(-2 * l1l2npmax * np.sum(dgamma1[:, None, :, ii] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
                 for jj in range(numcoeff2):
-                    res[j][jj] -= np.sum(-2 * np.maximum(self.minimum_distance - dists, 0) * np.sum(dgamma2[:, :, jj][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[j][jj] += np.sum(l1 * dl2[:, :, jj] * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
+                    res[j][jj] -= np.sum(-2 * l1l2npmax * np.sum(dgamma2[:, :, jj][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
         return res
 
 class CoilLpReduction():

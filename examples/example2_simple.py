@@ -18,8 +18,8 @@ def taylor_test(obj, x):
     np.random.seed(1)
     h = 0.1 * np.random.rand(*(x.shape))
     djh = sum(dj0*h)
-    for i in range(1, 8):
-        eps = 0.1**i
+    for i in range(1, 15):
+        eps = 0.5**i
         shifts = [-3, -2, -1, 1, 2, 3]
         weights = [-1/60, 3/20, -3/4, 3/4, -3/20, 1/60]
 
@@ -37,7 +37,7 @@ x = obj.x0
 obj.update(x)
 obj.callback(x)
 
-if True:
+if False:
     taylor_test(obj, x)
 
 maxiter = 2000
@@ -50,10 +50,10 @@ def J_scipy(x):
     dres = obj.dres
     return res, dres
 
-
 res = minimize(J_scipy, x, jac=True, method=solver, tol=1e-20,
                options={"maxiter": maxiter, "maxcor": memory},
                callback=obj.callback)
+import sys; sys.exit()
 info("%s" % res)
 xmin = res.x
 

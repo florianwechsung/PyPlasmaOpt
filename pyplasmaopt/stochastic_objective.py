@@ -12,7 +12,7 @@ from randomgen import Generator, PCG64
 
 class StochasticQuasiSymmetryObjective(PropertyManager):
 
-    def __init__(self, stellarator, sampler, nsamples, qsf, seed):
+    def __init__(self, stellarator, sampler, nsamples, qsf, seed, value_only=False):
         self.stellarator = stellarator
         self.nsamples = nsamples
         size = comm.size
@@ -29,7 +29,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
             perturbed_coils = [
                 GaussianPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
             perturbed_bs    = BiotSavart(perturbed_coils, stellarator.currents)
-            self.J_BSvsQS_perturbed.append(BiotSavartQuasiSymmetricFieldDifference(qsf, perturbed_bs))
+            self.J_BSvsQS_perturbed.append(BiotSavartQuasiSymmetricFieldDifference(qsf, perturbed_bs, value_only=value_only))
 
     def resample(self):
         for J in self.J_BSvsQS_perturbed:

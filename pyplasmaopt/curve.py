@@ -54,6 +54,9 @@ class GaussianPerturbedCurve():
         self.randomgen = randomgen
         self.sample = sampler.sample(self.randomgen)
 
+    def invalidate_cache(self):
+        self.curve.invalidate_cache()
+
     def resample(self):
         self.sample = self.sampler.sample(self.randomgen)
         self.invalidate_cache()

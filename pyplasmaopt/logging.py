@@ -29,3 +29,4 @@ debug = logger.debug
 info = logger.info
 warning = logger.warning
 error = logger.error
+logger.propagate = False

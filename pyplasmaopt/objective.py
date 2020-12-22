@@ -5,12 +5,13 @@ writable_cached_property = cached_property(writable=True)
 
 class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
 
-    def __init__(self, quasi_symmetric_field, biotsavart):
+    def __init__(self, quasi_symmetric_field, biotsavart, value_only=False):
         self.quasi_symmetric_field = quasi_symmetric_field
         self.biotsavart = biotsavart
+        self.value_only = value_only
 
     def J_L2(self):
-        Bbs        = self.biotsavart.B(compute_derivatives=2)
+        Bbs        = self.biotsavart.B(compute_derivatives=(1 if self.value_only else 2))
         Bqs        = self.quasi_symmetric_field.B
         arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         return np.sum(arc_length[:, None] * (Bbs-Bqs)**2)/len(arc_length)
@@ -81,7 +82,7 @@ class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
         return res
 
     def J_H1(self):
-        dBbs_by_dX = self.biotsavart.dB_by_dX(compute_derivatives=2)
+        dBbs_by_dX = self.biotsavart.dB_by_dX(compute_derivatives=(1 if self.value_only else 2))
         arc_length = self.quasi_symmetric_field.magnetic_axis.incremental_arclength()
         dBqs_by_dX = self.quasi_symmetric_field.dB_by_dX
         return np.sum(arc_length[:, None, None] * (dBbs_by_dX-dBqs_by_dX)**2)/len(arc_length)
@@ -371,9 +372,9 @@ class MinimumDistance():
     def min_dist(self):
         res = 1e10
         for i in range(len(self.curves)):
-            gamma1 = self.curves[i].gamma
+            gamma1 = self.curves[i].gamma()
             for j in range(i):
-                gamma2 = self.curves[j].gamma
+                gamma2 = self.curves[j].gamma()
                 dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
                 res = min(res, np.min(dists))
         return res

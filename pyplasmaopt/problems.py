@@ -14,10 +14,10 @@ class NearAxisQuasiSymmetryObjective():
 
     def __init__(self, stellarator, ma, iota_target, eta_bar=-2.25,
                  coil_length_target=None, magnetic_axis_length_target=None,
-                 curvature_weight=1e-6, torsion_weight=1e-4, tikhonov_weight=0., arclength_weight=0., sobolev_weight=0.,
-                 minimum_distance=0.04, distance_weight=1.,
+                 curvature_weight=0.0, torsion_weight=0., tikhonov_weight=0., arclength_weight=0., sobolev_weight=0.,
+                 minimum_distance=0.04, distance_weight=0.,
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
-                 outdir="output/", seed=1
+                 outdir="output/", seed=1, freq_plot=250, freq_out_of_sample=1,
                  ):
         self.stellarator = stellarator
         self.seed = seed
@@ -67,6 +67,8 @@ class NearAxisQuasiSymmetryObjective():
         self.tikhonov_weight = tikhonov_weight
         self.arclength_weight = arclength_weight
         self.distance_weight = distance_weight
+        self.freq_plot = freq_plot
+        self.freq_out_of_sample = freq_out_of_sample
 
         sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
         # import IPython; IPython.embed()
@@ -85,7 +87,7 @@ class NearAxisQuasiSymmetryObjective():
         else:
             raise NotImplementedError
 
-        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma)
+        self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma())
 
         self.Jvals_perturbed = []
         self.Jvals_quantiles = []
@@ -264,9 +266,9 @@ class NearAxisQuasiSymmetryObjective():
 
     def compute_out_of_sample(self):
         if self.stochastic_qs_objective_out_of_sample is None:
-            self.stochastic_qs_objective_out_of_sample = StochasticQuasiSymmetryObjective(self.stellarator, self.sampler, self.noutsamples, self.qsf, 9999+self.seed)
+            self.stochastic_qs_objective_out_of_sample = StochasticQuasiSymmetryObjective(self.stellarator, self.sampler, self.noutsamples, self.qsf, 9999+self.seed, value_only=True)
 
-        self.stochastic_qs_objective_out_of_sample.set_magnetic_axis(self.ma.gamma)
+        self.stochastic_qs_objective_out_of_sample.set_magnetic_axis(self.ma.gamma())
         Jsamples = np.array(self.stochastic_qs_objective_out_of_sample.J_samples())
         return Jsamples, Jsamples + sum(self.Jvals_individual[-1][1:])
 
@@ -303,9 +305,9 @@ class NearAxisQuasiSymmetryObjective():
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         comm = MPI.COMM_WORLD
-        if ((iteration in list(range(6))) or iteration % 250 == 0) and comm.rank == 0:
+        if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
             self.plot('iteration-%04i.png' % iteration)
-        if iteration % 250 == 0 and self.noutsamples > 0:
+        if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             self.out_of_sample_values.append(oos_vals)
             info("Out of sample")
@@ -366,11 +368,11 @@ class NearAxisQuasiSymmetryObjective():
 
             mlab.figure(bgcolor=(1, 1, 1))
             for i in range(0, len(self.stellarator.coils)):
-                gamma = self.stellarator.coils[i].gamma
+                gamma = self.stellarator.coils[i].gamma()
                 gamma = np.concatenate((gamma, [gamma[0,:]]))
                 mlab.plot3d(gamma[:, 0], gamma[:, 1], gamma[:, 2], color=colors[i%len(self.stellarator._base_coils)])
 
-            gamma = self.ma.gamma
+            gamma = self.ma.gamma()
             theta = 2*np.pi/self.ma.nfp
             rotmat = np.asarray([
                 [cos(theta), -sin(theta), 0],
@@ -637,20 +639,20 @@ class SimpleNearAxisQuasiSymmetryObjective():
             stellarator = self.stellarator
             coils = stellarator.coils
             ma = self.ma
-            gamma = coils[0].gamma
+            gamma = coils[0].gamma()
             N = gamma.shape[0]
             l = len(stellarator.coils)
             data = np.zeros((l*(N+1), 4))
             labels = [None for i in range(l*(N+1))]
             for i in range(l):
-                data[(i*(N+1)):((i+1)*(N+1)-1),:-1] = stellarator.coils[i].gamma
-                data[((i+1)*(N+1)-1),:-1] = stellarator.coils[i].gamma[0, :]
+                data[(i*(N+1)):((i+1)*(N+1)-1),:-1] = stellarator.coils[i].gamma()
+                data[((i+1)*(N+1)-1),:-1] = stellarator.coils[i].gamma()[0, :]
                 data[(i*(N+1)):((i+1)*(N+1)),-1] = i
                 for j in range(i*(N+1), (i+1)*(N+1)):
                     labels[j] = 'Coil %i ' % stellarator.map[i]
-            N = ma.gamma.shape[0]
+            N = ma.gamma().shape[0]
             ma_ = np.zeros((ma.nfp*N+1, 4))
-            ma0 = ma.gamma.copy()
+            ma0 = ma.gamma().copy()
             theta = 2*np.pi/ma.nfp
             rotmat = np.asarray([
                 [cos(theta), -sin(theta), 0],
@@ -660,7 +662,7 @@ class SimpleNearAxisQuasiSymmetryObjective():
             for i in range(ma.nfp):
                 ma_[(i*N):(((i+1)*N)), :-1] = ma0
                 ma0 = ma0 @ rotmat
-            ma_[-1, :-1] = ma.gamma[0,:]
+            ma_[-1, :-1] = ma.gamma()[0,:]
             ma_[:, -1] = -1
             data = np.vstack((data, ma_))
             for i in range(ma_.shape[0]):
@@ -688,16 +690,16 @@ def plot_stellarator(stellarator, axis=None, extra_data=None):
             groups[j] = i+1
 
     if axis is not None:
-        N = axis.gamma.shape[0]
-        ma_ = np.zeros((axis.nfp*N+1, 3))
-        ma0 = axis.gamma.copy()
-        theta = 2*np.pi/axis.nfp
+        N = axis.gamma().shape[0]
+        ma_ = np.zeros((axis.get_nfp()*N+1, 3))
+        ma0 = axis.gamma().copy()
+        theta = 2*np.pi/axis.get_nfp()
         rotmat = np.asarray([
             [cos(theta), -sin(theta), 0],
             [sin(theta), cos(theta), 0],
             [0, 0, 1]]).T
 
-        for i in range(axis.nfp):
+        for i in range(axis.get_nfp()):
             ma_[(i*N):(((i+1)*N)), :] = ma0
             ma0 = ma0 @ rotmat
         ma_[-1, :] = axis.gamma()[0, :]

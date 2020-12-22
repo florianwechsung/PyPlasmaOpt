@@ -47,7 +47,9 @@ def taylor_test(obj, x, order=6):
 if obj.mode == "cvar":
     try:
         x = np.concatenate((np.loadtxt(outdir.replace(args.mode.replace(".", "p"), "stochastic") + "xmin.txt"), [0.]))
+        info('Found initial guess from stochastic optimization.')
     except:
+        warning('Not not find initial guess from stochastic optimization.')
         x = obj.x0
 else:
     x = obj.x0
@@ -120,8 +122,10 @@ if comm.rank == 0:
     np.savetxt(outdir + "Jvals_no_noise.txt", obj.Jvals_no_noise)
     np.savetxt(outdir + "xiterates.txt", obj.xiterates)
     np.savetxt(outdir + "Jvals_individual.txt", obj.Jvals_individual)
-    np.savetxt(outdir + "Jvals_insample.txt", obj.Jvals_perturbed)
-    np.savetxt(outdir + "QSvsBS_insample.txt", obj.QSvsBS_perturbed)
+    np.savetxt(outdir + "Jvals_perturbed.txt", obj.Jvals_perturbed)
+    np.savetxt(outdir + "QSvsBS_perturbed.txt", obj.QSvsBS_perturbed)
+    np.savetxt(outdir + "Jvals_insample.txt", obj.Jvals_perturbed[-1])
+    np.savetxt(outdir + "QSvsBS_insample.txt", obj.QSvsBS_perturbed[-1])
     if args.noutsamples > 0:
         np.savetxt(outdir + "out_of_sample_values.txt", obj.out_of_sample_values)
         np.savetxt(outdir + "out_of_sample_means.txt", np.mean(obj.out_of_sample_values, axis=1))

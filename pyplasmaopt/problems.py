@@ -293,8 +293,9 @@ class NearAxisQuasiSymmetryObjective():
         info(f"Objective values:        {self.res1:.6e}, {self.res2:.6e}, {self.res3:.6e}, {self.res4:.6e}, {self.res5:.6e}, {self.res6:.6e}, {self.res7:.6e}, {self.res8:.6e}, {self.res9:.6e}, {self.res_tikhonov_weight:.6e}")
         if self.ninsamples > 0:
             info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(self.perturbed_vals, 0.1):.6e}, {np.mean(self.perturbed_vals):.6e}, {np.quantile(self.perturbed_vals, 0.9):.6e}")
-            cvar90 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.9)))
-            cvar95 = np.mean(list(v for v in self.perturbed_vals if v >= np.quantile(self.perturbed_vals, 0.95)))
+            v = np.asarray(self.perturbed_vals)
+            cvar90 = np.mean(v[v>=np.quantile(v, 0.90)])
+            cvar95 = np.mean(v[v>=np.quantile(v, 0.95)])
             info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
         info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
 
@@ -310,9 +311,15 @@ class NearAxisQuasiSymmetryObjective():
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             self.out_of_sample_values.append(oos_vals)
+            v = np.asarray(oos_vals)
+            var10 = np.quantile(v, 0.10)
+            var90 = np.quantile(v, 0.90)
+            cvar90 = np.mean(v[v>=var90])
+            var95 = np.quantile(v, 0.95)
+            cvar95 = np.mean(v[v>=var95])
             info("Out of sample")
-            info(f"VaR(.1), Mean, VaR(.9):  {np.quantile(oos_vals, 0.1):.6e}, {np.mean(oos_vals):.6e}, {np.quantile(oos_vals, 0.9):.6e}")
-            info(f"CVaR(.9), CVaR(.95), Max:{np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.9))):.6e}, {np.mean(list(v for v in oos_vals if v >= np.quantile(oos_vals, 0.95))):.6e}, {max(oos_vals):.6e}")
+            info(f"VaR(.1), Mean, VaR(.9):  {var10:.6e}, {np.mean(oos_vals):.6e}, {var90:.6e}")
+            info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(oos_vals):.6e}")
 
     def plot(self, filename):
         import matplotlib

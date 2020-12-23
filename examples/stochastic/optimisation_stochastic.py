@@ -5,7 +5,6 @@ import numpy as np
 import os
 
 obj, args = stochastic_get_objective()
-obj.plot('tmp.png')
 # import sys; sys.exit()
 
 outdir = obj.outdir
@@ -49,7 +48,7 @@ if obj.mode == "cvar":
         x = np.concatenate((np.loadtxt(outdir.replace(args.mode.replace(".", "p"), "stochastic") + "xmin.txt"), [0.]))
         info('Found initial guess from stochastic optimization.')
     except:
-        warning('Not not find initial guess from stochastic optimization.')
+        warning('Could not find initial guess from stochastic optimization.')
         x = obj.x0
 else:
     x = obj.x0
@@ -97,10 +96,9 @@ while iters < maxiter and restarts < 10:
     x = res.x
 
 t2 = time.time()
-if comm.rank == 0:
-    info(res)
-    info(f"Time per iteration: {(t2-t1)/len(obj.Jvals)}")
-    info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
+info(res)
+info(f"Time per iteration: {(t2-t1)/res.nfev}")
+info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
 
 xmin = res.x
 

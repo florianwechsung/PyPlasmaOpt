@@ -6,6 +6,7 @@ from .stochastic_objective import StochasticQuasiSymmetryObjective, CVaR
 from .logging import info
 
 from mpi4py import MPI
+comm = MPI.COMM_WORLD
 from math import pi, sin, cos
 import numpy as np
 import os
@@ -197,8 +198,9 @@ class NearAxisQuasiSymmetryObjective():
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma())
 
         Jsamples = self.stochastic_qs_objective.J_samples()
-        assert len(Jsamples) == self.ninsamples
-        self.QSvsBS_perturbed.append(Jsamples)
+        Jsamples_global = sum(comm.allgather(Jsamples), []) # all.gather([...]) return [ [...], [...] ], so we want to join these.
+        assert len(Jsamples_global) == self.ninsamples
+        self.QSvsBS_perturbed.append(Jsamples_global)
 
         self.res1_det        = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
         self.dresetabar_det  = 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
@@ -269,7 +271,9 @@ class NearAxisQuasiSymmetryObjective():
             self.stochastic_qs_objective_out_of_sample = StochasticQuasiSymmetryObjective(self.stellarator, self.sampler, self.noutsamples, self.qsf, 9999+self.seed, value_only=True)
 
         self.stochastic_qs_objective_out_of_sample.set_magnetic_axis(self.ma.gamma())
-        Jsamples = np.array(self.stochastic_qs_objective_out_of_sample.J_samples())
+        Jsamples = self.stochastic_qs_objective_out_of_sample.J_samples()
+        Jsamples = sum(comm.allgather(Jsamples), []) # all.gather([...]) return [ [...], [...] ], so we want to join these.
+        J_samples = np.array(Jsamples)
         return Jsamples, Jsamples + sum(self.Jvals_individual[-1][1:])
 
     def callback(self, x, verbose=True):

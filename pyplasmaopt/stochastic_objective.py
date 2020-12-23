@@ -43,6 +43,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
 
     def J_samples(self):
         local_vals = [0.5 * (J.J_L2() + J.J_H1()) for J in self.J_BSvsQS_perturbed]
+        return local_vals
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals
 
@@ -52,6 +53,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
                           self.stellarator.reduce_coefficient_derivatives(J.dJ_L2_by_dcoilcoefficients)
                           + self.stellarator.reduce_coefficient_derivatives(J.dJ_H1_by_dcoilcoefficients)
                       ) for J in self.J_BSvsQS_perturbed]
+        return local_vals
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals
 
@@ -61,15 +63,18 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
                           self.stellarator.reduce_current_derivatives(J.dJ_L2_by_dcoilcurrents())
                           + self.stellarator.reduce_current_derivatives(J.dJ_H1_by_dcoilcurrents())
                       ) for J in self.J_BSvsQS_perturbed]
+        return local_vals
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals
 
     def dJ_by_detabar_samples(self, t=None):
         local_vals = [0.5 * (J.dJ_L2_by_detabar() + J.dJ_H1_by_detabar()) for J in self.J_BSvsQS_perturbed]
+        return local_vals
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals
 
     def dJ_by_dmagneticaxiscoefficients_samples(self, t=None):
         local_vals = [0.5 * (J.dJ_L2_by_dmagneticaxiscoefficients() + J.dJ_H1_by_dmagneticaxiscoefficients()) for J in self.J_BSvsQS_perturbed]
+        return local_vals
         all_vals = [i for o in comm.allgather(local_vals) for i in o]
         return all_vals

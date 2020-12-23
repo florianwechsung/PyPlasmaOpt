@@ -1,4 +1,6 @@
 import numpy as np
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
 
 def soft_plus(x, eps, method=2):
     # We implement two different differentiable approximations to function x
@@ -28,17 +30,24 @@ class CVaR():
         self.eps = eps
 
     def J(self, t, Jsamples):
-        return t + np.mean(soft_plus(Jsamples-t, self.eps))/(1-self.alpha)
+        local = t + np.mean(soft_plus(Jsamples-t, self.eps))/(1-self.alpha)
+        # return local
+        glob = comm.allreduce(local, op=MPI.SUM)/comm.size
+        return glob
     
     def dJ_dt(self, t, Jsamples):
         softplus_dash = soft_plus_dash(Jsamples-t, self.eps)
-        partial_t = np.asarray([1. - np.mean(softplus_dash)/(1-self.alpha)])
-        return partial_t
+        local = np.asarray([1. - np.mean(softplus_dash)/(1-self.alpha)])
+        # return local
+        glob = comm.allreduce(local, op=MPI.SUM)/comm.size
+        return glob
 
     def dJ_dx(self, t, Jsamples, dJsamples):
         softplus_dash = soft_plus_dash(Jsamples-t, self.eps)
-        partial_x = np.mean(softplus_dash[:, None] * dJsamples, axis=0)/(1-self.alpha)
-        return partial_x
+        local = np.mean(softplus_dash[:, None] * dJsamples, axis=0)/(1-self.alpha)
+        # return local
+        glob = comm.allreduce(local, op=MPI.SUM)/comm.size
+        return glob
 
     def find_optimal_t(self, Jsamples, tinit=None):
         if tinit is None:

@@ -113,20 +113,20 @@ info("Minimum distance = %f" % J_distance.min_dist())
 # np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
 # np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
 if comm.rank == 0:
-    np.savetxt(outdir + "xmin.txt", xmin)
-    np.savetxt(outdir + "Jvals.txt", obj.Jvals)
-    np.savetxt(outdir + "dJvals.txt", obj.dJvals)
-    np.savetxt(outdir + "Jvals_quantiles.txt", obj.Jvals_quantiles)
-    np.savetxt(outdir + "Jvals_no_noise.txt", obj.Jvals_no_noise)
-    np.savetxt(outdir + "xiterates.txt", obj.xiterates)
-    np.savetxt(outdir + "Jvals_individual.txt", obj.Jvals_individual)
-    np.savetxt(outdir + "Jvals_perturbed.txt", obj.Jvals_perturbed)
-    np.savetxt(outdir + "QSvsBS_perturbed.txt", obj.QSvsBS_perturbed)
-    np.savetxt(outdir + "Jvals_insample.txt", obj.Jvals_perturbed[-1])
-    np.savetxt(outdir + "QSvsBS_insample.txt", obj.QSvsBS_perturbed[-1])
+    np.save(outdir + "xmin.npy", xmin)
+    np.save(outdir + "Jvals.npy", obj.Jvals)
+    np.save(outdir + "dJvals.npy", obj.dJvals)
+    np.save(outdir + "Jvals_quantiles.npy", obj.Jvals_quantiles)
+    np.save(outdir + "Jvals_no_noise.npy", obj.Jvals_no_noise)
+    np.save(outdir + "xiterates.npy", obj.xiterates)
+    np.save(outdir + "Jvals_individual.npy", obj.Jvals_individual)
+    np.save(outdir + "Jvals_perturbed.npy", obj.Jvals_perturbed)
+    np.save(outdir + "QSvsBS_perturbed.npy", obj.QSvsBS_perturbed)
+    np.save(outdir + "Jvals_insample.npy", obj.Jvals_perturbed[-1])
+    np.save(outdir + "QSvsBS_insample.npy", obj.QSvsBS_perturbed[-1])
     if args.noutsamples > 0:
-        np.savetxt(outdir + "out_of_sample_values.txt", obj.out_of_sample_values)
-        np.savetxt(outdir + "out_of_sample_means.txt", np.mean(obj.out_of_sample_values, axis=1))
+        np.save(outdir + "out_of_sample_values.npy", obj.out_of_sample_values)
+        np.save(outdir + "out_of_sample_means.npy", np.mean(obj.out_of_sample_values, axis=1))
 
 def approx_H(x):
     n = x.size
@@ -152,8 +152,9 @@ def approx_H(x):
 
 info('Final out of samples computation')
 oos = []
-for i in range((2**15)//args.noutsamples):
-    info(f"{i*args.noutsamples} / {2**15}")
+oosloops = 256
+for i in range(oosloops):
+    info(f"{i}/{oosloops}")
     oos.append(obj.compute_out_of_sample())
     obj.stochastic_qs_objective_out_of_sample.resample()
 
@@ -161,8 +162,8 @@ QSvsBS_outofsample = np.concatenate([o[0] for o in oos])
 Jvals_outofsample = np.concatenate([o[1] for o in oos])
 
 if comm.rank == 0:
-    np.savetxt(outdir + "QSvsBS_outofsample.txt", QSvsBS_outofsample)
-    np.savetxt(outdir + "Jvals_outofsample.txt", Jvals_outofsample)
+    np.save(outdir + "QSvsBS_outofsample.npy", QSvsBS_outofsample)
+    np.save(outdir + "Jvals_outofsample.npy", Jvals_outofsample)
 
 if True:
     taylor_test(obj, xmin, order=4)

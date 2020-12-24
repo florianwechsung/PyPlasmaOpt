@@ -1,5 +1,8 @@
 # PlasmaOpt
 
+![build-and-test-status](https://github.com/florianwechsung/PyPlasmaOpt/workflows/Build%20&%20Test/badge.svg)
+
+
 ## Requirements
 
 On a recent linux (e.g. Ubuntu > 18.04), most requirements should be met.

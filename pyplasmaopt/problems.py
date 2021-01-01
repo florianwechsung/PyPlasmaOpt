@@ -1,4 +1,5 @@
 from simsgeo import BiotSavart
+from simsgeo import MinimumDistance as sgMinimumDistance
 from .quasi_symmetric_field import QuasiSymmetricField
 from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
 from .curve import GaussianSampler, UniformSampler
@@ -47,6 +48,7 @@ class NearAxisQuasiSymmetryObjective():
         self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
         self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
+        # self.J_distance = sgMinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target                 = iota_target
         self.curvature_weight             = curvature_weight
@@ -186,6 +188,7 @@ class NearAxisQuasiSymmetryObjective():
         if self.distance_weight > 1e-15:
             self.res9 = self.distance_weight * self.J_distance.J()
             self.drescoil += self.distance_weight * self.stellarator.reduce_coefficient_derivatives(self.J_distance.dJ_by_dcoefficients())
+            # self.drescoil += self.distance_weight * self.stellarator.reduce_coefficient_derivatives(self.J_distance.dJ())
         else:
             self.res9 = 0
 
@@ -311,8 +314,8 @@ class NearAxisQuasiSymmetryObjective():
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
         comm = MPI.COMM_WORLD
-        if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
-            self.plot('iteration-%04i.png' % iteration)
+        # if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
+        #     self.plot('iteration-%04i.png' % iteration)
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             self.out_of_sample_values.append(oos_vals)

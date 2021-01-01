@@ -4,6 +4,7 @@ from math import pi
 import argparse
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
+from simsgeo import UniqueCurve, match_curve_to_target
 
 def stochastic_get_objective():
     parser = argparse.ArgumentParser(add_help=False)
@@ -45,6 +46,17 @@ def stochastic_get_objective():
     
     nfp = 3
     (coils, ma, currents) = get_ncsx_data(Nt_ma=args.Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+    # ucoils = []
+    # ax = None
+    # for i in range(len(coils)):
+    #     ucoil = UniqueCurve(args.ppp * (args.Nt_coils+6), args.Nt_coils+6)
+    #     print(match_curve_to_target(ucoil, coils[i].gamma()))
+    #     ucoils.append(ucoil)
+    #     ax = coils[i].plot(ax=ax, show=False)
+    #     ax = ucoils[i].plot(ax=ax, show=False)
+    # import matplotlib.pyplot as plt
+    # plt.show()
+    # import sys; sys.exit()
     stellarator = CoilCollection(coils, currents, nfp, True)
     eta_bar = 0.685
     iota_target = -0.395938929522566
@@ -73,7 +85,7 @@ def stochastic_get_objective():
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
         # curvature_weight=args.curvature, torsion_weight=args.torsion,
         # tikhonov_weight=args.tikhonov, arclength_weight=args.arclength, sobolev_weight=args.sobolev,
-        # minimum_distance=args.min_dist, distance_weight=args.dist_weight,
+        minimum_distance=0.1, distance_weight=0.0,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
         mode=args.mode, outdir=outdir, seed=args.seed,

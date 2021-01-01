@@ -56,7 +56,10 @@ def example2_get_objective():
     info("Configuration: \n%s", args.__dict__)
     
     nfp = 2
-    (coils, currents, ma, eta_bar) = get_24_coil_data(nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
+    order = 5
+    (coils, currents, ma, eta_bar) = get_24_coil_data(Nt_coils=order, Nt_ma=1, nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
+    # from simsgeo import FourierNormalPerturbationCurve
+    # coils = [FourierNormalPerturbationCurve(base, order) for base in coils]
     stellarator = CoilCollection(coils, currents, nfp, True)
 
     iota_target = 0.103

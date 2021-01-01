@@ -52,7 +52,6 @@ if obj.mode == "cvar":
         x = obj.x0
 else:
     x = obj.x0
-
 if obj.mode == "cvar":
     obj.update(x)
     x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])

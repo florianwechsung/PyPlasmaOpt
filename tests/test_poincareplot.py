@@ -96,7 +96,7 @@ if __name__ == "__main__":
     axis = find_magnetic_axis(bs, 100, rguess, output='cartesian')
     tic = time.time()
     tmax = 1e-2
-    nparticles = 1000
+    nparticles = 20
     seed = 1
     res_gyro, res_gyro_t = trace_particles_on_axis(axis, bs, nparticles, mode='gyro', tmax=tmax, seed=seed)
     toc = time.time()

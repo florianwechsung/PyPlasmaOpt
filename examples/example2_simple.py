@@ -53,26 +53,35 @@ def J_scipy(x):
 res = minimize(J_scipy, x, jac=True, method=solver, tol=1e-20,
                options={"maxiter": maxiter, "maxcor": memory},
                callback=obj.callback)
-import sys; sys.exit()
 info("%s" % res)
 xmin = res.x
 
-self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
+# self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 
-# def approx_H(x):
-#     n = x.size
-#     H = np.zeros((n, n))
-#     x0 = x
-#     d0 = J_scipy(x0)[1]
-#     eps = 1e-6
-#     for i in range(n):
-#         x1 = x0.copy()
-#         x1[i] += eps
-#         d1 = J_scipy(x1)[1]
-#         H[i, :] = (d1-d0)/eps
-#     H = 0.5 * (H+H.T)
-#     return H
+def approx_H(x):
+    idxs = obj.coil_dof_idxs
+    n = idxs[1] - idxs[0]
+    H = np.zeros((n, n))
+    x0 = x
+    eps = 1e-5
+    for i, idx in enumerate(range(*idxs)):
+        x1 = x0.copy()
+        x1[idx] += eps
+        d1 = J_scipy(x1)[1]
+        x1[idx] -= 2*eps
+        d2 = J_scipy(x1)[1]
+        H[i, :] = ((d1-d2)/(2*eps))[idxs[0]:idxs[1]]
+    H = 0.5 * (H+H.T)
+    return H
 
+from scipy.linalg import eigh
+H = approx_H(xmin)
+D, E = eigh(H)
+D = np.sort(np.abs(D))
+print(D)
+import matplotlib.pyplot as plt
+plt.semilogy(D)
+plt.savefig(obj.outdir + "/evals.png")
 # from scipy.linalg import eigh
 # x = xmin
 # for i in range(20):

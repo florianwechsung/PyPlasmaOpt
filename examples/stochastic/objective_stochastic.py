@@ -4,7 +4,6 @@ from math import pi
 import argparse
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
-from simsgeo import UniqueCurve, match_curve_to_target
 
 def stochastic_get_objective():
     parser = argparse.ArgumentParser(add_help=False)
@@ -46,6 +45,7 @@ def stochastic_get_objective():
     
     nfp = 3
     (coils, ma, currents) = get_ncsx_data(Nt_ma=args.Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+    # from simsgeo import UniqueCurve, match_curve_to_target
     # ucoils = []
     # ax = None
     # for i in range(len(coils)):

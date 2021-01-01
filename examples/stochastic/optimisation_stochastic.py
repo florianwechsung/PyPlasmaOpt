@@ -45,7 +45,7 @@ def taylor_test(obj, x, order=6):
 # For the CVaR optimisation we use the result of stochastic optimisation as the initial guess.
 if obj.mode == "cvar":
     try:
-        x = np.concatenate((np.loadtxt(outdir.replace(args.mode.replace(".", "p"), "stochastic") + "xmin.txt"), [0.]))
+        x = np.concatenate((np.load(outdir.replace(args.mode.replace(".", "p"), "stochastic") + "xmin.npy"), [0.]))
         info('Found initial guess from stochastic optimization.')
     except:
         warning('Could not find initial guess from stochastic optimization.')
@@ -65,7 +65,7 @@ if False:
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
 
-maxiter = 5000 if obj.mode == "cvar" else 5000
+maxiter = 10000 if obj.mode == "cvar" else 10000
 
 def J_scipy(x):
     obj.update(x)
@@ -76,7 +76,7 @@ import time
 t1 = time.time()
 iters = 0
 restarts = 0
-while iters < maxiter and restarts < 10:
+while iters < maxiter and restarts < 30:
     if iters > 0:
         if comm.rank == 0:
             info("####################################################################################################")
@@ -84,9 +84,9 @@ while iters < maxiter and restarts < 10:
             info("####################################################################################################")
         restarts += 1
     if obj.mode == "cvar": 
-        miter = min(500, maxiter-iters)
+        miter = min(1000, maxiter-iters)
         res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
-        obj.cvar.eps *= 0.1
+        obj.cvar.eps *= 0.1**0.5
         x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
     else:
         miter = maxiter-iters

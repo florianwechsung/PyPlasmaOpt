@@ -1,7 +1,7 @@
 from simsgeo import BiotSavart
 from .quasi_symmetric_field import QuasiSymmetricField
 from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
-from .curve import GaussianSampler
+from .curve import GaussianSampler, UniformSampler
 from .stochastic_objective import StochasticQuasiSymmetryObjective, CVaR
 from .logging import info
 
@@ -17,7 +17,7 @@ class NearAxisQuasiSymmetryObjective():
                  curvature_weight=0.0, torsion_weight=0., tikhonov_weight=0., arclength_weight=0., sobolev_weight=0.,
                  minimum_distance=0.04, distance_weight=0.,
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
-                 outdir="output/", seed=1, freq_plot=250, freq_out_of_sample=1,
+                 outdir="output/", seed=1, freq_plot=250, freq_out_of_sample=1, distribution='gaussian',
                  ):
         self.stellarator = stellarator
         self.seed = seed
@@ -70,7 +70,12 @@ class NearAxisQuasiSymmetryObjective():
         self.freq_plot = freq_plot
         self.freq_out_of_sample = freq_out_of_sample
 
-        sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
+        if distribution == 'gaussian':
+            sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
+        elif distribution == 'uniform':
+            sampler = UniformSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
+        else:
+            raise NotImplementedError
         # import IPython; IPython.embed()
         # import sys; sys.exit()
         self.sampler = sampler

@@ -1,5 +1,5 @@
 import numpy as np
-from .curve import GaussianPerturbedCurve
+from .curve import RandomlyPerturbedCurve
 from .objective import BiotSavartQuasiSymmetricFieldDifference
 # from .biotsavart import BiotSavart
 from simsgeo import BiotSavart
@@ -27,7 +27,7 @@ class StochasticQuasiSymmetryObjective(PropertyManager):
         for i in range(first, last):
             rg = np.random.Generator(PCG64(seed, i, mode="sequence"))
             perturbed_coils = [
-                GaussianPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
+                RandomlyPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
             perturbed_bs    = BiotSavart(perturbed_coils, stellarator.currents)
             self.J_BSvsQS_perturbed.append(BiotSavartQuasiSymmetricFieldDifference(qsf, perturbed_bs, value_only=value_only))
 

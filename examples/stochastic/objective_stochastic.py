@@ -12,6 +12,8 @@ def stochastic_get_objective():
                         action="store_true")
     parser.add_argument("--mode", type=str, default="deterministic",
                         choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95", "cvar0.99"])
+    parser.add_argument("--distribution", type=str, default="gaussian",
+                        choices=["gaussian", "uniform"])
     parser.add_argument("--ppp", type=int, default=20)
     parser.add_argument("--Nt_ma", type=int, default=4)
     parser.add_argument("--Nt_coils", type=int, default=4)
@@ -74,5 +76,6 @@ def stochastic_get_objective():
         # minimum_distance=args.min_dist, distance_weight=args.dist_weight,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
-        mode=args.mode, outdir=outdir, seed=args.seed)
+        mode=args.mode, outdir=outdir, seed=args.seed,
+        distribution=args.distribution)
     return obj, args

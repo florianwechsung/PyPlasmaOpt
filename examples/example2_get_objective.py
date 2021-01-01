@@ -12,6 +12,8 @@ def example2_get_objective():
                         action="store_true")
     parser.add_argument("--mode", type=str, default="deterministic",
                         choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95"])
+    parser.add_argument("--distribution", type=str, default="gaussian",
+                        choices=["gaussian", "uniform"])
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=1)
@@ -68,6 +70,7 @@ def example2_get_objective():
         tikhonov_weight=args.tikhonov, arclength_weight=args.arclength, sobolev_weight=args.sobolev,
         minimum_distance=args.min_dist, distance_weight=args.dist_weight,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples, sigma_perturb=args.sigma,
-        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed)
+        length_scale_perturb=args.length_scale, mode=args.mode, outdir=outdir, seed=args.seed,
+        distribution=args.distribution, freq_plot=50)
     return obj, args
 

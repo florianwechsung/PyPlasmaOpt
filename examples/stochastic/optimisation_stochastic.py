@@ -77,19 +77,18 @@ iters = 0
 restarts = 0
 while iters < maxiter and restarts < 30:
     if iters > 0:
-        if comm.rank == 0:
-            info("####################################################################################################")
-            info("################################# Restart optimization #############################################")
-            info("####################################################################################################")
+        info("####################################################################################################")
+        info("################################# Restart optimization #############################################")
+        info("####################################################################################################")
         restarts += 1
-    if obj.mode == "cvar": 
+    if obj.mode == "cvar" and restarts < 6:
         miter = min(1000, maxiter-iters)
-        res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
-        obj.cvar.eps *= 0.1**0.5
-        x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
     else:
         miter = maxiter-iters
-        res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+    res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+    if obj.mode == "cvar" and restarts < 6:
+        obj.cvar.eps *= 0.1**0.5
+        x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
 
     iters += res.nit
     x = res.x

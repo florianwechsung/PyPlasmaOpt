@@ -320,7 +320,8 @@ class NearAxisQuasiSymmetryObjective():
         #     self.plot('iteration-%04i.png' % iteration)
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
-            self.out_of_sample_values.append(oos_vals)
+            if comm.rank == 0:
+                self.out_of_sample_values.append(oos_vals)
             v = np.asarray(oos_vals)
             var10 = np.quantile(v, 0.10)
             var90 = np.quantile(v, 0.90)

@@ -52,6 +52,9 @@ if obj.mode == "cvar":
         x = obj.x0
 else:
     x = obj.x0
+
+#x = np.load("output/ncsx_atopt_mode-stochastic_ppp-20_Nt_ma-4_Nt_coils-6_ninsamples-1024_noutsamples-4096_seed-1_sigma-0p01_length_scale-0p2/xmin.npy")
+
 if obj.mode == "cvar":
     obj.update(x)
     x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])

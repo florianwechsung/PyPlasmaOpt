@@ -91,7 +91,7 @@ while iters < maxiter and restarts < 30:
     res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
     if obj.mode == "cvar" and restarts < 6:
         obj.cvar.eps *= 0.1**0.5
-        x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
+        x[-1] = obj.cvar.find_optimal_t(obj.Jsamples ,x[-1])
 
     iters += res.nit
     x = res.x

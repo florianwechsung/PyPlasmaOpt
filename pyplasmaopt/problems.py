@@ -206,6 +206,7 @@ class NearAxisQuasiSymmetryObjective():
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma())
 
         Jsamples = self.stochastic_qs_objective.J_samples()
+        self.Jsamples = Jsamples
         assert len(Jsamples) == self.ninsamples
         if comm.rank == 0:
             self.QSvsBS_perturbed.append(Jsamples)

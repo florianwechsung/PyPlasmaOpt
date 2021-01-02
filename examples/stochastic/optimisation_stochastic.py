@@ -57,7 +57,7 @@ else:
 
 if obj.mode == "cvar":
     obj.update(x)
-    x[-1] = obj.cvar.find_optimal_t(obj.QSvsBS_perturbed[-1] ,x[-1])
+    x[-1] = obj.cvar.find_optimal_t(obj.Jsamples ,x[-1])
 obj.update(x)
 obj.callback(x)
 #obj.save_to_matlab('matlab_init')

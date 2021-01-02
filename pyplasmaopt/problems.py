@@ -7,6 +7,7 @@ from .stochastic_objective import StochasticQuasiSymmetryObjective, CVaR
 from .logging import info
 
 from mpi4py import MPI
+comm = MPI.COMM_WORLD
 from math import pi, sin, cos
 import numpy as np
 import os
@@ -206,7 +207,8 @@ class NearAxisQuasiSymmetryObjective():
 
         Jsamples = self.stochastic_qs_objective.J_samples()
         assert len(Jsamples) == self.ninsamples
-        self.QSvsBS_perturbed.append(Jsamples)
+        if comm.rank == 0:
+            self.QSvsBS_perturbed.append(Jsamples)
 
         self.res1_det        = 0.5 * J_BSvsQS.J_L2() + 0.5 * J_BSvsQS.J_H1()
         self.dresetabar_det  = 0.5 * J_BSvsQS.dJ_L2_by_detabar() + 0.5 * J_BSvsQS.dJ_H1_by_detabar()
@@ -249,7 +251,7 @@ class NearAxisQuasiSymmetryObjective():
 
         self.Jvals_individual.append([self.res1, self.res2, self.res3, self.res4, self.res5, self.res6, self.res7, self.res8, self.res9, self.res_tikhonov_weight])
         self.res = sum(self.Jvals_individual[-1])
-        self.perturbed_vals = [self.res - self.res1 + r for r in self.QSvsBS_perturbed[-1]]
+        self.perturbed_vals = [self.res - self.res1 + r for r in Jsamples]
 
         if self.mode in ["deterministic", "stochastic"]:
             self.dres = np.concatenate((
@@ -291,7 +293,8 @@ class NearAxisQuasiSymmetryObjective():
             self.Jvals_quantiles.append((np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9)))
         self.Jvals_no_noise.append(self.res - self.res1 + 0.5 * (self.J_BSvsQS.J_L2() + self.J_BSvsQS.J_H1()))
         self.xiterates.append(x.copy())
-        self.Jvals_perturbed.append(self.perturbed_vals)
+        if comm.rank == 0:
+            self.Jvals_perturbed.append(self.perturbed_vals)
 
         iteration = len(self.xiterates)-1
         info("################################################################################")
@@ -313,7 +316,6 @@ class NearAxisQuasiSymmetryObjective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion())) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
-        comm = MPI.COMM_WORLD
         # if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
         #     self.plot('iteration-%04i.png' % iteration)
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:

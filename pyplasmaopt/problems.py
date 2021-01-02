@@ -317,8 +317,8 @@ class NearAxisQuasiSymmetryObjective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion())) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
-        # if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
-        #     self.plot('iteration-%04i.png' % iteration)
+        if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
+            self.plot('iteration-%04i.png' % iteration)
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             if comm.rank == 0:

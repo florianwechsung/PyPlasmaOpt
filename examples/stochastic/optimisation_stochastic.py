@@ -55,7 +55,7 @@ if obj.mode == "cvar":
 else:
     x = obj.x0
 
-#x = np.load("output/ncsx_atopt_mode-stochastic_ppp-20_Nt_ma-4_Nt_coils-6_ninsamples-1024_noutsamples-4096_seed-1_sigma-0p01_length_scale-0p2/xmin.npy")
+#x = np.load("output/ncsx_atopt_mode-stochastic_distribution-uniform_ppp-10_Nt_ma-4_Nt_coils-6_ninsamples-4096_noutsamples-4096_seed-1_sigma-0p001_length_scale-0p2/xmin.npy")
 
 if obj.mode == "cvar":
     obj.update(x)
@@ -69,7 +69,7 @@ if False:
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
 
-maxiter = 10000 if obj.mode == "cvar" else 10000
+maxiter = 15000
 
 def J_scipy(x):
     obj.update(x)
@@ -97,7 +97,7 @@ while iters < maxiter and restarts < 30:
     if obj.mode == "cvar" and restarts < 6:
         miter = min(1000, maxiter-iters)
     else:
-        miter = maxiter-iters
+        miter = min(2000, maxiter-iters)
     # res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
     res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=200)
     if obj.mode == "cvar" and restarts < 6:
@@ -155,12 +155,12 @@ def approx_H(x):
     H = 0.5 * (H+H.T)
     return H
 
-# from scipy.linalg import eigh
-# H = approx_H(x)
-# D, E = eigh(H)
-# info('evals: %s', D)
-# if comm.rank == 0:
-#     np.savetxt(outdir + "evals_opt.txt", D)
+from scipy.linalg import eigh
+H = approx_H(x)
+D, E = eigh(H)
+info('evals: %s', D)
+if comm.rank == 0:
+    np.save(outdir + "evals_opt.npy", D)
 
 info('Final out of samples computation')
 oos = []

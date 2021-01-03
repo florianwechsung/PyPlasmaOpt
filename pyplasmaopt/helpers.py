@@ -89,7 +89,7 @@ def get_flat_data(Nt=4, nfp=3, ppp=10):
     ma.update()
     return (coils, ma)
 
-def get_ncsx_data(Nt_coils= 25, Nt_ma=25, ppp=10, case='orig'):
+def get_ncsx_data(Nt_coils=25, Nt_ma=25, ppp=10, case='orig'):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     if case == 'orig':

@@ -22,6 +22,8 @@ def stochastic_get_objective():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
+    parser.add_argument("--ig", type=int, default=0)
+    
     args, _ = parser.parse_known_args()
 
     keys = list(args.__dict__.keys())
@@ -64,7 +66,6 @@ def stochastic_get_objective():
     stellarator = CoilCollection(coils, currents, nfp, True)
     eta_bar = 0.685
     iota_target = -0.395938929522566
-    coil_length_target = None
     magnetic_axis_length_target = None
 
     # (coils, ma) = get_flat_data(ppp=args.ppp)
@@ -92,6 +93,14 @@ def stochastic_get_objective():
     dofsfull[0][nfp*Nt_ma] = dofs[0][Nt_ma]
     mafull.set_dofs(np.concatenate(dofsfull))
     ma = mafull
+
+    coil_length_target = [CurveLength(coil).J() for coil in coils]
+    if args.ig > 0:
+        np.random.seed(0)
+        for c in coils:
+            dofs = c.get_dofs()
+            dofs += 0.05 * np.std(dofs) * np.random.standard_normal(size=dofs.shape)
+            c.set_dofs(dofs)
 
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,

@@ -38,10 +38,14 @@ class NearAxisQuasiSymmetryObjective():
         coils = stellarator._base_coils
         self.J_coil_lengths    = [CurveLength(coil) for coil in coils]
         self.J_axis_length     = CurveLength(ma)
-        if coil_length_target is not None:
-            self.coil_length_targets = [coil_length_target for coil in coils]
-        else:
+        if coil_length_target is None:
             self.coil_length_targets = [J.J() for J in self.J_coil_lengths]
+        elif isinstance(coil_length_target, float):
+            self.coil_length_targets = [coil_length_target for coil in coils]
+        elif isinstance(coil_length_target, list):
+            self.coil_length_targets = coil_length_target
+        else:
+            raise NotImplementedError("coil_length_target must be None, int or List")
         self.magnetic_axis_length_target = magnetic_axis_length_target or self.J_axis_length.J()
 
         self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]

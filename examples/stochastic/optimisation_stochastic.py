@@ -1,6 +1,8 @@
 from pyplasmaopt import *
 from objective_stochastic import stochastic_get_objective
 from scipy.optimize import minimize
+from lbfgs import fmin_lbfgs
+
 import numpy as np
 import os
 
@@ -74,6 +76,14 @@ def J_scipy(x):
     res = obj.res
     dres = obj.dres
     return res, dres
+def J_pylbfgs(x, g, *args):
+    obj.update(x)
+    g[:] = obj.dres
+    return obj.res
+def p_pylbfgs(x, *args):
+    obj.callback(x)
+    return 0
+
 import time
 t1 = time.time()
 iters = 0
@@ -88,7 +98,8 @@ while iters < maxiter and restarts < 30:
         miter = min(1000, maxiter-iters)
     else:
         miter = maxiter-iters
-    res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+    # res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+    res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=200)
     if obj.mode == "cvar" and restarts < 6:
         obj.cvar.eps *= 0.1**0.5
         x[-1] = obj.cvar.find_optimal_t(obj.Jsamples ,x[-1])

@@ -96,7 +96,7 @@ def stochastic_get_objective():
 
     coil_length_target = [CurveLength(coil).J() for coil in coils]
     if args.ig > 0:
-        np.random.seed(0)
+        np.random.seed(args.ig)
         for c in coils:
             dofs = c.get_dofs()
             dofs += 0.05 * np.std(dofs) * np.random.standard_normal(size=dofs.shape)

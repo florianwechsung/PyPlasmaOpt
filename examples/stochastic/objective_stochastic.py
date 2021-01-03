@@ -44,7 +44,11 @@ def stochastic_get_objective():
     info("Configuration: \n%s", args.__dict__)
     
     nfp = 3
-    (coils, ma, currents) = get_ncsx_data(Nt_ma=args.Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+    Nt_ma = args.Nt_ma
+    (coils, ma, currents) = get_ncsx_data(Nt_ma=Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+
+
+
     # from simsgeo import UniqueCurve, match_curve_to_target
     # ucoils = []
     # ax = None
@@ -79,6 +83,15 @@ def stochastic_get_objective():
     # iota_target = 0.103;
     # eta_bar = 0.998578113525166 if args.at_optimum else 1.0
 
+    dofs = ma.dofs
+    mafull = StelleratorSymmetricCylindricalFourierCurve(3*len(ma.quadpoints), 3*Nt_ma, 1)
+    dofsfull = mafull.dofs
+    for i in range(Nt_ma):
+        dofsfull[0][nfp*i] = dofs[0][i]
+        dofsfull[1][nfp*i+nfp-1] = dofs[1][i]
+    dofsfull[0][nfp*Nt_ma] = dofs[0][Nt_ma]
+    mafull.set_dofs(np.concatenate(dofsfull))
+    ma = mafull
 
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,

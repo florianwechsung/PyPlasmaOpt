@@ -72,10 +72,11 @@ if False:
 maxiter = 15000
 
 def J_scipy(x):
-    obj.update(x)
-    res = obj.res
-    dres = obj.dres
-    return res, dres
+    try:
+        obj.update(x)
+        return obj.res, obj.dres
+    except RuntimeError as ex:
+        return 2*obj.res, -obj.dres
 def J_pylbfgs(x, g, *args):
     try:
         obj.update(x)

@@ -349,7 +349,10 @@ class QuasiSymmetricField(PropertyManager):
                 count += 1
                 if count > 10:
                     # warning("Newton failed: use fsolve")
-                    soln = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13)
+                    soln, _, ier, _ = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13, full_output=True)
+                    info("ier %s" % ier)
+                    if ier != 1:
+                        raise RuntimeError("fsolve failed")
                     break
 
         self.__state[:] = soln[:]

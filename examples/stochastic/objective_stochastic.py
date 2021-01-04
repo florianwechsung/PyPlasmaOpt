@@ -22,6 +22,7 @@ def stochastic_get_objective():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
+    parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--ig", type=int, default=0)
     
     args, _ = parser.parse_known_args()
@@ -106,7 +107,8 @@ def stochastic_get_objective():
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
         # curvature_weight=args.curvature, torsion_weight=args.torsion,
-        # tikhonov_weight=args.tikhonov, arclength_weight=args.arclength, sobolev_weight=args.sobolev,
+        tikhonov_weight=args.tikhonov,
+        # arclength_weight=args.arclength, sobolev_weight=args.sobolev,
         minimum_distance=0.1, distance_weight=0.0,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,

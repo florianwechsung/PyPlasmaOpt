@@ -24,6 +24,7 @@ def stochastic_get_objective():
     parser.add_argument("--length-scale", type=float, default=0.2)
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--ig", type=int, default=0)
+    parser.add_argument("--optim", type=str, choices=["pylbfgs", "scipy"], default="scipy")
     
     args, _ = parser.parse_known_args()
 

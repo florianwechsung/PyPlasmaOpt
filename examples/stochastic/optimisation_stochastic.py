@@ -105,16 +105,18 @@ while iters < maxiter and restarts < 30:
         miter = min(1000, maxiter-iters)
     else:
         miter = min(10000, maxiter-iters)
-    #res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
-    #iters += res.nit
-    #x = res.x
-    try:
-        res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=500, line_search='wolfe', max_linesearch=40, epsilon=1e-12)
-    except Exception as e:
-        info(e)
-        pass
-    x = xmin[0].copy()
-    iters = len(obj.Jvals)
+    if args.optim == 'pylbfgs':
+        try:
+            res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=500, line_search='wolfe', max_linesearch=40, epsilon=1e-12)
+        except Exception as e:
+            info(e)
+            pass
+        x = xmin[0].copy()
+        iters = len(obj.Jvals)
+    else:
+        res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+        iters += res.nit
+        x = res.x
 
     if obj.mode == "cvar" and restarts < 6:
         obj.cvar.eps *= 0.1**0.5
@@ -122,11 +124,12 @@ while iters < maxiter and restarts < 30:
 
 t2 = time.time()
 info(res)
-#info(f"Time per iteration: {(t2-t1)/res.nfev}")
-#info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
-
-#xmin = res.x
-xmin = x
+if args.optim == "pylbfgs":
+    xmin = x
+else:
+    info(f"Time per iteration: {(t2-t1)/res.nfev}")
+    info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
+    xmin = res.x
 
 J_distance = MinimumDistance(obj.stellarator.coils, 0)
 info("Minimum distance = %f" % J_distance.min_dist())

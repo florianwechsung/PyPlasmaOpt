@@ -77,11 +77,18 @@ def J_scipy(x):
     dres = obj.dres
     return res, dres
 def J_pylbfgs(x, g, *args):
-    obj.update(x)
-    g[:] = obj.dres
-    return obj.res
+    try:
+        obj.update(x)
+        g[:] = obj.dres
+        return obj.res
+    except RuntimeError as ex:
+        g[:] = -obj.dres
+        return 2*obj.res
+
+xmin = [x.copy()]
 def p_pylbfgs(x, *args):
     obj.callback(x)
+    xmin[0][:] = x
     return 0
 
 import time
@@ -97,24 +104,30 @@ while iters < maxiter and restarts < 30:
     if obj.mode == "cvar" and restarts < 6:
         miter = min(1000, maxiter-iters)
     else:
-        miter = min(2000, maxiter-iters)
-    # res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
-    res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=200)
+        miter = min(10000, maxiter-iters)
+    #res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
+    #iters += res.nit
+    #x = res.x
+    try:
+        res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=500, line_search='wolfe', max_linesearch=40, epsilon=1e-12)
+    except Exception as e:
+        info(e)
+        pass
+    x = xmin[0].copy()
+    iters = len(obj.Jvals)
+
     if obj.mode == "cvar" and restarts < 6:
         obj.cvar.eps *= 0.1**0.5
         x[-1] = obj.cvar.find_optimal_t(obj.Jsamples ,x[-1])
 
-    iters += res.nit
-    x = res.x
-
 t2 = time.time()
 info(res)
-info(f"Time per iteration: {(t2-t1)/res.nfev}")
-info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
+#info(f"Time per iteration: {(t2-t1)/res.nfev}")
+#info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
 
-xmin = res.x
+#xmin = res.x
+xmin = x
 
-info("%s" % res)
 J_distance = MinimumDistance(obj.stellarator.coils, 0)
 info("Minimum distance = %f" % J_distance.min_dist())
 # import IPython; IPython.embed()

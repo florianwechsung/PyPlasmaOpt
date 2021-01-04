@@ -97,12 +97,6 @@ def stochastic_get_objective():
     ma = mafull
 
     coil_length_target = [CurveLength(coil).J() for coil in coils]
-    if args.ig > 0:
-        np.random.seed(args.ig)
-        for c in coils:
-            dofs = c.get_dofs()
-            dofs += 0.05 * np.std(dofs) * np.random.standard_normal(size=dofs.shape)
-            c.set_dofs(dofs)
 
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,
@@ -115,4 +109,5 @@ def stochastic_get_objective():
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
         mode=args.mode, outdir=outdir, seed=args.seed,
         distribution=args.distribution)
+
     return obj, args

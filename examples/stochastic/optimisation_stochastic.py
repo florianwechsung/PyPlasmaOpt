@@ -51,9 +51,14 @@ if obj.mode == "cvar":
         info('Found initial guess from stochastic optimization.')
     except:
         warning('Could not find initial guess from stochastic optimization.')
-        x = obj.x0
+        x = obj.x0.copy()
 else:
-    x = obj.x0
+    x = obj.x0.copy()
+
+cidxs = obj.coil_dof_idxs
+if args.ig > 0:
+    np.random.seed(args.ig)
+    x[cidxs[0]:cidxs[1]] += 0.01 * np.random.standard_normal(size=(cidxs[1]-cidxs[0], ))
 
 #x = np.load("output/ncsx_atopt_mode-stochastic_distribution-uniform_ppp-10_Nt_ma-4_Nt_coils-6_ninsamples-4096_noutsamples-4096_seed-1_sigma-0p001_length_scale-0p2/xmin.npy")
 

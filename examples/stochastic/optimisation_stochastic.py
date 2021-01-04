@@ -76,6 +76,7 @@ def J_scipy(x):
         obj.update(x)
         return obj.res, obj.dres
     except RuntimeError as ex:
+        info(ex)
         return 2*obj.res, -obj.dres
 def J_pylbfgs(x, g, *args):
     try:
@@ -83,6 +84,7 @@ def J_pylbfgs(x, g, *args):
         g[:] = obj.dres
         return obj.res
     except RuntimeError as ex:
+        info(ex)
         g[:] = -obj.dres
         return 2*obj.res
 

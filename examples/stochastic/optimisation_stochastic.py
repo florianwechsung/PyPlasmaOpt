@@ -136,7 +136,7 @@ if args.optim == "pylbfgs":
     xmin = x
 else:
     info(f"Time per iteration: {(t2-t1)/res.nfev}")
-    info(f"Gradient norm at minimum: {np.linalg.norm(res.jac)}")
+    info(f"Gradient norm at minimum: {np.linalg.norm(res.jac):.3e} and {np.linalg.norm(res.dresl2):.3e}")
     xmin = res.x
 
 J_distance = MinimumDistance(obj.stellarator.coils, 0)

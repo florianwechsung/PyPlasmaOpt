@@ -26,6 +26,7 @@ def stochastic_get_objective():
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
     parser.add_argument("--ig", type=int, default=0)
+    parser.add_argument("--ip", type=str, choices=["l2", "Hk"], default="l2")
     parser.add_argument("--optim", type=str, choices=["pylbfgs", "scipy"], default="scipy")
     
     args, _ = parser.parse_known_args()
@@ -110,6 +111,6 @@ def stochastic_get_objective():
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
         mode=args.mode, outdir=outdir, seed=args.seed,
-        distribution=args.distribution)
+        distribution=args.distribution, innerproduct=args.ip)
 
     return obj, args

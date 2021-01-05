@@ -20,6 +20,7 @@ class NearAxisQuasiSymmetryObjective():
                  minimum_distance=0.04, distance_weight=0.,
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
                  outdir="output/", seed=1, freq_plot=250, freq_out_of_sample=1, distribution='gaussian',
+                 innerproduct="l2"
                  ):
         self.stellarator = stellarator
         self.seed = seed
@@ -58,22 +59,39 @@ class NearAxisQuasiSymmetryObjective():
         self.iota_target                 = iota_target
         self.curvature_weight             = curvature_weight
         self.torsion_weight               = torsion_weight
+        self.sobolev_weight = sobolev_weight
+        self.tikhonov_weight = tikhonov_weight
+        self.arclength_weight = arclength_weight
+        self.distance_weight = distance_weight
+
         self.num_ma_dofs = len(ma.get_dofs())
         self.current_fak = 1./(4 * pi * 1e-7)
         self.ma_dof_idxs = (1, 1+self.num_ma_dofs)
         self.current_dof_idxs = (self.ma_dof_idxs[1], self.ma_dof_idxs[1] + len(stellarator.get_currents()))
         self.coil_dof_idxs = (self.current_dof_idxs[1], self.current_dof_idxs[1] + len(stellarator.get_dofs()))
         if mode in ["deterministic", "stochastic"]:
-            self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs()))
+            self.mode = mode
         elif mode[0:4] == "cvar":
-            self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs(), [0.]))
+            self.mode = "cvar"
+            self.cvar_alpha = float(mode[4:])
+            self.cvar = CVaR(self.cvar_alpha, .01)
         else:
             raise NotImplementedError
+
+        self.x0 = np.concatenate(([qsf.eta_bar], self.ma.get_dofs(), self.stellarator.get_currents()/self.current_fak, self.stellarator.get_dofs()))
+        if mode[0:4] == "cvar":
+            self.x0 = np.concatenate((self.x0, [0.]))
+        if innerproduct == "l2":
+            self.L = np.eye(len(self.x0))
+            self.Linv = self.L
+        else:
+            from .innerproduct import build_inner_product_matrices
+            H, H12, H12inv = build_inner_product_matrices(self)
+            self.L = H12inv
+            self.Linv = H12
+
+        self.x0 = self.Linv @ self.x0
         self.x = self.x0.copy()
-        self.sobolev_weight = sobolev_weight
-        self.tikhonov_weight = tikhonov_weight
-        self.arclength_weight = arclength_weight
-        self.distance_weight = distance_weight
         self.freq_plot = freq_plot
         self.freq_out_of_sample = freq_out_of_sample
 
@@ -90,14 +108,6 @@ class NearAxisQuasiSymmetryObjective():
         self.stochastic_qs_objective = StochasticQuasiSymmetryObjective(stellarator, sampler, ninsamples, qsf, self.seed)
         self.stochastic_qs_objective_out_of_sample = None
 
-        if mode in ["deterministic", "stochastic"]:
-            self.mode = mode
-        elif mode[0:4] == "cvar":
-            self.mode = "cvar"
-            self.cvar_alpha = float(mode[4:])
-            self.cvar = CVaR(self.cvar_alpha, .01)
-        else:
-            raise NotImplementedError
 
         self.stochastic_qs_objective.set_magnetic_axis(self.ma.gamma())
 
@@ -132,6 +142,7 @@ class NearAxisQuasiSymmetryObjective():
             J.clear_cached_properties()
 
     def update(self, x):
+        x = self.L @ x
         self.x[:] = x
         J_BSvsQS          = self.J_BSvsQS
         J_coil_lengths    = self.J_coil_lengths
@@ -271,12 +282,8 @@ class NearAxisQuasiSymmetryObjective():
             ))
         else:
             raise NotImplementedError
-
-        if self.mode == "stochastic":
-            self.dres_det = np.concatenate((
-                self.dresetabar_det, self.dresma_det,
-                self.drescurrent_det, self.drescoil_det
-            ))
+        self.dresl2 = self.dres.copy()
+        self.dres = self.L @ self.dres
 
 
     def compute_out_of_sample(self):
@@ -288,6 +295,7 @@ class NearAxisQuasiSymmetryObjective():
         return Jsamples, Jsamples + sum(self.Jvals_individual[-1][1:])
 
     def callback(self, x, verbose=True):
+        x = self.L @ x
         assert np.allclose(self.x, x)
         self.Jvals.append(self.res)
         norm = np.linalg.norm

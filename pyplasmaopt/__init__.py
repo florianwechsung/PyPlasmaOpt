@@ -9,3 +9,4 @@ from .stochastic_objective import *
 from .stochastic_gradient import *
 from .logging import *
 from .problems import *
+from .innerproduct import *

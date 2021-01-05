@@ -321,7 +321,12 @@ class NearAxisQuasiSymmetryObjective():
             cvar90 = np.mean(v[v>=np.quantile(v, 0.90)])
             cvar95 = np.mean(v[v>=np.quantile(v, 0.95)])
             info(f"CVaR(.9), CVaR(.95), Max:{cvar90:.6e}, {cvar95:.6e}, {max(self.perturbed_vals):.6e}")
-        info(f"Objective gradients:     {norm(self.dresetabar):.6e}, {norm(self.dresma):.6e}, {norm(self.drescurrent):.6e}, {norm(self.drescoil):.6e}")
+        info(f"Objective gradients norm:                  {norm(self.dresetabar):.4e}, {norm(self.dresma):.4e}, {norm(self.drescurrent):.4e}, {norm(self.drescoil):.4e}")
+        Ldresetabar = self.dres[0:1]
+        Ldresma = self.dres[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
+        Ldrescurrent = self.dres[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
+        Ldrescoil = self.dres[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
+        info(f"Objective gradients norm (Hilbert space):  {norm(Ldresetabar):.4e}, {norm(Ldresma):.4e}, {norm(Ldrescurrent):.4e}, {norm(Ldrescoil):.4e}")
 
         max_curvature  = max(np.max(c.kappa()) for c in self.stellarator._base_coils)
         mean_curvature = np.mean([np.mean(c.kappa()) for c in self.stellarator._base_coils])

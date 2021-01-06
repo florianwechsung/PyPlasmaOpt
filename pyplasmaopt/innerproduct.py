@@ -20,8 +20,8 @@ def build_inner_product_matrix_for_curve(curve, derivs):
     for i in range(n):
         for j in range(i+1):
             for k in range(derivs+1):
-                # H[i, j] += 0.1**k * np.mean(np.sum(gammas[i][k] * gammas[j][k], axis=1))
-                H[i, j] += np.mean(np.sum(gammas[i][k] * gammas[j][k], axis=1))
+                H[i, j] += 0.1**k * np.mean(np.sum(gammas[i][k] * gammas[j][k], axis=1))
+                # H[i, j] += np.mean(np.sum(gammas[i][k] * gammas[j][k], axis=1))
             H[j, i] = H[i, j]
     return H
 

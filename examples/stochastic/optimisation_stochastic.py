@@ -74,7 +74,7 @@ if False:
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
 
-maxiter = 15000
+maxiter = 10000
 
 def J_scipy(x):
     try:
@@ -115,7 +115,7 @@ while iters < maxiter and restarts < 30:
         miter = min(10000, maxiter-iters)
     if args.optim == 'pylbfgs':
         try:
-            res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=500, line_search='wolfe', max_linesearch=40, epsilon=1e-12)
+            res = fmin_lbfgs(J_pylbfgs, x, progress=p_pylbfgs, max_iterations=miter, m=5000, line_search='wolfe', max_linesearch=40, epsilon=1e-12)
         except Exception as e:
             info(e)
             pass
@@ -125,13 +125,13 @@ while iters < maxiter and restarts < 30:
         res = minimize(J_scipy, x, jac=True, method='bfgs', tol=1e-20, options={"maxiter": miter}, callback=obj.callback)
         iters += res.nit
         x = res.x
+        info(res)
 
     if obj.mode == "cvar" and restarts < 6:
         obj.cvar.eps *= 0.1**0.5
         x[-1] = obj.cvar.find_optimal_t(obj.Jsamples ,x[-1])
 
 t2 = time.time()
-info(res)
 if args.optim == "pylbfgs":
     xmin = x
 else:

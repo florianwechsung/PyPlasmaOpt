@@ -219,11 +219,11 @@ class NearAxisQuasiSymmetryObjective():
             self.res9 = 0
 
         if self.tikhonov_weight > 1e-15:
-            self.res_tikhonov_weight = self.tikhonov_weight * np.sum((x-self.x0)**2)
+            self.res_tikhonov_weight = self.tikhonov_weight * np.sum(((x-self.x0)[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]])**2)
             dres_tikhonov_weight = self.tikhonov_weight * 2. * (x-self.x0)
-            self.dresetabar += dres_tikhonov_weight[0:1]
-            self.dresma += dres_tikhonov_weight[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
-            self.drescurrent += dres_tikhonov_weight[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
+            #self.dresetabar += dres_tikhonov_weight[0:1]
+            #self.dresma += dres_tikhonov_weight[self.ma_dof_idxs[0]:self.ma_dof_idxs[1]]
+            #self.drescurrent += dres_tikhonov_weight[self.current_dof_idxs[0]:self.current_dof_idxs[1]]
             self.drescoil += dres_tikhonov_weight[self.coil_dof_idxs[0]:self.coil_dof_idxs[1]]
         else:
             self.res_tikhonov_weight = 0

@@ -150,6 +150,9 @@ info("Minimum distance = %f" % J_distance.min_dist())
 # matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
 # np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
 # np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
+for i, J in enumerate(obj.J_coil_lengths):
+    print(f'Length(Coil {i})         = {J.J():.3f} (target = {obj.coil_length_targets[i]:.3f})')
+print(f'Length(Expansion axis) = {obj.J_axis_length.J():.3f} (target = {obj.magnetic_axis_length_target:.3f})')
 if comm.rank == 0:
     np.save(outdir + "xmin.npy", xmin)
     np.save(outdir + "Jvals.npy", obj.Jvals)

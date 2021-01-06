@@ -201,6 +201,9 @@ class CurveLength():
         num_coeff            = dgammadash_by_dcoeff.shape[2]
         res = np.zeros((num_coeff, ))
         arc_length = np.linalg.norm(gammadash, axis=1)
+        if np.any(arc_length < 1e-10):
+            from .logging import warning
+            warning('Trying to take derivative of arclength very close to zero. Derivative may not be accurate.')
         for i in range(num_coeff):
             res[i] = np.mean((1/arc_length) * np.sum(dgammadash_by_dcoeff[:, :, i] * gammadash, axis=1))
         return res

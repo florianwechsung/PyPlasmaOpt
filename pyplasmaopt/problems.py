@@ -16,6 +16,7 @@ class NearAxisQuasiSymmetryObjective():
 
     def __init__(self, stellarator, ma, iota_target, eta_bar=-2.25,
                  coil_length_target=None, magnetic_axis_length_target=None,
+                 coil_length_weight=1., axis_length_weight=1.,
                  curvature_weight=0.0, torsion_weight=0., tikhonov_weight=0., arclength_weight=0., sobolev_weight=0.,
                  minimum_distance=0.04, distance_weight=0.,
                  ninsamples=0, noutsamples=0, sigma_perturb=1e-4, length_scale_perturb=0.2, mode="deterministic",
@@ -52,17 +53,20 @@ class NearAxisQuasiSymmetryObjective():
         self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_coil_torsions   = [CurveTorsion(coil, p=2) for coil in coils]
         self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
-        self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
+        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
         # self.J_distance = sgMinimumDistance(stellarator.coils, minimum_distance)
 
-        self.iota_target                 = iota_target
-        self.curvature_weight             = curvature_weight
-        self.torsion_weight               = torsion_weight
-        self.sobolev_weight = sobolev_weight
-        self.tikhonov_weight = tikhonov_weight
-        self.arclength_weight = arclength_weight
-        self.distance_weight = distance_weight
+        self.iota_target        = iota_target
+        self.coil_length_weight = coil_length_weight
+        self.axis_length_weight = axis_length_weight
+        self.curvature_weight   = curvature_weight
+        self.torsion_weight     = torsion_weight
+        self.sobolev_weight     = sobolev_weight
+        self.tikhonov_weight    = tikhonov_weight
+        self.arclength_weight   = arclength_weight
+        self.distance_weight    = distance_weight
 
         self.num_ma_dofs = len(ma.get_dofs())
         self.current_fak = 1./(4 * pi * 1e-7)
@@ -166,12 +170,19 @@ class NearAxisQuasiSymmetryObjective():
 
         """ Objective values """
 
-        self.res2      = 0.5 * sum( (1/l)**2 * (J2.J() - l)**2 for (J2, l) in zip(J_coil_lengths, self.coil_length_targets))
-        self.drescoil += self.stellarator.reduce_coefficient_derivatives([
             (1/l)**2 * (J_coil_lengths[i].J()-l) * J_coil_lengths[i].dJ_by_dcoefficients() for (i, l) in zip(list(range(len(J_coil_lengths))), self.coil_length_targets)])
+        if self.coil_length_weight > 0:
+            self.res2      = 0.5 * sum( (1/l)**2 * (J2.J() - l)**2 for (J2, l) in zip(J_coil_lengths, self.coil_length_targets))
+            self.drescoil += self.stellarator.reduce_coefficient_derivatives([
+                (1/l)**2 * (J_coil_lengths[i].J()-l) * J_coil_lengths[i].dJ_by_dcoefficients() for (i, l) in zip(list(range(len(J_coil_lengths))), self.coil_length_targets)])
+        else:
+            self.res2      = 0
 
-        self.res3    = 0.5 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
-        self.dresma += (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
+        if self.axis_length_weight > 0:
+            self.res3    = 0.5 * (1/magnetic_axis_length_target)**2 * (J_axis_length.J() - magnetic_axis_length_target)**2
+            self.dresma += (1/magnetic_axis_length_target)**2 * (J_axis_length.J()-magnetic_axis_length_target) * J_axis_length.dJ_by_dcoefficients()
+        else:
+            self.res3    = 0
 
         self.res4        = 0.5 * (1/iota_target**2) * (qsf.iota-iota_target)**2
         self.dresetabar += (1/iota_target**2) * (qsf.iota - iota_target) * qsf.diota_by_detabar[:,0]
@@ -182,6 +193,7 @@ class NearAxisQuasiSymmetryObjective():
             self.drescoil += self.curvature_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_curvatures])
         else:
             self.res5 = 0
+
         if torsion_weight > 1e-15:
             self.res6      = sum(torsion_weight * J.J() for J in J_coil_torsions)
             self.drescoil += self.torsion_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in J_coil_torsions])
@@ -189,15 +201,15 @@ class NearAxisQuasiSymmetryObjective():
             self.res6 = 0
 
         if self.sobolev_weight > 1e-15:
-            self.res7 = sum(self.sobolev_weight * J.J() for J in self.J_sobolev_weights)
-            self.drescoil += self.sobolev_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolev_weights[:-1]])
-            self.dresma += self.sobolev_weight * self.J_sobolev_weights[-1].dJ_by_dcoefficients()
+            self.res7 = sum(self.sobolev_weight * J.J() for J in self.J_sobolevs)
+            self.drescoil += self.sobolev_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolevs[:-1]])
+            self.dresma += self.sobolev_weight * self.J_sobolevs[-1].dJ_by_dcoefficients()
         else:
             self.res7 = 0
 
         if self.arclength_weight > 1e-15:
-            self.res8 = sum(self.arclength_weight * J.J() for J in self.J_arclength_weights)
-            self.drescoil += self.arclength_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclength_weights])
+            self.res8 = sum(self.arclength_weight * J.J() for J in self.J_arclengths)
+            self.drescoil += self.arclength_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclengths])
         else:
             self.res8 = 0
 
@@ -475,8 +487,8 @@ class SimpleNearAxisQuasiSymmetryObjective():
         self.J_coil_curvatures = CoilLpReduction([CurveCurvature(coil, length, p=2, root=True) for (coil, length) in zip(coils, self.coil_length_targets)], p=2, root=True)
         # self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
         self.J_coil_torsions   = CoilLpReduction([CurveTorsion(coil, p=2, root=True) for coil in coils], p=2, root=True)
-        self.J_sobolev_weights = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
-        self.J_arclength_weights = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
+        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target                 = iota_target
@@ -584,17 +596,17 @@ class SimpleNearAxisQuasiSymmetryObjective():
             self.res6 = 0
 
         if self.sobolev_weight > 0:
-            self.res7 = sum(self.sobolev_weight * J.J() for J in self.J_sobolev_weights)
+            self.res7 = sum(self.sobolev_weight * J.J() for J in self.J_sobolevs)
             if compute_derivative:
-                self.drescoil += self.sobolev_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolev_weights[:-1]])
-                self.dresma += self.sobolev_weight * self.J_sobolev_weights[-1].dJ_by_dcoefficients()
+                self.drescoil += self.sobolev_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_sobolevs[:-1]])
+                self.dresma += self.sobolev_weight * self.J_sobolevs[-1].dJ_by_dcoefficients()
         else:
             self.res7 = 0
 
         if self.arclength_weight > 0:
-            self.res8 = sum(self.arclength_weight * J.J() for J in self.J_arclength_weights)
+            self.res8 = sum(self.arclength_weight * J.J() for J in self.J_arclengths)
             if compute_derivative:
-                self.drescoil += self.arclength_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclength_weights])
+                self.drescoil += self.arclength_weight * self.stellarator.reduce_coefficient_derivatives([J.dJ_by_dcoefficients() for J in self.J_arclengths])
         else:
             self.res8 = 0
 

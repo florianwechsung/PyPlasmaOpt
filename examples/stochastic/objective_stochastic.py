@@ -22,9 +22,12 @@ def stochastic_get_objective():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--sigma", type=float, default=3e-3)
     parser.add_argument("--length-scale", type=float, default=0.2)
+    
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
+    parser.add_argument("--alen", type=float, default=1.)
+
     parser.add_argument("--ig", type=int, default=0)
     parser.add_argument("--ip", type=str, choices=["l2", "Hk"], default="l2")
     parser.add_argument("--optim", type=str, choices=["pylbfgs", "scipy"], default="scipy")
@@ -104,10 +107,13 @@ def stochastic_get_objective():
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
+        coil_length_weight=0., axis_length_weight=1.,
         # torsion_weight=args.torsion,
-        curvature_weight=args.curvature, tikhonov_weight=args.tikhonov,
-        # arclength_weight=args.arclength,
-        minimum_distance=0.1, distance_weight=0.0, sobolev_weight=args.sobolev,
+        curvature_weight=args.curvature,
+        tikhonov_weight=args.tikhonov,
+        arclength_weight=args.alen,
+        minimum_distance=0.1, distance_weight=0.0,
+        sobolev_weight=args.sobolev,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
         mode=args.mode, outdir=outdir, seed=args.seed,

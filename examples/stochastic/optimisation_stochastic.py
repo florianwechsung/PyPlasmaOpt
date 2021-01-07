@@ -143,6 +143,7 @@ obj.callback(xmin)
 info(f"Gradient norm at minimum: {np.linalg.norm(obj.dres):.3e} and {np.linalg.norm(obj.dresl2):.3e}")
 J_distance = MinimumDistance(obj.stellarator.coils, 0)
 info("Minimum distance between coils = %f\n" % J_distance.min_dist())
+
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 # obj.save_to_matlab('matlab_optim')
@@ -210,6 +211,9 @@ for i in range(10):
        obj.plot(f"newton-{i+1}.png")
     info(f"J(x)={f:.15f}, |dJ(x)|={np.linalg.norm(d):.3e}")
 xmin = x
+obj.update(x)
+obj.callback(x)
+obj.plot('optim.png')
 if comm.rank == 0:
     np.save(outdir + "xmin.npy", xmin)
     np.save(outdir + "Jvals.npy", obj.Jvals)

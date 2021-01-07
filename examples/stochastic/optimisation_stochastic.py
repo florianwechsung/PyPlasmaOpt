@@ -7,6 +7,9 @@ import numpy as np
 import os
 
 obj, args = stochastic_get_objective()
+import sys
+info(sys.argv)
+
 # import sys; sys.exit()
 
 outdir = obj.outdir
@@ -103,7 +106,7 @@ import time
 t1 = time.time()
 iters = 0
 restarts = 0
-while iters < maxiter and restarts < 30:
+while iters < maxiter and restarts < 10:
     if iters > 0:
         info("####################################################################################################")
         info("################################# Restart optimization #############################################")
@@ -179,11 +182,12 @@ if comm.rank == 0:
 for i in range(10):
     H = approx_H(x)
     D, E = eigh(H)
-    bestf = np.inf
+    bestd = np.inf
     bestx = None
     # Computing the Hessian is the most expensive thing, so we can be pretty
     # naive with the next step and just try a whole bunch of damping parameters
-    # and step sizes and then take the best one
+    # and step sizes and then take the one with smallest gradient norm that
+    # still decreases the objective
     for lam in [1e-4, 1e-3, 1e-2, 1e-1, 1]:
         Dm = np.abs(D) + lam
         s = E @ np.diag(1./Dm) @ E.T @ d
@@ -192,17 +196,22 @@ for i in range(10):
             xnew = x - alpha * s
             fnew, dnew = J_scipy(xnew)
             info(f'Linesearch: lam={lam}, alpha={alpha}, J(xnew)={fnew:.15f}, |dJ(xnew)|={np.linalg.norm(dnew):.3e}')
-            if fnew < bestf:
-                bestf = fnew
+            dnormnew = np.linalg.norm(dnew)
+            foundnewbest = ""
+            if fnew < f and dnormnew < bestd:
+                bestd = dnormnew
                 bestx = xnew
+                foundnewbest = "x"
+            info(f'Linesearch: lam={lam:.4f}, alpha={alpha:.4f}, J(xnew)={fnew:.15f}, |dJ(xnew)|={dnormnew:.3e}, {foundnewbest}')
             alpha *= 0.5
-    fnew, dnew = J_scipy(bestx)
-    if fnew >= f:
-        info(f"Stop newton because {fnew} >= {f} despite linesearch.")
+    if bestx is None:
+        info(f"Stop Newton because no point with smaller function value could be found.")
         break
-    # if np.linalg.norm(dnew) >= np.linalg.norm(d):
-    #     info(f"Stop newton because {np.linalg.norm(dnew)} >= {np.linalg.norm(d)} despite linesearch.")
-    #     break
+    fnew, dnew = J_scipy(bestx)
+    dnormnew = np.linalg.norm(dnew)
+    if dnormnew >= np.linalg.norm(d):
+        info(f"Stop Newton because |{dnormnew}| >= |{np.linalg.norm(d)}|.")
+        break
     x = bestx
     d = dnew
     f = fnew

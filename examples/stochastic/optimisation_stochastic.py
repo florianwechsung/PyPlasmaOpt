@@ -195,7 +195,6 @@ for i in range(10):
         for j in range(5):
             xnew = x - alpha * s
             fnew, dnew = J_scipy(xnew)
-            info(f'Linesearch: lam={lam}, alpha={alpha}, J(xnew)={fnew:.15f}, |dJ(xnew)|={np.linalg.norm(dnew):.3e}')
             dnormnew = np.linalg.norm(dnew)
             foundnewbest = ""
             if fnew < f and dnormnew < bestd:

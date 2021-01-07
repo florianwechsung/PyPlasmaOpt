@@ -142,7 +142,7 @@ obj.update(xmin)
 obj.callback(xmin)
 info(f"Gradient norm at minimum: {np.linalg.norm(obj.dres):.3e} and {np.linalg.norm(obj.dresl2):.3e}")
 J_distance = MinimumDistance(obj.stellarator.coils, 0)
-info("Minimum distance = %f" % J_distance.min_dist())
+info("Minimum distance between coils = %f\n" % J_distance.min_dist())
 # import IPython; IPython.embed()
 # import sys; sys.exit()
 # obj.save_to_matlab('matlab_optim')
@@ -151,8 +151,65 @@ info("Minimum distance = %f" % J_distance.min_dist())
 # np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
 # np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
 for i, J in enumerate(obj.J_coil_lengths):
-    print(f'Length(Coil {i})         = {J.J():.3f} (target = {obj.coil_length_targets[i]:.3f})')
-print(f'Length(Expansion axis) = {obj.J_axis_length.J():.3f} (target = {obj.magnetic_axis_length_target:.3f})')
+    info(f'Length(Coil {i})         = {J.J():.3f} (target = {obj.coil_length_targets[i]:.3f})')
+info(f'Length(Expansion axis) = {obj.J_axis_length.J():.3f} (target = {obj.magnetic_axis_length_target:.3f})\n')
+
+def approx_H(x):
+    n = x.size
+    H = np.zeros((n, n))
+    x0 = x
+    eps = 1e-4
+    for i in range(n):
+        x = x0.copy()
+        x[i] += eps
+        d1 = J_scipy(x)[1]
+        x[i] -= 2*eps
+        d0 = J_scipy(x)[1]
+        H[i, :] = (d1-d0)/(2*eps)
+    H = 0.5 * (H+H.T)
+    return H
+from scipy.linalg import eigh
+x = xmin
+f, d = J_scipy(x)
+info(f"Start Newton: J(x)={f:.15f}, |dJ(x)|={np.linalg.norm(d):.3e}\n")
+obj.callback(x)
+if comm.rank == 0:
+    obj.plot(f"newton-{0}.png")
+for i in range(10):
+    H = approx_H(x)
+    D, E = eigh(H)
+    bestf = np.inf
+    bestx = None
+    # Computing the Hessian is the most expensive thing, so we can be pretty
+    # naive with the next step and just try a whole bunch of damping parameters
+    # and step sizes and then take the best one
+    for lam in [1e-4, 1e-3, 1e-2, 1e-1, 1]:
+        Dm = np.abs(D) + lam
+        s = E @ np.diag(1./Dm) @ E.T @ d
+        alpha = 1.
+        for j in range(5):
+            xnew = x - alpha * s
+            fnew, dnew = J_scipy(xnew)
+            info(f'Linesearch: lam={lam}, alpha={alpha}, J(xnew)={fnew:.15f}, |dJ(xnew)|={np.linalg.norm(dnew):.3e}')
+            if fnew < bestf:
+                bestf = fnew
+                bestx = xnew
+            alpha *= 0.5
+    fnew, dnew = J_scipy(bestx)
+    if fnew >= f:
+        info(f"Stop newton because {fnew} >= {f} despite linesearch.")
+        break
+    # if np.linalg.norm(dnew) >= np.linalg.norm(d):
+    #     info(f"Stop newton because {np.linalg.norm(dnew)} >= {np.linalg.norm(d)} despite linesearch.")
+    #     break
+    x = bestx
+    d = dnew
+    f = fnew
+    obj.callback(x)
+    if comm.rank == 0:
+       obj.plot(f"newton-{i+1}.png")
+    info(f"J(x)={f:.15f}, |dJ(x)|={np.linalg.norm(d):.3e}")
+xmin = x
 if comm.rank == 0:
     np.save(outdir + "xmin.npy", xmin)
     np.save(outdir + "Jvals.npy", obj.Jvals)
@@ -169,20 +226,6 @@ if comm.rank == 0:
         np.save(outdir + "out_of_sample_values.npy", obj.out_of_sample_values)
         np.save(outdir + "out_of_sample_means.npy", np.mean(obj.out_of_sample_values, axis=1))
 
-def approx_H(x):
-    n = x.size
-    H = np.zeros((n, n))
-    x0 = x
-    eps = 1e-4
-    for i in range(n):
-        x = x0.copy()
-        x[i] += eps
-        d1 = J_scipy(x)[1]
-        x[i] -= 2*eps
-        d0 = J_scipy(x)[1]
-        H[i, :] = (d1-d0)/(2*eps)
-    H = 0.5 * (H+H.T)
-    return H
 
 from scipy.linalg import eigh
 H = approx_H(x)

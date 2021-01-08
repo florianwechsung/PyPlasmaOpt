@@ -143,20 +143,7 @@ else:
 
 obj.update(xmin)
 obj.callback(xmin)
-info(f"Gradient norm at minimum: {np.linalg.norm(obj.dres):.3e} and {np.linalg.norm(obj.dresl2):.3e}")
-J_distance = MinimumDistance(obj.stellarator.coils, 0)
-info("Minimum distance between coils = %f\n" % J_distance.min_dist())
-
-# import IPython; IPython.embed()
-# import sys; sys.exit()
-# obj.save_to_matlab('matlab_optim')
-# obj.stellarator.savetotxt(outdir)
-# matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
-# np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
-# np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
-for i, J in enumerate(obj.J_coil_lengths):
-    info(f'Length(Coil {i})         = {J.J():.3f} (target = {obj.coil_length_targets[i]:.3f})')
-info(f'Length(Expansion axis) = {obj.J_axis_length.J():.3f} (target = {obj.magnetic_axis_length_target:.3f})\n')
+info(f"Gradient norm at minimum after BFGS: {np.linalg.norm(obj.dres):.3e} and {np.linalg.norm(obj.dresl2):.3e}")
 
 def approx_H(x):
     n = x.size
@@ -222,6 +209,20 @@ xmin = x
 obj.update(x)
 obj.callback(x)
 obj.plot('optim.png')
+J_distance = MinimumDistance(obj.stellarator.coils, 0)
+info("Minimum distance between coils = %f\n" % J_distance.min_dist())
+
+# import IPython; IPython.embed()
+# import sys; sys.exit()
+# obj.save_to_matlab('matlab_optim')
+# obj.stellarator.savetotxt(outdir)
+# matlabcoils = [c.tomatlabformat() for c in obj.stellarator._base_coils]
+# np.savetxt(os.path.join(obj.outdir, 'coilsmatlab.txt'), np.hstack(matlabcoils))
+# np.savetxt(os.path.join(obj.outdir, 'currents.txt'), obj.stellarator._base_currents)
+for i, J in enumerate(obj.J_coil_lengths):
+    info(f'Length(Coil {i})         = {J.J():.3f} (target = {obj.coil_length_targets[i]:.3f})')
+info(f'Length(Expansion axis) = {obj.J_axis_length.J():.3f} (target = {obj.magnetic_axis_length_target:.3f})\n')
+
 if comm.rank == 0:
     np.save(outdir + "xmin.npy", xmin)
     np.save(outdir + "Jvals.npy", obj.Jvals)

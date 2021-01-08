@@ -104,10 +104,12 @@ def stochastic_get_objective():
 
     coil_length_target = [CurveLength(coil).J() for coil in coils]
 
+    coillenw = 1. if args.alen == 0. else 0.
+        
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
-        coil_length_weight=0., axis_length_weight=1.,
+        coil_length_weight=coillenw, axis_length_weight=1.,
         # torsion_weight=args.torsion,
         curvature_weight=args.curvature,
         tikhonov_weight=args.tikhonov,

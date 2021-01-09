@@ -27,6 +27,7 @@ def stochastic_get_objective():
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
     parser.add_argument("--alen", type=float, default=1.)
+    parser.add_argument("--distw", type=float, default=0.)
 
     parser.add_argument("--ig", type=int, default=0)
     parser.add_argument("--ip", type=str, choices=["l2", "Hk"], default="l2")
@@ -114,7 +115,7 @@ def stochastic_get_objective():
         curvature_weight=args.curvature,
         tikhonov_weight=args.tikhonov,
         arclength_weight=args.alen,
-        minimum_distance=0.1, distance_weight=0.0,
+        minimum_distance=0.2, distance_weight=args.distw,
         sobolev_weight=args.sobolev,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
         sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,

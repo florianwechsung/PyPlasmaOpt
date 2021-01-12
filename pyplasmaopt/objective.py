@@ -2,6 +2,8 @@ import numpy as np
 from math import pi
 from property_manager import cached_property, PropertyManager
 writable_cached_property = cached_property(writable=True)
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
 
 class BiotSavartQuasiSymmetricFieldDifference(PropertyManager):
 
@@ -368,9 +370,27 @@ class UniformArclength():
 
 class MinimumDistance():
 
+    """
+    This function is parallised across MPI processors, each rank gets a list of
+    pairs of coils to compute the distance off. 
+    """
+
     def __init__(self, curves, minimum_distance):
         self.curves = curves
         self.minimum_distance = minimum_distance
+        self.pairs = []
+        for i in range(len(self.curves)):
+            for j in range(i):
+                self.pairs.append((i, j))
+
+        size = comm.size
+        idxs = [i*len(self.pairs)//size for i in range(size+1)]
+        assert idxs[0] == 0
+        assert idxs[-1] == len(self.pairs)
+        first = idxs[comm.rank]
+        last = idxs[comm.rank+1]
+        assert last >= first
+        self.local_pairs = self.pairs[first:last]
 
     def min_dist(self):
         res = 1e10
@@ -385,47 +405,54 @@ class MinimumDistance():
     def J(self):
         from scipy.spatial.distance import cdist
         res = 0
-        for i in range(len(self.curves)):
+        for (i, j) in self.local_pairs:
             gamma1 = self.curves[i].gamma()
             l1 = self.curves[i].incremental_arclength()[:, None]
-            for j in range(i):
-                gamma2 = self.curves[j].gamma()
-                l2 = self.curves[j].incremental_arclength()[None, :]
-                dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
-                alen = l1 * l2
-                res += np.sum(alen * np.maximum(self.minimum_distance-dists, 0)**2)/(gamma1.shape[0]*gamma2.shape[0])
-        return res
+            gamma2 = self.curves[j].gamma()
+            l2 = self.curves[j].incremental_arclength()[None, :]
+            dists = np.sqrt(np.sum((gamma1[:, None, :] - gamma2[None, :, :])**2, axis=2))
+            alen = l1 * l2
+            res += np.sum(alen * np.maximum(self.minimum_distance-dists, 0)**2)/(gamma1.shape[0]*gamma2.shape[0])
+        return comm.allreduce(res, op=MPI.SUM)
 
     def dJ_by_dcoefficients(self):
+        localres = []
         res = []
-        for i in range(len(self.curves)):
+        for k in range(len(self.curves)):
+            localres.append(np.zeros((self.curves[k].num_dofs(), )))
+            res.append(np.zeros((self.curves[k].num_dofs(), )))
+
+        for (i, j) in self.local_pairs:
             gamma1 = self.curves[i].gamma()
             dgamma1 = self.curves[i].dgamma_by_dcoeff()
             numcoeff1 = dgamma1.shape[2]
             l1 = self.curves[i].incremental_arclength()[:, None]
             dl1 = self.curves[i].dincremental_arclength_by_dcoeff()[:, None, :]
-            res.append(np.zeros((numcoeff1, )))
-            for j in range(i):
-                gamma2 = self.curves[j].gamma()
-                dgamma2 = self.curves[j].dgamma_by_dcoeff()
-                l2 = self.curves[j].incremental_arclength()[None, :]
-                dl2 = self.curves[j].dincremental_arclength_by_dcoeff()[None, :, :]
-                numcoeff2 = dgamma2.shape[2]
-                diffs = gamma1[:, None, :] - gamma2[None, :, :]
+            gamma2 = self.curves[j].gamma()
+            dgamma2 = self.curves[j].dgamma_by_dcoeff()
+            l2 = self.curves[j].incremental_arclength()[None, :]
+            dl2 = self.curves[j].dincremental_arclength_by_dcoeff()[None, :, :]
+            numcoeff2 = dgamma2.shape[2]
+            diffs = gamma1[:, None, :] - gamma2[None, :, :]
 
-                dists = np.sqrt(np.sum(diffs**2, axis=2))
-                npmax = np.maximum(self.minimum_distance - dists, 0)
-                if np.sum(npmax) < 1e-15:
-                    continue
+            dists = np.sqrt(np.sum(diffs**2, axis=2))
+            npmax = np.maximum(self.minimum_distance - dists, 0)
+            if np.sum(npmax) < 1e-15:
+                continue
 
-                l1l2npmax = l1*l2*npmax
-                for ii in range(numcoeff1):
-                    res[i][ii] += np.sum(dl1[:, :, ii] * l2 * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
-                    res[i][ii] += np.sum(-2 * l1l2npmax * np.sum(dgamma1[:, None, :, ii] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
-                for jj in range(numcoeff2):
-                    res[j][jj] += np.sum(l1 * dl2[:, :, jj] * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
-                    res[j][jj] -= np.sum(-2 * l1l2npmax * np.sum(dgamma2[:, :, jj][None, :, :] * diffs, axis=2)/dists)/(gamma1.shape[0]*gamma2.shape[0])
+            l1l2npmax = l1*l2*npmax
+            for ii in range(numcoeff1):
+                localres[i][ii] += np.sum(dl1[:, :, ii] * l2 * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
+            localres[i] += np.sum(-2 * l1l2npmax[:, :, None] * np.sum(dgamma1[:, None, :, :] * diffs[:, :, :, None], axis=2)/dists[:, :, None], axis=(0, 1))/(gamma1.shape[0]*gamma2.shape[0])
+            for jj in range(numcoeff2):
+                localres[j][jj] += np.sum(l1 * dl2[:, :, jj] * npmax**2)/(gamma1.shape[0]*gamma2.shape[0])
+            localres[j] -= np.sum(-2 * l1l2npmax[:, :, None] * np.sum(dgamma2[None, :, :, :] * diffs[:, :, :, None], axis=2)/dists[:, :, None], axis=(0, 1))/(gamma1.shape[0]*gamma2.shape[0])
+
+        for k in range(len(self.curves)):
+            res[k] = comm.allreduce(localres[k], op=MPI.SUM)
+
         return res
+
 
 class CoilLpReduction():
 

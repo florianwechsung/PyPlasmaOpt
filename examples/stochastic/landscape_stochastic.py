@@ -57,8 +57,8 @@ if comm.rank == 0:
 info(f"obj(xc)={obj.res}")
 
 
-delta = 0.1
-lams = np.linspace(-delta, 1+delta, 25)
+delta = 0.5
+lams = np.linspace(-delta, 1+delta, 41)
 # lams = np.linspace(-delta, 1+delta, 13)
 mus = lams
 afaks = []

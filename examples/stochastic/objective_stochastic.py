@@ -26,7 +26,8 @@ def stochastic_get_objective():
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--curvature", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
-    parser.add_argument("--alen", type=float, default=1.)
+    parser.add_argument("--carclen", type=float, default=0.)
+    parser.add_argument("--clen", type=float, default=1.)
     parser.add_argument("--distw", type=float, default=0.)
 
     parser.add_argument("--ig", type=int, default=0)
@@ -105,16 +106,14 @@ def stochastic_get_objective():
 
     coil_length_target = [CurveLength(coil).J() for coil in coils]
 
-    coillenw = 1. if args.alen == 0. else 0.
-        
     obj = NearAxisQuasiSymmetryObjective(
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
-        coil_length_weight=coillenw, axis_length_weight=1.,
+        coil_length_weight=args.clen, axis_length_weight=1.,
         # torsion_weight=args.torsion,
         curvature_weight=args.curvature,
         tikhonov_weight=args.tikhonov,
-        arclength_weight=args.alen,
+        arclength_weight=args.carclen,
         minimum_distance=0.2, distance_weight=args.distw,
         sobolev_weight=args.sobolev,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,

@@ -215,6 +215,27 @@ def test_B_from_points():
     
     assert(np.allclose(d_B_fd,d_B))    
     
+def test_A_from_points():
+    """
+    Check that A is of correct size
+    """
+    mmax = 3
+    nmax = 3
+    nfp = 2
+    ntheta = mmax*3
+    nphi = nmax*3
+    (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
+    currents = len(coils) * [1e4]
+    stellerator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    volume = 1
+    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    
+    params = np.random.rand((2*qfm.mnmax-1))
+    
+    A = qfm.A_from_points(params)
+    assert(len(A) == np.size(3*qfm.phis))
+    
 def test_quadratic_flux():
     """
     Check that parameter derivatives match finite differences

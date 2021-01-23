@@ -50,6 +50,34 @@ class BiotSavart(PropertyManager):
     def d2B_by_dXdcoilcoeffs(self):
         self.compute_by_dcoilcoeff(self.points)
         return self.d2B_by_dXdcoilcoeffs
+    
+    @writable_cached_property
+    def dA_by_dcoilcurrents(self):
+        self.compute_A(self.points)
+        return self.dA_by_dcoilcurrents
+    
+    @writable_cached_property
+    def A(self):
+        self.compute_A(self.points)
+        return self.A
+    
+    def compute_A(self, points):
+        self.A           = np.zeros((len(points), 3))
+        self.dA_by_dcoilcurrents    = [np.zeros((len(points), 3)) for coil in self.coils]
+        for l in range(len(self.coils)):
+            coil = self.coils[l]
+            current = self.coil_currents[l]
+            gamma = coil.gamma
+            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
+            num_coil_quadrature_points = gamma.shape[0]
+            for i, point in enumerate(points):
+                diff = point-gamma
+                self.dA_by_dcoilcurrents[l][i, :] += np.sum(
+                    (1./np.linalg.norm(diff, axis=1))[:, None] * dgamma_by_dphi,
+                    axis=0)
+            self.dA_by_dcoilcurrents[l] *= (1e-7/num_coil_quadrature_points)
+            self.A += current * self.dA_by_dcoilcurrents[l]
+        return self
 
     def compute(self, points, use_cpp=True):
         self.B           = np.zeros((len(points), 3))

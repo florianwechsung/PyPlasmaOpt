@@ -600,6 +600,50 @@ class QfmSurface():
 
         return d_flux/normalization - flux*d_normalization/(normalization*normalization)
     
+    def A_from_points(self,params):
+        """
+        Computes vector potential on angular grid on surface computed from 
+            provided parameters
+            
+        Inputs:
+            params (1d array (2*mnmax-1)): surface Fourier parameters 
+                excluding R00
+        Outputs;
+            A (2d array (size(thetas), 3)): Cartesian components of vector
+                potential on flattened angular grid
+        """
+        R, Z = self.position(params)
+        X = R * np.cos(self.phis)
+        Y = R * np.sin(self.phis)
+        
+        points = np.zeros((len(X.flatten()), 3))
+        points[:,0] = X.flatten()
+        points[:,1] = Y.flatten()
+        points[:,2] = Z.flatten()
+        self.biotsavart.set_points(points)
+        return self.biotsavart.A        
+    
+    def toroidal_flux(self,params):
+        """
+        Computes toroidally averaged toroidal flux through given surface
+        
+        Inputs:
+            params (1d array (2*mnmax-1)): surface Fourier parameters 
+                excluding R00
+        Outputs;
+            flux (float): toroidally averaged toroidal flux      
+        """
+        A = self.A_from_points(params)
+        
+        dRdtheta, dRdphi, dZdtheta, dZdphi = self.position_derivatives(params)
+        dXdtheta = (dRdtheta * np.cos(self.phis)).flatten()
+        dYdtheta = (dRdtheta * np.sin(self.phis)).flatten()
+        dZdtheta = dZdtheta.flatten()
+        
+        A_dot_drdtheta = A[...,0]*dXdtheta + A[...,1]*dYdtheta + A[...,2]*dZdtheta
+        
+        return np.sum(A_dot_drdtheta)*self.dphi*self.dtheta*self.nfp/(2*np.pi)     
+    
     def ft_surface(self,params,mmax,nmax):
         """
         Performs Fourier transform of cylindrical coordinates and saves to a file

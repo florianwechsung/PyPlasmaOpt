@@ -258,7 +258,6 @@ class NearAxisQuasiSymmetryObjective():
             if self.mode == "stochastic":
                 n = self.ninsamples
                 self.res1         = sum(Jsamples)/n
-                self.res1_det     = self.res1
                 self.drescoil    += sum(self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())/n
                 self.drescurrent += self.current_fak * sum(self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())/n
                 self.dresetabar  += sum(self.stochastic_qs_objective.dJ_by_detabar_samples())/n
@@ -266,7 +265,6 @@ class NearAxisQuasiSymmetryObjective():
             elif self.mode == "cvar":
                 t = x[-1]
                 self.res1         = self.cvar.J(t, Jsamples)
-                self.res1_det     = self.res1
                 self.drescoil    += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcoefficients_samples())
                 self.drescurrent += self.current_fak * self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_dcoilcurrents_samples())
                 self.dresetabar  += self.cvar.dJ_dx(t, Jsamples, self.stochastic_qs_objective.dJ_by_detabar_samples())
@@ -314,7 +312,7 @@ class NearAxisQuasiSymmetryObjective():
         ))
         if self.ninsamples > 0:
             self.Jvals_quantiles.append((np.quantile(self.perturbed_vals, 0.1), np.mean(self.perturbed_vals), np.quantile(self.perturbed_vals, 0.9)))
-        self.Jvals_no_noise.append(self.res - self.res1 + 0.5 * (self.J_BSvsQS.J_L2() + self.J_BSvsQS.J_H1()))
+        self.Jvals_no_noise.append(self.res - self.res1 + self.res1_det)
         self.xiterates.append(x.copy())
         if comm.rank == 0:
             self.Jvals_perturbed.append(self.perturbed_vals)
@@ -344,8 +342,8 @@ class NearAxisQuasiSymmetryObjective():
         mean_torsion   = np.mean([np.mean(np.abs(c.torsion())) for c in self.stellarator._base_coils])
         info(f"Curvature Max: {max_curvature:.3e}; Mean: {mean_curvature:.3e}")
         info(f"Torsion   Max: {max_torsion:.3e}; Mean: {mean_torsion:.3e}")
-        if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
-            self.plot('iteration-%04i.png' % iteration)
+        # if ((iteration in list(range(6))) or iteration % self.freq_plot == 0) and self.freq_plot > 0 and comm.rank == 0:
+        #     self.plot('iteration-%04i.png' % iteration)
         if iteration % self.freq_out_of_sample == 0 and self.noutsamples > 0:
             oos_vals = self.compute_out_of_sample()[1]
             if comm.rank == 0:

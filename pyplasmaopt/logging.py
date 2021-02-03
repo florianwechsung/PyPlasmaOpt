@@ -3,7 +3,7 @@ import os
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 
-__all__ = ("debug", "info", "warning", "error", "set_file_logger")
+__all__ = ("debug", "info", "warning", "error", "debug_all", "info_all", "warning_all", "error_all", "info_all_sync", "set_file_logger")
 
 logger = logging.getLogger('PyPlasmaOpt')
 
@@ -30,3 +30,24 @@ info = logger.info
 warning = logger.warning
 error = logger.error
 logger.propagate = False
+
+
+
+logger_all = logging.getLogger('PyPlasmaOptAll')
+handler = logging.StreamHandler()
+formatter = logging.Formatter(fmt=f"%(levelname)s [{comm.rank}] %(message)s")
+handler.setFormatter(formatter)
+logger_all.addHandler(handler)
+logger_all.setLevel(logging.INFO)
+
+debug_all = logger_all.debug
+info_all = logger_all.info
+warning_all = logger_all.warning
+error_all = logger_all.error
+logger_all.propagate = False
+
+def info_all_sync(*args):
+    for i in range(comm.size):
+        comm.barrier()
+        if i == comm.rank:
+            info_all(*args)

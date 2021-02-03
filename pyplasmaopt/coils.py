@@ -6,15 +6,15 @@ from math import pi
 class CoilCollection():
     """
     Given some input coils and currents, this performs the reflection and
-    rotation to generate a full set of stellerator coils.
+    rotation to generate a full set of stellarator coils.
     """
 
-    def __init__(self, coils, currents, nfp, stellerator_symmetry):
+    def __init__(self, coils, currents, nfp, stellarator_symmetry):
         self._base_coils = coils
         self._base_currents = currents
         self.coils = []
         self.currents = []
-        flip_list = [False, True] if stellerator_symmetry else [False] 
+        flip_list = [False, True] if stellarator_symmetry else [False] 
         self.map = []
         self.current_sign = []
         for k in range(0, nfp):

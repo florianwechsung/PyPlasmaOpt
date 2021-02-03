@@ -1,5 +1,6 @@
 import numpy as np
 import cppplasmaopt as cpp
+from .logging import info_all, info_all_sync
 from math import sqrt, copysign
 def sign(y):
     return copysign(1, y)
@@ -255,26 +256,26 @@ def guiding_center_rhs_batch(xyzv, vtotal, mus, m, q, biotsavart, active_idxs):
     return res.flatten()
 
 
-def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1):
+def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1, mass=1.67e-27, charge=1, Ekinev=9000, umin=-1, umax=+1):
     assert mode in ['gyro', 'orbit']
 
     e = 1.6e-19
-    # proton
-    Ekin = 9 * 1e3 * e
-    m = 1.67e-27
-    q = e
+    Ekin = Ekinev * e
+    m = mass
+    q = charge*e
 
     vtotal = sqrt(2*Ekin/m) # Ekin = 0.5 * m * v^2 <=> v = sqrt(2*Ekin/m)
-    print("|v| = %.2E m/s" % vtotal)
+    info_all_sync(f"|v| = {vtotal:.2E} m/s")
     max_step = 1.0/vtotal
 
 
     np.random.seed(seed)
     xyz_inits = axis[np.random.randint(0, axis.shape[0], size=(nparticles, )), :]
 
-    # us = np.linspace(-1., 1.0, nparticles, endpoint=True)
-    us = np.linspace(0., 1.0, nparticles, endpoint=True)
-    us = +1. * us
+    # us = np.linspace(umin, umax, nparticles, endpoint=True)
+    us = np.random.uniform(low=umin, high=umax, size=(nparticles, ))
+    # us = np.linspace(0., 1.0, nparticles, endpoint=True)
+    # us = +1. * us
     # us = us[6:9]
     # xyz_inits = xyz_inits[6:9,:]
     nparticles = len(us)
@@ -282,10 +283,11 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     biotsavart.set_points(xyz_inits)
     Bs = biotsavart.B(compute_derivatives=0)
     AbsBs = np.linalg.norm(Bs, axis=1)
-    print("Mean(|B|) = %.2E T" % np.mean(AbsBs))
+    info_all_sync(f"Mean(|B|) = {np.mean(AbsBs):.2E} T")
+
 
     # u = 1: all tangential velocity, u = 0: all perpendicular velocity
-    print("us", us)
+    info_all_sync("us = %s" % us)
     vtangs = us * vtotal
     vperp2s = vtotal**2 - vtangs**2
     mus = vperp2s/(2*AbsBs)
@@ -323,7 +325,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
         try:
             solver.step()
         except:
-            print('abort (except) at t =', solver.t)
+            info_all(f'abort (except) at t = {solver.t:.3e}')
             break
         y = solver.y.reshape((vsize, nparticles))
         for i in reversed(range(len(active_idxs))):
@@ -331,7 +333,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
             xyz = y[:3, idx]
             dists = np.linalg.norm(xyz[None, :] - axis, axis=1)
             if min(dists) > 0.3:
-                print(f'abort for u={us[idx]} (distance) at t={solver.t}')
+                info_all(f'abort for u={us[idx]:+.3f} (distance) at t={solver.t:.3e}'.replace('+', ' '))
                 del active_idxs[i]
                 loss_time[idx] = solver.t
         if len(active_idxs) == 0:
@@ -347,4 +349,4 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     res_x = []
     for i in range(nparticles):
         res_x.append(res[:, :3, i])
-    return res_x, loss_time
+    return res_x, loss_time, us

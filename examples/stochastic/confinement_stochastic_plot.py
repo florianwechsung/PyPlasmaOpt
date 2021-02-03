@@ -16,8 +16,11 @@ outdir = "output/Hk_atopt_mode-deterministic_distribution-uniform_ppp-10_Nt_ma-4
 
 files = ["coilseed_None.npy", "coilseed_0.npy", "coilseed_1.npy", "coilseed_2.npy", "coilseed_3.npy", "coilseed_4.npy"]
 files = [outdir + fil for fil in files]
-
 labels = ['No noise', 'Perturbed Coils 1', 'Perturbed Coils 2', 'Perturbed Coils 3', 'Perturbed Coils 4', 'Perturbed Coils 5']
+
+files = [f"surf_coilseed_{i}.npy" for i in [None] + list(range(5))]
+labels = ['No noise', 'Perturbed Coils 1', 'Perturbed Coils 2', 'Perturbed Coils 3', 'Perturbed Coils 4', 'Perturbed Coils 5']
+
 title = "Particle losses"
 tmax = 1e-2
 plt.figure()

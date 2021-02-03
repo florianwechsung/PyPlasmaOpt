@@ -1,6 +1,15 @@
 from pyplasmaopt import *
 import numpy as np
 import os
+import argparse
+
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument("--case", type=str, default="ncsx-orig",
+                    choices=["ncsx-orig", "andrew-axis", "andrew-surfaces"])
+parser.add_argument("--energy", type=float, default=1e3)
+parser.add_argument("--tmax", type=float, default=1e-2)
+parser.add_argument("--nparticles", type=int, default=20)
+args, _ = parser.parse_known_args()
 
 def get_ncsx_data(Nt_coils=25, ppp=10, case='orig'):
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -49,20 +58,47 @@ def run_tracing(bs, ma=None, nparticles=401, tmax=1e-2, seed=1, outdir="", filen
     # plot_stellarator(coil_collection, extra_data=[axis])
 
     mode = 'gyro'
-    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=1e3, umin=-1, umax=1)
+    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=args.energy, umin=-1, umax=1)
     # plot_stellarator(coil_collection, extra_data=[axis] + res)
     return res, res_t, us
 
-# title = 'orig'
-# title = 'axis'
-title = 'surf'
-info("title = {title}")
+title = {'ncsx-orig': 'orig', 'andrew-axis':'axis', 'andrew-surface':'surf'}[args.case]
+info(f"title = {title}")
 outdir = ""
 coils, currents = get_ncsx_data(Nt_coils=5, ppp=10, case=title)
-coil_collection = CoilCollection(coils, currents, nfp=3, stellarator_symmetry=True)
-bs = BiotSavart(coil_collection.coils, coil_collection.currents)
+stellarator = CoilCollection(coils, currents, nfp=3, stellarator_symmetry=True)
+bs0 = BiotSavart(stellarator.coils, stellarator.currents)
+
+particleseed = comm.rank
+tmax = 1e-2
+res_t_list = []
+us_list = []
+labels = []
+rg = np.random.Generator(PCG64(0, 9999, mode="sequence"))
+length_scale_perturb = 0.2
+sigma_perturb = 0.01
+sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
+for i in [None] + list(range(5)):
+    if i == None:
+        bs = bs0
+    else:
+        perturbed_coils = [RandomlyPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
+        bs    = BiotSavart(perturbed_coils, stellarator.currents)
+    filename = f"{title}_{np.round(args.energy)}_coilseed_{i}"
+    local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=21, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
+    res = np.asarray([i for o in comm.allgather(local_res) for i in o])
+    res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])
+    us = np.asarray([i for o in comm.allgather(local_us) for i in o])
+    info(f"res.shape={res.shape}, res_t.shape={res_t.shape}, us.shape={us.shape}")
+    res_t_list.append(res_t)
+    us_list.append(us)
+    labels.append(filename)
+    if comm.rank == 0:
+        np.save(f"{filename}.npy", np.asarray([res_t, us]))
 
 
+
+import sys; sys.exit()
 
 # outdir = "output/Hk_atopt_mode-deterministic_distribution-uniform_ppp-10_Nt_ma-4_Nt_coils-6_ninsamples-1_noutsamples-8_seed-1_sigma-0p01_length_scale-0p2_tikhonov-0p0_curvature-0p0_sobolev-0p0_carclen-0p0001_clen-1p0_distw-0p0_ig-0_ip-l2_optim-scipy/"
 outdir = "output/Hk_atopt_mode-stochastic_distribution-uniform_ppp-10_Nt_ma-4_Nt_coils-6_ninsamples-64_noutsamples-64_seed-1_sigma-0p01_length_scale-0p2_tikhonov-0p0_curvature-0p0_sobolev-0p0_carclen-0p0001_clen-1p0_distw-0p0_ig-0_ip-l2_optim-scipy/"

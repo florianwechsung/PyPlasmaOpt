@@ -9,6 +9,7 @@ import os
 obj, args = stochastic_get_objective()
 import sys
 info(sys.argv)
+np.savetxt(obj.outdir + 'argv.txt', sys.argv[1:], fmt='%s')
 
 # import sys; sys.exit()
 

@@ -89,7 +89,7 @@ if args.case in titles:
         else:
             perturbed_coils = [RandomlyPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
             bs    = BiotSavart(perturbed_coils, stellarator.currents)
-        filename = f"tracing_{title}_{energy:0.f}eV_coilseed_{i}"
+        filename = f"tracing_{title}_{energy:.0f}eV_coilseed_{i}"
         local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=nparticle, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
         res = np.asarray([i for o in comm.allgather(local_res) for i in o])
         res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])
@@ -135,7 +135,7 @@ for i in [None] + list(range(5)):
         J = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, bs, value_only=True)
         info_all_sync(f'Quasi symmetry: {J.J_H1()+J.J_L2()}')
         bs = J.biotsavart
-    filename = f"tracing_{energy:0.f}eV_coilseed_{i}"
+    filename = f"tracing_{energy:.0f}eV_coilseed_{i}"
     local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=nparticles, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
     res = np.asarray([i for o in comm.allgather(local_res) for i in o])
     res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])

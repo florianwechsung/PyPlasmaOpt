@@ -8,11 +8,13 @@ parser.add_argument("--case", type=str, default="ncsx-orig")
 parser.add_argument("--energy", type=float, default=1e3)
 parser.add_argument("--tmax", type=float, default=1e-2)
 parser.add_argument("--nparticles", type=int, default=20)
+parser.add_argument("--it", type=int, default=-1)
 args, _ = parser.parse_known_args()
 
 tmax = args.tmax
 nparticles = args.nparticles
 energy = args.energy
+it = args.it
 def get_ncsx_data(Nt_coils=25, ppp=10, case='orig'):
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -70,7 +72,6 @@ if args.case in titles:
     os.makedirs(outdir, exist_ok=True)
     title = titles[args.case]
     info(f"title = {title}")
-    outdir = ""
     coils, currents = get_ncsx_data(Nt_coils=5, ppp=10, case=title)
     stellarator = CoilCollection(coils, currents, nfp=3, stellarator_symmetry=True)
     bs0 = BiotSavart(stellarator.coils, stellarator.currents)
@@ -83,14 +84,14 @@ if args.case in titles:
     length_scale_perturb = 0.2
     sigma_perturb = 0.01
     sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
-    for i in [None] + list(range(5)):
+    for i in [None] + list(range(1)):
         if i == None:
             bs = bs0
         else:
             perturbed_coils = [RandomlyPerturbedCurve(coil, sampler, randomgen=rg) for coil in stellarator.coils]
             bs    = BiotSavart(perturbed_coils, stellarator.currents)
         filename = f"tracing_{title}_{energy:.0f}eV_coilseed_{i}"
-        local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=nparticle, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
+        local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=nparticles, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
         res = np.asarray([i for o in comm.allgather(local_res) for i in o])
         res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])
         us = np.asarray([i for o in comm.allgather(local_us) for i in o])
@@ -111,7 +112,7 @@ import sys
 sys.argv = sys.argv[:1] + [str(s) for s in np.loadtxt(outdir + 'argv.txt', dtype=np.dtype('<U26'))] 
 from objective_stochastic import stochastic_get_objective
 obj, args = stochastic_get_objective()
-x = np.load(outdir + "xiterates.npy")[-1, :]
+x = np.load(outdir + "xiterates.npy")[it, :]
 obj.update(x)
 obj.compute_out_of_sample()
 info_all_sync(f"f(x) = {obj.res}")
@@ -123,7 +124,7 @@ us_list = []
 labels = []
 rg = np.random.Generator(PCG64(0, 9999, mode="sequence"))
 sampler = obj.sampler
-for i in [None] + list(range(5)):
+for i in [None] + list(range(1)):
     if i is None:
         J = obj.J_BSvsQS
         info_all_sync(f'Quasi symmetry: {J.J_H1()+J.J_L2()}')
@@ -135,7 +136,7 @@ for i in [None] + list(range(5)):
         J = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, bs, value_only=True)
         info_all_sync(f'Quasi symmetry: {J.J_H1()+J.J_L2()}')
         bs = J.biotsavart
-    filename = f"tracing_{energy:.0f}eV_coilseed_{i}"
+    filename = f"tracing_it_{it}_{energy:.0f}eV_coilseed_{i}"
     local_res, local_res_t, local_us = run_tracing(bs, ma=None, nparticles=nparticles, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
     res = np.asarray([i for o in comm.allgather(local_res) for i in o])
     res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])

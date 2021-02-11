@@ -12,6 +12,8 @@ def stochastic_get_objective():
                         action="store_true")
     parser.add_argument("--mode", type=str, default="deterministic",
                         choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95", "cvar0.99"])
+    parser.add_argument("--config", type=str, default="ncsx",
+                        choices=["ncsx", "matt24"])
     parser.add_argument("--distribution", type=str, default="gaussian",
                         choices=["gaussian", "uniform"])
     parser.add_argument("--ppp", type=int, default=20)
@@ -55,9 +57,23 @@ def stochastic_get_objective():
     set_file_logger(outdir + "log.txt")
     info("Configuration: \n%s", args.__dict__)
     
-    nfp = 3
+
     Nt_ma = args.Nt_ma
-    (coils, ma, currents) = get_ncsx_data(Nt_ma=Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+    if args.config == "ncsx":
+        nfp = 3
+        (coils, ma, currents) = get_ncsx_data(Nt_ma=Nt_ma, Nt_coils=args.Nt_coils, ppp=args.ppp)
+        eta_bar = 0.685
+        iota_target = -0.395938929522566
+        magnetic_axis_length_target = None
+    elif args.config == "matt24":
+        nfp = 2
+        (coils, currents, ma, eta_bar) = get_24_coil_data(Nt_coils=args.Nt_coils, Nt_ma=args.Nt_ma, nfp=nfp, ppp=args.ppp, at_optimum=args.at_optimum)
+        iota_target = 0.103
+        coil_length_target = 4.398229715025710
+        magnetic_axis_length_target = 6.356206812106860
+    else:
+        raise NotImplementedError
+
 
 
 
@@ -74,17 +90,8 @@ def stochastic_get_objective():
     # plt.show()
     # import sys; sys.exit()
     stellarator = CoilCollection(coils, currents, nfp, True)
-    eta_bar = 0.685
-    iota_target = -0.395938929522566
-    magnetic_axis_length_target = None
+    # plot_stellarator(stellarator, axis=ma)
 
-    # (coils, ma) = get_flat_data(ppp=args.ppp)
-    # currents = [0., 0., 0.]
-    # stellarator = CoilCollection(coils, currents, nfp, True)
-    # iota_target = 0.45
-    # coil_length_target = 2*np.pi * 0.35
-    # magnetic_axis_length_target = 2*np.pi
-    # eta_bar = -2.25
 
     # nfp = 2
     # (coils, ma, currents) = get_16_coil_data(ppp=args.ppp, at_optimum=args.at_optimum)
@@ -95,7 +102,13 @@ def stochastic_get_objective():
     # eta_bar = 0.998578113525166 if args.at_optimum else 1.0
 
     dofs = ma.dofs
-    mafull = StelleratorSymmetricCylindricalFourierCurve(3*len(ma.quadpoints), 3*Nt_ma, 1)
+
+    # to make sure the number of quad points is odd TODO: figure out why that's
+    # important at some point... for some reason the ricatti solver fails on
+    # even number of quadrature points.
+    shift = 1-nfp%2 
+
+    mafull = StelleratorSymmetricCylindricalFourierCurve(nfp*len(ma.quadpoints)+shift, nfp*Nt_ma, 1)
     dofsfull = mafull.dofs
     for i in range(Nt_ma):
         dofsfull[0][nfp*i] = dofs[0][i]

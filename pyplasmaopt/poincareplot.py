@@ -256,7 +256,7 @@ def guiding_center_rhs_batch(xyzv, vtotal, mus, m, q, biotsavart, active_idxs):
     return res.flatten()
 
 
-def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1, mass=1.67e-27, charge=1, Ekinev=9000, umin=-1, umax=+1):
+def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1, mass=1.67e-27, charge=1, Ekinev=9000, umin=-1, umax=+1, critical_distance=0.3):
     assert mode in ['gyro', 'orbit']
 
     e = 1.6e-19
@@ -332,7 +332,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
             idx = active_idxs[i]
             xyz = y[:3, idx]
             dists = np.linalg.norm(xyz[None, :] - axis, axis=1)
-            if min(dists) > 0.3:
+            if min(dists) > critical_distance:
                 info_all(f'abort for u={us[idx]:+.3f} (distance) at t={solver.t:.3e}'.replace('+', ' '))
                 del active_idxs[i]
                 loss_time[idx] = solver.t

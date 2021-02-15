@@ -336,11 +336,11 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
                 info_all(f'abort for u={us[idx]:+.3f} (distance) at t={solver.t:.3e}'.replace('+', ' '))
                 del active_idxs[i]
                 loss_time[idx] = solver.t
-        if len(active_idxs) == 0:
-            break
         t = solver.t
         ts.append(solver.t)
         denseoutputs.append(solver.dense_output())
+        if len(active_idxs) == 0:
+            break
     odesol = OdeSolution(ts, denseoutputs)
     N = 10000
     t_eval = np.linspace(ts[0], ts[-1], N)

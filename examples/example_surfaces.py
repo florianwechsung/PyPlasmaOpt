@@ -12,7 +12,6 @@ def toroidal_flux(bs, surf):
     bs.set_points(points)
     A = bs.A
     tf = np.mean(np.sum(A * surf.gammadash2(),axis=1) )
-    ipdb.set_trace()
     return tf
 
 
@@ -91,7 +90,7 @@ theta = np.linspace(0, 1.       , 2*Ntheta-1, endpoint = False)
 theta = theta[:Ntheta]
 
 dofs = np.zeros( (Nphi,Ntheta,3) )
-r = 0.3
+r = 0.2
 phi_grid, theta_grid = np.meshgrid( phi, theta )
 phi_grid = phi_grid.T
 theta_grid = theta_grid.T
@@ -129,7 +128,6 @@ rhs,drhs = fdf(xyzi)
 print("initial norm is ", np.linalg.norm(rhs) )
 while diff > 1e-12:
     rhs,drhs = fdf(xyzi)
-    ipdb.set_trace(context=21)
     
     update = np.linalg.solve(drhs.T @ drhs + lamb * jnp.eye(drhs.shape[0]), drhs.T @ rhs)
     update = np.concatenate( (np.array([update[0],0,0] ), update[1:]) )
@@ -151,6 +149,6 @@ while diff > 1e-12:
 print(toroidal_flux(bs, surf) )
 
 #surf = surf.interpolated_surface(31,31)
-#surf.plot(apply_symmetries=False, closed_loop = False, plot_derivative= False)
+surf.plot(apply_symmetries=False, closed_loop = False, plot_derivative= False)
 
 #ipdb.set_trace(context=21)

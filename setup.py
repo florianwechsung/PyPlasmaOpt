@@ -89,7 +89,7 @@ class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
         'msvc': ['/EHsc'],
-        'unix': ['-march=native', '-O3'],
+        'unix': ['-march=skylake-avx512', '-O3'],
     }
     l_opts = {
         'msvc': [],

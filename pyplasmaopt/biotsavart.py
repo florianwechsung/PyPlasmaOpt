@@ -71,7 +71,7 @@ class BiotSavart(PropertyManager):
             for i, point in enumerate(points):
                 diff = point-gamma
                 self.dA_by_dcoilcurrents[l][i, :] += np.sum( \
-                    (1./np.linalg.norm(diff, axis=1))[:, None] * dgamma_by_dphi,\
+                     (1./np.linalg.norm(diff, axis=1))[:, None] * dgamma_by_dphi,\
                     axis=0)
             self.dA_by_dcoilcurrents[l] *= (1e-7/num_coil_quadrature_points)
             self.A += current * self.dA_by_dcoilcurrents[l]

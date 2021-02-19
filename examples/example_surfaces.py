@@ -15,8 +15,8 @@ bs = BiotSavart(cc.coils, cc.currents)
 
 ### SET UP SURFACE ###
 ss = 1
-Nphi   = 5
-Ntheta = 5
+Nphi   = 11
+Ntheta = 11
 
 # you always need an ODD number of collocation points in the (phi,theta) directions, otherwise
 # the differentiation matrix will NOT be invertible.
@@ -30,7 +30,7 @@ else:
     theta = np.linspace(0, 1.       , Ntheta, endpoint = False)
 
 dofs = np.zeros( (Nphi,Ntheta,3) )
-r = 0.25
+r = 0.15
 phi_grid, theta_grid = np.meshgrid( phi, theta )
 phi_grid = phi_grid.T
 theta_grid = theta_grid.T
@@ -61,7 +61,6 @@ label = (2 * np.pi * R_major) * (2 * np.pi * r)
 surf = JaxCartesianMagneticSurface( phi, theta , ma.nfp, ss, flip_phi, label, bs, cc)
 surf.set_dofs(xyzi)
 surf.plot(apply_symmetries = True, closed_loop = True)
-#surf.toroidal_flux()
 
 
 # you can also interpolate onto a finer grid here

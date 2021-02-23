@@ -22,6 +22,11 @@ class BiotSavart(PropertyManager):
         return self.A
 
     @writable_cached_property
+    def dA_by_dX(self):
+        self.compute_A(self.points)
+        return self.dA_by_dX
+
+    @writable_cached_property
     def B(self):
         self.compute(self.points)
         return self.B
@@ -70,28 +75,23 @@ class BiotSavart(PropertyManager):
             num_coil_quadrature_points = gamma.shape[0]
             for i, point in enumerate(points):
                 diff = point-gamma
+                dist = np.linalg.norm(diff, axis = 1)
                 self.dA_by_dcoilcurrents[l][i, :] += np.sum( \
                      (1./np.linalg.norm(diff, axis=1))[:, None] * dgamma_by_dphi,\
                     axis=0)
+                for j in range(3):
+                    self.d2A_by_dXdcoilcurrents[l][i, j, :] = np.sum(\
+                             -(diff[:, j]/dist**3)[:, None] * dgamma_by_dphi\
+                            ,axis=0)
+ 
             self.dA_by_dcoilcurrents[l] *= (1e-7/num_coil_quadrature_points)
             self.A += current * self.dA_by_dcoilcurrents[l]
-        for l in range(len(self.coils)):
-            coil = self.coils[l]
-            current = self.coil_currents[l]
-            gamma = coil.gamma
-            dgamma_by_dphi = coil.dgamma_by_dphi[:, 0, :]
-            num_coil_quadrature_points = gamma.shape[0]
-            for i, point in enumerate(points):
-                diff = point-gamma
-                norm_diff = np.linalg.norm(diff, axis=1)
-                for j in range(3):
-                    ek = np.zeros((3,))
-                    term = -(diff[:, j]/norm_diff**2)[:, None] * dgamma_by_dphi
-                    self.d2A_by_dXdcoilcurrents[l][i, j, :] += np.sum(term,axis=0)
+            
+
             self.d2A_by_dXdcoilcurrents[l] *= (1e-7/num_coil_quadrature_points)
             self.dA_by_dX += current * self.d2A_by_dXdcoilcurrents[l]
-        
-            return self
+
+
     def compute(self, points, use_cpp=True):
         self.B           = np.zeros((len(points), 3))
         self.dB_by_dX    = np.zeros((len(points), 3, 3))

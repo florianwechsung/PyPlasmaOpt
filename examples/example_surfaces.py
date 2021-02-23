@@ -51,8 +51,8 @@ dofs = dofs.flatten()
 xyzi = np.concatenate( (dofs, np.array([-0.39]) ) )
 
 R_major = 1.5
-label = (2 * np.pi * R_major) * (2 * np.pi * r)
-
+#label = (2 * np.pi * R_major) * (2 * np.pi * r)
+label = 0.3
 # the convergence of the solver really depends on (flip_phi, flip_theta) and if it doesn't converge
 # sometimes changing the sign from +/- helps
 ########################
@@ -60,11 +60,30 @@ label = (2 * np.pi * R_major) * (2 * np.pi * r)
 
 surf = JaxCartesianMagneticSurface( phi, theta , ma.nfp, ss, flip_phi, label, bs, cc)
 surf.set_dofs(xyzi)
+xyzi = surf.get_dofs()
 surf.plot(apply_symmetries = True, closed_loop = True)
+
+surf.label_target = 0.2
+surf.updateBoozer()
+surf.plot(apply_symmetries = True, closed_loop = True)
+
+
+#idx = 33
+#epsil = 1e-4
+#tf = surf.toroidal_flux()
+#ei = np.zeros( xyzi.shape )
+#dtf0 = surf.toroidal_flux_dx()
+#
+#ei[idx] = epsil
+#surf.set_dofs(xyzi+ei, False)
+#tfh = surf.toroidal_flux()
+#
+#print( (tfh-tf)/epsil , dtf0[idx])
+#ipdb.set_trace()
 
 
 # you can also interpolate onto a finer grid here
-surf_fine = surf.interpolated_surface(13,13)
-surf = JaxCartesianMagneticSurface(surf_fine, bs, cc, label, surf.iota )
-surf.updateBoozer()
-surf.plot(apply_symmetries = True, closed_loop = True)
+#surf_fine = surf.interpolated_surface(13,13)
+#surf = JaxCartesianMagneticSurface(surf_fine, bs, cc, label, surf.iota )
+#surf.updateBoozer()
+#surf.plot(apply_symmetries = True, closed_loop = True)

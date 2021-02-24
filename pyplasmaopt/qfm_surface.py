@@ -1,13 +1,16 @@
 import numpy as np
 from math import pi
+from grad_optimizer import GradOptimizer
+from .biotsavart import BiotSavart
 
 class QfmSurface():
     
-    def __init__(self, mmax, nmax, nfp, biotsavart, ntheta, nphi, volume):
+    def __init__(self, mmax, nmax, nfp, stellarator, ntheta, nphi, volume):
         self.mmax = mmax
         self.nmax = nmax
         self.nfp = nfp
-        self.biotsavart = biotsavart
+        self.biotsavart = BiotSavart(stellarator.coils, stellarator.currents)
+        self.stellarator = stellarator
         self.mnmax,self.xm,self.xn = self.init_modes(mmax,nmax)
         self.xn = self.xn*nfp
         self.ntheta = ntheta
@@ -524,6 +527,30 @@ class QfmSurface():
         
         return d_X * gradB[...,0,:] + d_Y * gradB[...,1,:] + d_Z * gradB[...,2,:]
     
+    def d_B_from_points_dcoilcoeff(self,params):
+        R, Z = self.position(params)
+        X = R * np.cos(self.phis)
+        Y = R * np.sin(self.phis)
+        
+        points = np.zeros((len(X.flatten()), 3))
+        points[:,0] = X.flatten()
+        points[:,1] = Y.flatten()
+        points[:,2] = Z.flatten()
+        # Shape: (ncoils,npoints,nparams,3)
+        return self.biotsavart.compute_by_dcoilcoeff(points).dB_by_dcoilcoeffs
+    
+    def d_B_from_points_dcoilcurrents(self,params):
+        R, Z = self.position(params)
+        X = R * np.cos(self.phis)
+        Y = R * np.sin(self.phis)
+        
+        points = np.zeros((len(X.flatten()), 3))
+        points[:,0] = X.flatten()
+        points[:,1] = Y.flatten()
+        points[:,2] = Z.flatten()
+        # Shape: (ncoils,npoints,3)
+        return self.biotsavart.compute(points).dB_by_dcoilcurrents
+
     def quadratic_flux(self,params):
         """
         Computes normalized quadratic flux integral:
@@ -658,22 +685,25 @@ class QfmSurface():
             Rbc (1d array (mnmax)): Fourier harmonics for radius
             Zbs (1d array (mnmax)): Fourier harmonics for height
         """
+        params = self.params_full(params)
+        paramsR = params[0:self.mnmax]
+        paramsZ = params[self.mnmax::]
+        
         mnmax, xm, xn = self.init_modes(mmax,nmax)
         xn = xn*self.nfp
         Rbc = np.zeros((mnmax))
         Zbs = np.zeros((mnmax))
-        
-        R, Z = self.position(params)
-        
-        nax = np.newaxis
-        xm = xm[:,nax,nax]
-        xn = xn[:,nax,nax]
-        thetas = self.thetas[nax,...]
-        phis = self.phis[nax,...]
-        angle = xm*thetas - xn*phis
-        Rbc = np.sum(R*np.cos(angle),axis=(1,2))/np.sum(np.cos(angle)**2,axis=(1,2))
-        Zbs = np.sum(Z*np.sin(angle),axis=(1,2))[1::]/np.sum(np.sin(angle[1::,:,:])**2,axis=(1,2))
-        Zbs = np.concatenate(([0],Zbs),axis=0)
+        if (mnmax < self.mnmax):
+            for im in range(mnmax):
+                Rbc[im] = paramsR[(self.xm==xm[im])*(self.xn==xn[im])]
+                Zbs[im] = paramsZ[(self.xm==xm[im])*(self.xn==xn[im])]
+        elif (mnmax > self.mnmax):
+            for im in range(self.mnmax):
+                Rbc[(self.xm[im]==xm)*(self.xn[im]==xn)] = paramsR[im]
+                Zbs[(self.xm[im]==xm)*(self.xn[im]==xn)] = paramsZ[im]      
+        else:
+            Rbc = paramsR
+            Zbs = paramsZ
         
         f = open("boundary.txt","w")
         for im in range(mnmax):
@@ -682,3 +712,129 @@ class QfmSurface():
         f.close()
         
         return Rbc, Zbs
+    
+    def qfm_metric(self,paramsInit=None):
+        """
+        Computes minimum of quadratic flux function beginning with initial guess
+            paramsInit
+            
+        Inputs:
+            params (1d array (2*mnmax-1)): surface Fourier parameters 
+                excluding R00
+        Outputs:
+            fopt (double): minimum objective value
+        """
+        if paramsInit is None:
+            paramsInit = self.paramsPrev
+        if (np.ndim(paramsInit)!=1):
+            raise ValueError('paramsInit has incorrect dimensions')
+        if (len(paramsInit)!=2*self.mnmax-1):
+            raise ValueError('paramsInit has incorrect length')
+
+        optimizer = GradOptimizer(len(paramsInit))
+        optimizer.add_objective(self.quadratic_flux,self.d_quadratic_flux,1)
+        xopt, fopt, result = optimizer.optimize(paramsInit,package='scipy',method='BFGS')
+        if (result==0):
+            self.paramsPrev = xopt
+            return fopt
+        else:
+            raise RuntimeError('QFM solver not successful!')
+            
+    def d_qfm_metric_d_coil_coeffs(self,params=None):
+        """
+        Computes derivative of qfm metric with respect to coil coefficients
+            
+        Inputs:
+            params (1d array (2*mnmax-1)): surface Fourier parameters 
+                excluding R00
+        Outputs:
+            res (1d array (3*ncoils*(2*Nt_coils-1))): derivative of qfm metric
+                wrt coil coeffs
+        """
+        if params is None:
+            params = self.paramsPrev
+        if (np.ndim(params)!=1):
+            raise ValueError('params has incorrect dimensions')
+        if (len(params)!=2*self.mnmax-1):
+            raise ValueError('params has incorrect length')
+
+        B = self.B_from_points(params)
+        # Shape: (ncoils,npoints,nparams,3)
+        dB_by_dcoilcoeff = self.d_B_from_points_dcoilcoeff(params)
+        
+        N = self.norm_normal(params)
+        nR, nP, nZ = self.normal(params)
+        
+        nX = (nR * np.cos(self.phis) - nP * np.sin(self.phis)).flatten()
+        nY = (nR * np.sin(self.phis) + nP * np.cos(self.phis)).flatten()
+        nZ = nZ.flatten()
+        N = N.flatten()
+        B_n = B[...,0]*nX + B[...,1]*nY + B[...,2]*nZ
+        B_norm = np.sqrt(B[...,0]**2 + B[...,1]**2 + B[...,2]**2)
+        normalization = 0.5 * np.sum(N * B_norm **2)
+        flux =  0.5 * np.sum(N * B_n ** 2)
+        f = flux/normalization
+        
+        nax = np.newaxis
+        res = []
+        for dB in dB_by_dcoilcoeff:
+            deltaB_n = dB[...,0]*nX[:,nax] \
+                + dB[...,1]*nY[:,nax] \
+                + dB[...,2]*nZ[:,nax]
+            deltaB2 = dB[...,0]*B[:,nax,0] \
+                + dB[...,1]*B[:,nax,1] \
+                + dB[...,2]*B[:,nax,2]
+            res.append(np.sum(N[:,nax] * deltaB_n * B_n[:,nax],axis=0)/normalization \
+            - (f/normalization)*np.sum(N[:,nax] * deltaB2,axis=0))
+        res = self.stellarator.reduce_coefficient_derivatives([ires for ires in res])
+        return res
+        
+    def d_qfm_metric_d_coil_currents(self,params=None):
+        """
+        Computes derivative of qfm metric with respect to coil currents
+            
+        Inputs:
+            params (1d array (2*mnmax-1)): surface Fourier parameters 
+                excluding R00
+        Outputs:
+            res (1d array (ncoils)): derivative of qfm metric
+                wrt coil currents
+        """
+        if params is None:
+            params = self.paramsPrev
+        if (np.ndim(params)!=1):
+            raise ValueError('params has incorrect dimensions')
+        if (len(params)!=2*self.mnmax-1):
+            raise ValueError('params has incorrect length')
+
+        B = self.B_from_points(params)
+        # Shape: (ncoils,npoints,3)
+        dB_by_dcoilcurrents = self.d_B_from_points_dcoilcurrents(params)
+        
+        N = self.norm_normal(params)
+        nR, nP, nZ = self.normal(params)
+        
+        nX = (nR * np.cos(self.phis) - nP * np.sin(self.phis)).flatten()
+        nY = (nR * np.sin(self.phis) + nP * np.cos(self.phis)).flatten()
+        nZ = nZ.flatten()
+        N = N.flatten()
+        B_n = B[...,0]*nX + B[...,1]*nY + B[...,2]*nZ
+        B_norm = np.sqrt(B[...,0]**2 + B[...,1]**2 + B[...,2]**2)
+        normalization = 0.5 * np.sum(N * B_norm **2)
+        flux =  0.5 * np.sum(N * B_n ** 2)
+        f = flux/normalization
+        
+        nax = np.newaxis
+        res = []
+        for dB in dB_by_dcoilcurrents:
+            deltaB_n = dB[...,0]*nX \
+                + dB[...,1]*nY \
+                + dB[...,2]*nZ
+            deltaB2 = dB[...,0]*B[:,0] \
+                + dB[...,1]*B[:,1] \
+                + dB[...,2]*B[:,2]
+            res.append(np.sum(N * deltaB_n * B_n,axis=0)/normalization \
+            - (f/normalization)*np.sum(N * deltaB2,axis=0))
+        res = self.stellarator.reduce_current_derivatives(res)
+        return res
+        

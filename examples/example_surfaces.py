@@ -18,6 +18,7 @@ ss = 1
 Nphi   = 11
 Ntheta = 11
 
+
 # you always need an ODD number of collocation points in the (phi,theta) directions, otherwise
 # the differentiation matrix will NOT be invertible.
 if ma.nfp*Nphi % 2 == 0:
@@ -30,7 +31,7 @@ else:
     theta = np.linspace(0, 1.       , Ntheta, endpoint = False)
 
 dofs = np.zeros( (Nphi,Ntheta,3) )
-r = 0.15
+r = 0.3
 phi_grid, theta_grid = np.meshgrid( phi, theta )
 phi_grid = phi_grid.T
 theta_grid = theta_grid.T
@@ -42,6 +43,7 @@ R = jnp.sqrt(ma_xyz[:,0]**2 + ma_xyz[:,1]**2)
 R = jnp.tile( R[:,None], (1,Ntheta) )
 Z = jnp.tile( ma_xyz[:,2][:,None], (1,Ntheta) )
 
+
 # you can also change in which direction theta increases on the surface (CW, or CCW)
 flip_theta = 1
 dofs[:,:,0] =  ( R  + r * np.cos(flip_theta * 2. * np.pi * theta_grid) ) *  np.cos(flip_phi * 2. * np.pi * phi_grid)
@@ -50,22 +52,18 @@ dofs[:,:,2] =  Z  - r * np.sin(  flip_theta * 2. * np.pi * theta_grid)
 dofs = dofs.flatten()
 xyzi = np.concatenate( (dofs, np.array([-0.39]) ) )
 
-R_major = 1.5
 #label = (2 * np.pi * R_major) * (2 * np.pi * r)
-label = 0.3
 # the convergence of the solver really depends on (flip_phi, flip_theta) and if it doesn't converge
 # sometimes changing the sign from +/- helps
 ########################
 
 
-surf = JaxCartesianMagneticSurface( phi, theta , ma.nfp, ss, flip_phi, label, bs, cc)
+surf = JaxCartesianMagneticSurface( phi, theta , ma.nfp, ss, flip_phi, bs, cc, label_target = None, constraint = 'tf')
 surf.set_dofs(xyzi)
-xyzi = surf.get_dofs()
-surf.plot(apply_symmetries = True, closed_loop = True)
+surf.print_metadata()
+surf.plot()
 
-surf.label_target = 0.2
-surf.updateBoozer()
-surf.plot(apply_symmetries = True, closed_loop = True)
+#surf.plot(apply_symmetries = True, closed_loop = True)
 
 
 #idx = 33

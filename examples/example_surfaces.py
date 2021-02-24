@@ -15,7 +15,7 @@ bs = BiotSavart(cc.coils, cc.currents)
 
 ### SET UP SURFACE ###
 ss = 1
-Nphi   = 11
+Nphi   = 5
 Ntheta = 11
 
 

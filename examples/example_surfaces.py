@@ -15,7 +15,7 @@ bs = BiotSavart(cc.coils, cc.currents)
 
 ### SET UP SURFACE ###
 ss = 1
-Nphi   = 5
+Nphi   = 11
 Ntheta = 11
 
 
@@ -81,7 +81,9 @@ surf.plot()
 
 
 # you can also interpolate onto a finer grid here
-#surf_fine = surf.interpolated_surface(13,13)
-#surf = JaxCartesianMagneticSurface(surf_fine, bs, cc, label, surf.iota )
-#surf.updateBoozer()
-#surf.plot(apply_symmetries = True, closed_loop = True)
+surf_fine = surf.interpolated_surface(13,15)
+surf = JaxCartesianMagneticSurface(surf_fine, bs, cc, surf.iota, surf.label_target, surf.constraint )
+
+surf.updateBoozer()
+surf.plot(apply_symmetries = True, closed_loop = True)
+surf.print_metadata()

@@ -713,16 +713,17 @@ class QfmSurface():
         
         return Rbc, Zbs
     
-    def qfm_metric(self,paramsInit=None):
+    def qfm_metric(self,paramsInit=None,gtol=1e-6):
         """
         Computes minimum of quadratic flux function beginning with initial guess
             paramsInit
             
         Inputs:
-            params (1d array (2*mnmax-1)): surface Fourier parameters 
+            paramsInit (1d array (2*mnmax-1)): surface Fourier parameters 
                 excluding R00
         Outputs:
             fopt (double): minimum objective value
+            gtol (double): gradient norm tolerance for BFGS solver
         """
         if paramsInit is None:
             paramsInit = self.paramsPrev
@@ -733,7 +734,8 @@ class QfmSurface():
 
         optimizer = GradOptimizer(len(paramsInit))
         optimizer.add_objective(self.quadratic_flux,self.d_quadratic_flux,1)
-        xopt, fopt, result = optimizer.optimize(paramsInit,package='scipy',method='BFGS')
+        xopt, fopt, result = optimizer.optimize(paramsInit,package='scipy',
+                                            method='BFGS',options={'gtol':gtol})
         if (result==0):
             self.paramsPrev = xopt
             return fopt

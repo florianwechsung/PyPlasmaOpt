@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 from pyplasmaopt import  BiotSavart, get_24_coil_data, CoilCollection, \
-    QuasiSymmetricField
+    QuasiSymmetricField, get_ncsx_data
 from pyplasmaopt.qfm_surface import QfmSurface
 from pyplasmaopt.finite_differences import finite_difference_derivative
+import scipy
 
 def test_params_full():
     """
@@ -17,10 +18,10 @@ def test_params_full():
     nphi = 3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
     params_full = qfm.params_full(params)
@@ -46,10 +47,10 @@ def test_position():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
     R, Z = qfm.position(params)
@@ -80,9 +81,9 @@ def test_position_derivatives():
     volume = 1
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
     dRdtheta, dRdphi, dZdtheta, dZdphi = qfm.position_derivatives(params)
@@ -130,10 +131,10 @@ def test_unit_normal():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
         
     params = 0.1*np.ones((2*qfm.mnmax-1))
     
@@ -172,10 +173,10 @@ def test_norm_normal():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
         
@@ -201,10 +202,10 @@ def test_B_from_points():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
     
@@ -226,10 +227,10 @@ def test_A_from_points():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
     
@@ -247,10 +248,10 @@ def test_quadratic_flux():
     nphi = nmax*3
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
 
@@ -271,10 +272,10 @@ def test_ft_surface():
     nphi = 100
     (coils, _, ma, _) = get_24_coil_data(nfp=nfp, ppp=20)
     currents = len(coils) * [1e4]
-    stellerator = CoilCollection(coils, currents, nfp, True)
-    bs = BiotSavart(stellerator.coils, stellerator.currents)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
     volume = 1
-    qfm = QfmSurface(mmax, nmax, nfp, bs, ntheta, nphi, volume)
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
     
     params = np.random.rand((2*qfm.mnmax-1))
 
@@ -296,3 +297,88 @@ def test_ft_surface():
 
     assert(np.allclose(R_ift,R))
     assert(np.allclose(Z_ift,Z))
+    
+    Rbc, Zbs = qfm.ft_surface(params,mmax+1,nmax+1)
+    
+    mnmax, xm, xn = qfm.init_modes(mmax+1,nmax+1)
+    xn = xn*qfm.nfp
+    
+    nax = np.newaxis
+    xm = xm[:,nax,nax]
+    xn = xn[:,nax,nax]
+    thetas = qfm.thetas[nax,...]
+    phis = qfm.phis[nax,...]
+    angle = xm*thetas - xn*phis
+    
+    R_ift = np.sum(Rbc[:,nax,nax]*np.cos(angle),axis=0)
+    Z_ift = np.sum(Zbs[:,nax,nax]*np.sin(angle),axis=0)
+
+    assert(np.allclose(R_ift,R))
+    assert(np.allclose(Z_ift,Z))
+    
+    Rbc, Zbs = qfm.ft_surface(params,mmax,nmax-1)
+    
+    mnmax, xm, xn = qfm.init_modes(mmax,nmax-1)
+    xn = xn*qfm.nfp
+    
+    nax = np.newaxis
+    xm = xm[:,nax,nax]
+    xn = xn[:,nax,nax]
+    thetas = qfm.thetas[nax,...]
+    phis = qfm.phis[nax,...]
+    angle = xm*thetas - xn*phis
+    
+    R_ift = np.sum(Rbc[:,nax,nax]*np.cos(angle),axis=0)
+    Z_ift = np.sum(Zbs[:,nax,nax]*np.sin(angle),axis=0)
+
+def test_qfm_metric():
+    """
+    Check that derivatives of qfm metric wrt derivatives match with finite 
+        differences
+    """
+    mmax = 3
+    nmax = 3
+    ntheta = 20
+    nphi = 20
+    nfp = 3
+    (coils, ma, currents) = get_ncsx_data(Nt_ma=6, Nt_coils=3,ppp=20)
+    stellarator = CoilCollection(coils, currents, nfp, True)
+    bs = BiotSavart(stellarator.coils, stellarator.currents)
+    volume = 1.0
+    qfm = QfmSurface(mmax, nmax, nfp, stellarator, ntheta, nphi, volume)
+
+    paramsInitR = np.zeros((qfm.mnmax))
+    paramsInitZ = np.zeros((qfm.mnmax))
+    paramsInitR[(qfm.xm==1)*(qfm.xn==0)]=0.188077/np.sqrt(volume)
+    paramsInitZ[(qfm.xm==1)*(qfm.xn==0)]=-0.188077/np.sqrt(volume)
+    paramsInit = np.hstack((paramsInitR[1::],paramsInitZ))
+    
+    qfm_metric = qfm.qfm_metric(paramsInit,gtol=1e-8)
+    paramsOpt = np.loadtxt('xopt.txt')
+    d_qfm = qfm.d_qfm_metric_d_coil_currents(paramsOpt)
+
+    currents = stellarator.get_currents()
+    
+    def qfm_fun(this_currents):
+        qfm.stellarator.set_currents(this_currents)
+        return qfm.qfm_metric(gtol=1e-8)
+    
+    d_qfm_fd = finite_difference_derivative(currents, qfm_fun, epsilon=1e-5, 
+                                          method='centered')
+
+    assert(np.allclose(d_qfm_fd,d_qfm))
+    
+    qfm_metric = qfm.qfm_metric(paramsInit,gtol=1e-8)
+    paramsOpt = np.loadtxt('xopt.txt')    
+    d_qfm = qfm.d_qfm_metric_d_coil_coeffs(paramsOpt)
+    
+    coeffs = stellarator.get_dofs()
+    
+    def qfm_fun(this_coeffs):
+        qfm.stellarator.set_dofs(this_coeffs)
+        return qfm.qfm_metric(gtol=1e-8)
+
+    d_qfm_fd = finite_difference_derivative(coeffs, qfm_fun, epsilon=1e-7, 
+                                          method='centered')
+    assert(np.allclose(d_qfm_fd,d_qfm))
+    

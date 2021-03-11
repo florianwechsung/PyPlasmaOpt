@@ -1,5 +1,5 @@
-from simsgeo import BiotSavart
-from simsgeo import MinimumDistance as sgMinimumDistance
+from simsopt.geo.biotsavart import BiotSavart
+from simsopt.geo.objectives import MinimumDistance as sgMinimumDistance
 from .quasi_symmetric_field import QuasiSymmetricField
 from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
 from .curve import GaussianSampler, UniformSampler

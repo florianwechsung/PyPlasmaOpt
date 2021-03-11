@@ -1,6 +1,6 @@
 import pytest
 from pyplasmaopt import get_24_coil_data, CoilCollection, compute_field_lines, find_magnetic_axis, trace_particles_on_axis
-from simsgeo import BiotSavart
+from simsopt.geo.biotsavart import BiotSavart
 
 # Not a great test, essentially just checks that the code runs
 def test_poincareplot(nparticles=12, nperiods=20):

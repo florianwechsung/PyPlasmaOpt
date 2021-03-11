@@ -21,7 +21,7 @@ def taylor_test(f, df, x, epsilons=None, direction=None):
     print("################################################################################")
 
 def get_coil(x=np.asarray([0.5]), rotated=True):
-    from simsgeo import FourierCurve
+    from simsopt.geo.curvexyzfourier import CurveXYZFourier
 
     coil = FourierCurve(x, 3)
     coeffs = coil.dofs
@@ -38,8 +38,7 @@ def test_coil_first_derivative():
     cfc = get_coil(x)
     f0 = cfc.gamma()[0]
     deriv = cfc.gammadash()[0]
-    err_old = 1e6
-    for i in range(len(epss)):
+    err_old = 1e6 for i in range(len(epss)):
         fh = cfc.gamma()[i+1]
         deriv_est = (fh-f0)/epss[i]
         err = np.linalg.norm(deriv_est-deriv)
@@ -118,9 +117,9 @@ def test_coil_curvature_derivative():
     taylor_test(f, df, coeffs)
 
 def get_magnetic_axis(x=np.asarray([0.12345])):
-    from simsgeo import StelleratorSymmetricCylindricalFourierCurve
+    from simsopt.geo.curverzfourier import CurveRZFourier
 
-    ma = StelleratorSymmetricCylindricalFourierCurve(x, 3, 2)
+    ma = CurveRZFourier(x, 3, 2, True)
     coeffs = ma.dofs
     coeffs[0][0] = 1.
     coeffs[0][1] = 0.1

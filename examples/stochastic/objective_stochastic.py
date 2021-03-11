@@ -77,18 +77,6 @@ def stochastic_get_objective():
 
 
 
-    # from simsgeo import UniqueCurve, match_curve_to_target
-    # ucoils = []
-    # ax = None
-    # for i in range(len(coils)):
-    #     ucoil = UniqueCurve(args.ppp * (args.Nt_coils+6), args.Nt_coils+6)
-    #     print(match_curve_to_target(ucoil, coils[i].gamma()))
-    #     ucoils.append(ucoil)
-    #     ax = coils[i].plot(ax=ax, show=False)
-    #     ax = ucoils[i].plot(ax=ax, show=False)
-    # import matplotlib.pyplot as plt
-    # plt.show()
-    # import sys; sys.exit()
     stellarator = CoilCollection(coils, currents, nfp, True)
     # plot_stellarator(stellarator, axis=ma)
 

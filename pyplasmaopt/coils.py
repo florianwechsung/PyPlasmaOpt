@@ -1,4 +1,4 @@
-from simsgeo import RotatedCurve
+from simsopt.geo.curve import RotatedCurve
 import numpy as np
 from math import pi
 

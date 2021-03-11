@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 from pyplasmaopt import CurveLength, CurveCurvature, CurveTorsion, MinimumDistance, get_24_coil_data, CoilCollection, SobolevTikhonov, UniformArclength
-from simsgeo import FourierCurve
+from simsopt.geo.curvexyzfourier import CurveXYZFourier
 
 def get_coil(rand_scale=0.01):
-    coil = FourierCurve(20, 3)
+    coil = CurveXYZFourier(20, 3)
     coeffs = coil.dofs
     coeffs[1][0] = 1.
     coeffs[1][1] = 0.5

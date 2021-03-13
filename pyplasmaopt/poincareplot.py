@@ -1,5 +1,5 @@
 import numpy as np
-import cppplasmaopt as cpp
+import simsgeopp as sgpp
 from .logging import info_all, info_all_sync
 from math import sqrt, copysign
 def sign(y):
@@ -29,8 +29,7 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
         rphiz[:, 2] = rz[:, 1]
         xyz = cylindrical_to_cartesian(rphiz)
 
-        Bxyz = np.zeros((nparticles, 3))
-        cpp.biot_savart_B_only(xyz, gammas, dgamma_by_dphis, biotsavart.coil_currents, Bxyz)
+        Bxyz = sgpp.biot_savart_B(xyz, gammas, dgamma_by_dphis, biotsavart.coil_currents)
 
         rhs_xyz = np.zeros((nparticles, 3))
         rhs_xyz[:, 0] = Bxyz[:, 0]
@@ -104,10 +103,8 @@ def compute_field_lines(biotsavart, nperiods=200, batch_size=8, magnetic_axis_ra
 
 
     absB = np.zeros((nparticles, nt))
-    tmp = np.zeros((nt, 3))
     for j in range(nparticles):
-        tmp[:] = 0
-        cpp.biot_savart_B_only(xyz[j, :, :], gammas, dgamma_by_dphis, biotsavart.coil_currents, tmp)
+        tmp = sgpp.biot_savart_B(xyz[j, :, :], gammas, dgamma_by_dphis, biotsavart.coil_currents)
         absB[j, :] = np.linalg.norm(tmp, axis=1)
 
     return rphiz, xyz, absB, phi_no_mod[:-1]

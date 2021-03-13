@@ -2,7 +2,7 @@ import pytest
 import netCDF4 as nc
 from pyplasmaopt import CoilCollection, get_ncsx_data
 import numpy as np
-import cppplasmaopt as cpp
+import simsgeopp as sgpp
 import os
 
 
@@ -29,9 +29,8 @@ def test_magnetic_field_in_ncsx_is_correct():
             for k, R in enumerate(Rs):
                 x = R * np.cos(phi)
                 y = R * np.sin(phi)
-                Bxyz = np.zeros((1, 3))
                 xyz = np.asarray([[x, y, Z]])
-                cpp.biot_savart_B_only(xyz, gammas, dgamma_by_dphis, currents, Bxyz)
+                Bxyz = sgpp.biot_savart_B(xyz, gammas, dgamma_by_dphis, currents)
                 trueBx = np.cos(phi) * Br[i, j, k] - np.sin(phi) * Bp[i, j, k]
                 trueBy = np.sin(phi) * Br[i, j, k] + np.cos(phi) * Bp[i, j, k]
                 trueBz = Bz[i, j, k]

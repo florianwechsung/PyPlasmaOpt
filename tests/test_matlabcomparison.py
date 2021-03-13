@@ -49,7 +49,7 @@ def test_biot_savart_same_results_as_matlab():
         [0.002147564148695, -0.044454924339257, 0.004992777089330],
     ])
     bs.set_points(points)
-    print(bs.B(), "\n", matlab_res)
+    print(bs.B(), "\n", matlab_res, "\n", bs.B() - matlab_res)
     assert np.allclose(bs.B(), matlab_res)
 
     J = SquaredMagneticFieldNormOnCurve(ma, bs)

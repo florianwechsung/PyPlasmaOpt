@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from simsopt.geo.curverzfourier import CurveXYZFourier
+from simsopt.geo.curvexyzfourier import CurveXYZFourier
 from simsopt.geo.curverzfourier import CurveRZFourier
 
 def get_24_coil_data(Nt_coils=5, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
@@ -11,8 +11,8 @@ def get_24_coil_data(Nt_coils=5, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
     else:
         coil_data = np.loadtxt(os.path.join(dir_path, "data", "matt_initial.dat"), delimiter=',')
     num_coils = 6
-    # coils = [CartesianCurveXYZFourier(Nt_coils, np.linspace(0, 1, (Nt_coils+1)*ppp, endpoint=False)) for i in range(num_coils)]
-    coils = [CurveXYZFourier((Nt_coils+1)*ppp, Nt_coils) for i in range(num_coils)]
+    coils = [CurveXYZFourier(list(np.linspace(0, 1, (Nt_coils+1)*ppp, endpoint=False)), Nt_coils) for i in range(num_coils)]
+    # coils = [CurveXYZFourier((Nt_coils+1)*ppp, Nt_coils) for i in range(num_coils)]
     for ic in range(num_coils):
         dofs = coils[ic].dofs
         dofs[0][0] = coil_data[0, 6*ic + 1]
@@ -33,26 +33,14 @@ def get_24_coil_data(Nt_coils=5, Nt_ma=3, nfp=2, ppp=10, at_optimum=False):
         numpoints += 1
     # ma = CurveRZFourier(Nt_ma, nfp, np.linspace(0, 1/nfp, numpoints, endpoint=False), True)
     ma = CurveRZFourier(numpoints, Nt_ma, nfp, True)
-    dofs = ma.dofs
     if at_optimum:
         macoeff0 = [0.976141492438223, 0.112424048908878, 0.008616069597869, 0.000481649520639]
         macoeff1 = [-0.149451871576844, -0.008946798078974, -0.000540954372519]
-
-        for i in range(min(Nt_ma+1, 4)):
-            dofs[0][i] = macoeff0[i]
-        for i in range(min(Nt_ma, 3)):
-            dofs[1][i] = macoeff1[i]
-
     else:
         macoeff0 = [1., 0.076574, 0.0032607, 2.5405e-05]
         macoeff1 = [-0.07605, -0.0031845, -3.1852e-05]
-
-        for i in range(min(Nt_ma+1, 4)):
-            dofs[0][i] = macoeff0[i]
-        for i in range(min(Nt_ma, 3)):
-            dofs[1][i] = macoeff1[i]
-
-    ma.set_dofs(np.concatenate(dofs))
+    ma.rc[:] = macoeff0[:min(Nt_ma+1, 4)]
+    ma.zs[:] = macoeff1[:min(Nt_ma, 3)]
 
     if at_optimum:
         currents = [1e5 * x for x in   [-2.271314992875459, -2.223774477156286, -2.091959078815509, -1.917569373937265, -2.115225147955706, -2.025410501731495]]
@@ -116,7 +104,6 @@ def get_ncsx_data(Nt_coils=25, Nt_ma=25, ppp=10, case='orig'):
 
     numpoints = Nt_ma*ppp+1 if ((Nt_ma*ppp) % 2 == 0) else Nt_ma*ppp
     ma = CurveRZFourier(numpoints, Nt_ma, nfp, True)
-    dofs = ma.dofs
     if case == 'orig':
         cR = [1.471415400740515, 0.1205306261840785, 0.008016125223436036, -0.000508473952304439, -0.0003025251710853062, -0.0001587936004797397, 3.223984137937924e-06, 3.524618949869718e-05, 2.539719080181871e-06, -9.172247073731266e-06, -5.9091166854661e-06, -2.161311017656597e-06, -5.160802127332585e-07, -4.640848016990162e-08, 2.649427979914062e-08, 1.501510332041489e-08, 3.537451979994735e-09, 3.086168230692632e-10, 2.188407398004411e-11, 5.175282424829675e-11, 1.280947310028369e-11, -1.726293760717645e-11, -1.696747733634374e-11, -7.139212832019126e-12, -1.057727690156884e-12, 5.253991686160475e-13]
         sZ = [0.06191774986623827, 0.003997436991295509, -0.0001973128955021696, -0.0001892615088404824, -2.754694372995494e-05, -1.106933185883972e-05, 9.313743937823742e-06, 9.402864564707521e-06, 2.353424962024579e-06, -1.910411249403388e-07, -3.699572817752344e-07, -1.691375323357308e-07, -5.082041581362814e-08, -8.14564855367364e-09, 1.410153957667715e-09, 1.23357552926813e-09, 2.484591855376312e-10, -3.803223187770488e-11, -2.909708414424068e-11, -2.009192074867161e-12, 1.775324360447656e-12, -7.152058893039603e-13, -1.311461207101523e-12, -6.141224681566193e-13, -6.897549209312209e-14]
@@ -129,11 +116,8 @@ def get_ncsx_data(Nt_coils=25, Nt_ma=25, ppp=10, case='orig'):
         currents = [4.501715867215417675e+05, 4.203936687557762489e+05, 3.790016377822135109e+05]
 
 
-    for i in range(Nt_ma):
-        dofs[0][i] = cR[i]
-        dofs[1][i] = sZ[i]
-    dofs[0][Nt_ma] = cR[Nt_ma]
-    ma.set_dofs(np.concatenate(dofs))
+    ma.rc[:] = cR[:(Nt_ma+1)]
+    ma.zs[:] = sZ[:Nt_ma]
 
     return (coils, ma, currents)
 

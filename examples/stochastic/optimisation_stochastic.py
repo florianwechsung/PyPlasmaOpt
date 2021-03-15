@@ -65,6 +65,11 @@ if args.ig > 0:
     x[cidxs[0]:cidxs[1]] += 0.01 * np.random.standard_normal(size=(cidxs[1]-cidxs[0], ))
 
 #x = np.load("output/ncsx_atopt_mode-stochastic_distribution-uniform_ppp-10_Nt_ma-4_Nt_coils-6_ninsamples-4096_noutsamples-4096_seed-1_sigma-0p001_length_scale-0p2/xmin.npy")
+try:
+    x = np.load(outdir.replace(f"ninsamples-{args.ninsamples}", f"ninsamples-{args.ninsamples//4}") + "xmin.npy")
+    info('Found initial guess from smaller sample size optimisation run.')
+except:
+    warning('Could not find initial guess from smaller sample size optimisation run.')
 
 if obj.mode == "cvar":
     obj.update(x)

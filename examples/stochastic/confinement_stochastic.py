@@ -60,7 +60,7 @@ def run_tracing(bs, ma=None, nparticles=401, tmax=1e-2, seed=1, outdir="", filen
         axis = ma.gamma()
 
     mode = 'gyro'
-    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=energy, umin=-1, umax=1, critical_distance=0.5)
+    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=energy, umin=-1, umax=1, critical_distance=0.4)
     # plot_stellarator(coil_collection, extra_data=[axis] + res)
     return res, res_t, us
 
@@ -70,7 +70,7 @@ if args.case in titles:
     os.makedirs(outdir, exist_ok=True)
     title = titles[args.case]
     info(f"title = {title}")
-    coils, currents = get_ncsx_data(Nt_coils=5, ppp=10, case=title)
+    coils, currents = get_ncsx_data(Nt_coils=5, ppp=24, case=title)
     stellarator = CoilCollection(coils, currents, nfp=3, stellarator_symmetry=True)
     # plot_stellarator(stellarator)
     bs0 = BiotSavart(stellarator.coils, stellarator.currents)

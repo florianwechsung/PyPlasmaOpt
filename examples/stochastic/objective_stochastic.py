@@ -1,4 +1,5 @@
 from pyplasmaopt import *
+from simsopt.geo.curverzfourier import CurveRZFourier
 import numpy as np
 from math import pi
 import argparse
@@ -89,20 +90,17 @@ def stochastic_get_objective():
     # iota_target = 0.103;
     # eta_bar = 0.998578113525166 if args.at_optimum else 1.0
 
-    dofs = ma.dofs
 
     # to make sure the number of quad points is odd TODO: figure out why that's
     # important at some point... for some reason the ricatti solver fails on
     # even number of quadrature points.
     shift = 1-nfp%2 
 
-    mafull = StelleratorSymmetricCylindricalFourierCurve(nfp*len(ma.quadpoints)+shift, nfp*Nt_ma, 1)
-    dofsfull = mafull.dofs
+    mafull = CurveRZFourier(nfp*len(ma.quadpoints)+shift, nfp*Nt_ma, 1)
     for i in range(Nt_ma):
-        dofsfull[0][nfp*i] = dofs[0][i]
-        dofsfull[1][nfp*i+nfp-1] = dofs[1][i]
-    dofsfull[0][nfp*Nt_ma] = dofs[0][Nt_ma]
-    mafull.set_dofs(np.concatenate(dofsfull))
+        mafull.rc[nfp*i] = ma.rc[i]
+        mafull.zs[nfp*i+nfp-1] = ma.sz[i]
+    mafull.rc[nfp*Nt_ma] = ma.rc[Nt_ma]
     ma = mafull
 
     coil_length_target = [CurveLength(coil).J() for coil in coils]

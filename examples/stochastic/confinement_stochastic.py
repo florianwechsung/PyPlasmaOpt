@@ -83,6 +83,7 @@ if args.case in titles:
     length_scale_perturb = 0.2
     sigma_perturb = 0.01
     sampler = GaussianSampler(coils[0].quadpoints, length_scale=length_scale_perturb, sigma=sigma_perturb)
+    #for i in [1]:
     for i in [None] + list(range(5)):
         if i == None:
             bs = bs0
@@ -128,12 +129,6 @@ labels = []
 rg = np.random.Generator(PCG64(0, 9999, mode="sequence"))
 sampler = obj.sampler
 ma = obj.ma
-# axis = ma.gamma()
-# for c in obj.stellarator.coils:
-#     xyz = c.gamma()
-#     dists = np.linalg.norm(xyz[None, :] - axis[:, None, :], axis=2)
-#     print(np.min(dists))
-
 for i in [None] + list(range(5)):
     if i is None:
         J = obj.J_BSvsQS

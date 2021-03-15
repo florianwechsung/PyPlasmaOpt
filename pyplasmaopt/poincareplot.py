@@ -321,8 +321,13 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     while t < tspan[-1]:
         try:
             solver.step()
-        except:
+        except Exception as e:
+            info_all(e)
             info_all(f'abort (except) at t = {solver.t:.3e}')
+            info_all(ts)
+            info_all(f'active indices {active_idxs}')
+            y = solver.y.reshape((vsize, nparticles))
+            info_all(y)
             break
         y = solver.y.reshape((vsize, nparticles))
         for i in reversed(range(len(active_idxs))):

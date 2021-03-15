@@ -11,10 +11,10 @@ def stochastic_get_objective():
     parser.add_argument("--output", type=str, default="")
     parser.add_argument("--at-optimum", dest="at_optimum", default=False,
                         action="store_true")
-    parser.add_argument("--mode", type=str, default="deterministic",
-                        choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95", "cvar0.99"])
     parser.add_argument("--config", type=str, default="ncsx",
                         choices=["ncsx", "matt24"])
+    parser.add_argument("--mode", type=str, default="deterministic",
+                        choices=["deterministic", "stochastic", "cvar0.5", "cvar0.9", "cvar0.95", "cvar0.99"])
     parser.add_argument("--distribution", type=str, default="gaussian",
                         choices=["gaussian", "uniform"])
     parser.add_argument("--ppp", type=int, default=20)
@@ -24,10 +24,11 @@ def stochastic_get_objective():
     parser.add_argument("--noutsamples", type=int, default=100)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--sigma", type=float, default=3e-3)
-    parser.add_argument("--length-scale", type=float, default=0.2)
+    #parser.add_argument("--length-scale", type=float, default=0.2)
     
     parser.add_argument("--tikhonov", type=float, default=0.)
     parser.add_argument("--curvature", type=float, default=0.)
+    parser.add_argument("--torsion", type=float, default=0.)
     parser.add_argument("--sobolev", type=float, default=0.)
     parser.add_argument("--carclen", type=float, default=0.)
     parser.add_argument("--clen", type=float, default=1.)
@@ -109,14 +110,14 @@ def stochastic_get_objective():
         stellarator, ma, iota_target, eta_bar=eta_bar,
         coil_length_target=coil_length_target, magnetic_axis_length_target=magnetic_axis_length_target,
         coil_length_weight=args.clen, axis_length_weight=1.,
-        # torsion_weight=args.torsion,
+        torsion_weight=args.torsion,
         curvature_weight=args.curvature,
         tikhonov_weight=args.tikhonov,
         arclength_weight=args.carclen,
         minimum_distance=0.2, distance_weight=args.distw,
         sobolev_weight=args.sobolev,
         ninsamples=args.ninsamples, noutsamples=args.noutsamples,
-        sigma_perturb=args.sigma, length_scale_perturb=args.length_scale,
+        sigma_perturb=args.sigma, length_scale_perturb=0.2,
         mode=args.mode, outdir=outdir, seed=args.seed,
         distribution=args.distribution, innerproduct=args.ip)
 

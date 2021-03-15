@@ -718,6 +718,17 @@ class SimpleNearAxisQuasiSymmetryObjective():
         else:
             raise NotImplementedError('backend must be either matplotlib or plotly')
 
+colors  = ['rgb(0, 0, 0)', 'rgb(31, 119, 180)',
+ 'rgb(255, 127, 14)',
+ 'rgb(44, 160, 44)',
+ 'rgb(214, 39, 40)',
+ 'rgb(148, 103, 189)',
+ 'rgb(140, 86, 75)',
+ 'rgb(227, 119, 194)',
+ 'rgb(127, 127, 127)',
+ 'rgb(188, 189, 34)',
+ 'rgb(23, 190, 207)']
+colors = ['#000000'] + 100 * ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52']
 def plot_stellarator(stellarator, axis=None, extra_data=None):
     coils = stellarator.coils
     gamma = coils[0].gamma()
@@ -730,20 +741,20 @@ def plot_stellarator(stellarator, axis=None, extra_data=None):
         data[(i*(N+1)):((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma()
         data[((i+1)*(N+1)-1), :] = stellarator.coils[i].gamma()[0, :]
         for j in range(i*(N+1), (i+1)*(N+1)):
-            labels[j] = 'Coil %i ' % stellarator.map[i]
+            labels[j] = '0' #'Coil %i ' % stellarator.map[i]
             groups[j] = i+1
 
     if axis is not None:
         N = axis.gamma().shape[0]
-        ma_ = np.zeros((axis.get_nfp()*N+1, 3))
+        ma_ = np.zeros((axis.nfp*N+1, 3))
         ma0 = axis.gamma().copy()
-        theta = 2*np.pi/axis.get_nfp()
+        theta = 2*np.pi/axis.nfp
         rotmat = np.asarray([
             [cos(theta), -sin(theta), 0],
             [sin(theta), cos(theta), 0],
             [0, 0, 1]]).T
 
-        for i in range(axis.get_nfp()):
+        for i in range(axis.nfp):
             ma_[(i*N):(((i+1)*N)), :] = ma0
             ma0 = ma0 @ rotmat
         ma_[-1, :] = axis.gamma()[0, :]
@@ -759,5 +770,5 @@ def plot_stellarator(stellarator, axis=None, extra_data=None):
             data = np.vstack((data, extra)) 
     import plotly.express as px
     fig = px.line_3d(x=data[:,0], y=data[:,1], z=data[:,2],
-                     color=labels, line_group=groups)
+                     color=labels, line_group=groups, color_discrete_sequence=colors)
     fig.show()

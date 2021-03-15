@@ -83,7 +83,8 @@ if False:
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
 
-maxiter = 10000
+maxiter = 5000
+maxiter = 1000
 
 def J_scipy(x):
     try:
@@ -172,7 +173,7 @@ info(f"Start Newton: J(x)={f:.15f}, |dJ(x)|={np.linalg.norm(d):.3e}\n")
 obj.callback(x)
 if comm.rank == 0:
     obj.plot(f"newton-{0}.png")
-for i in range(10):
+for i in range(0):
     H = approx_H(x)
     D, E = eigh(H)
     bestd = np.inf

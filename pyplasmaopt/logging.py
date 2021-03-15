@@ -14,10 +14,10 @@ if comm is not None and comm.rank != 0:
     handler = logging.NullHandler()
 logger.addHandler(handler)
 
+from math import log10, ceil
+digits = ceil(log10(comm.size))
 def set_file_logger(path):
     filename, file_extension = os.path.splitext(path)
-    from math import log10, ceil
-    digits = ceil(log10(comm.size))
     fileHandler = logging.FileHandler(filename + "-rank" + ("%i" % comm.rank).zfill(digits) + file_extension, mode='a')
     formatter = logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s %(message)s")
     fileHandler.setFormatter(formatter)
@@ -35,7 +35,7 @@ logger.propagate = False
 
 logger_all = logging.getLogger('PyPlasmaOptAll')
 handler = logging.StreamHandler()
-formatter = logging.Formatter(fmt=f"%(levelname)s [{comm.rank}] %(message)s")
+formatter = logging.Formatter(fmt=f"%(levelname)s [" + f"{comm.rank}".zfill(digits) + f"] %(message)s")
 handler.setFormatter(formatter)
 logger_all.addHandler(handler)
 logger_all.setLevel(logging.INFO)

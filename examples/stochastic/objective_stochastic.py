@@ -97,7 +97,7 @@ def stochastic_get_objective():
     # even number of quadrature points.
     shift = 1-nfp%2 
 
-    mafull = CurveRZFourier(nfp*len(ma.quadpoints)+shift, nfp*Nt_ma, 1)
+    mafull = CurveRZFourier(nfp*len(ma.quadpoints)+shift, nfp*Nt_ma, 1, False)
     for i in range(Nt_ma):
         mafull.rc[nfp*i] = ma.rc[i]
         mafull.zs[nfp*i+nfp-1] = ma.sz[i]

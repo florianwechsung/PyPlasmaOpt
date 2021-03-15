@@ -320,7 +320,10 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     vsize = 6 if mode == 'orbit' else 4
     while t < tspan[-1]:
         try:
-            solver.step()
+            msg = solver.step()
+            if not msg is None:
+                info_all(msg)
+                break
         except Exception as e:
             info_all(e)
             info_all(f'abort (except) at t = {solver.t:.3e}')

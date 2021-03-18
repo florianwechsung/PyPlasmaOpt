@@ -8,7 +8,7 @@ class TangentMap():
         self.biotsavart = BiotSavart(stellarator.coils, stellarator.currents)
         self.magnetic_axis = magnetic_axis
         
-    def compute_iota(self):
+    def compute_iota(self,rtol=1e-12,atol=1e-12):
         """
         Compute rotational transform from tangent map. 
         
@@ -16,7 +16,7 @@ class TangentMap():
             iota (double): value of rotational transform.
         """
         phi = np.array([2*np.pi])
-        M = self.solve_state(phi)[...,-1]
+        M = self.solve_state(phi,rtol=rtol,atol=atol)[...,-1]
         detM = M[0]*M[3] - M[1]*M[2]
         np.testing.assert_allclose(detM,1,rtol=1e-4)
         trM = M[0] + M[3]
@@ -34,10 +34,10 @@ class TangentMap():
         Outputs:
             y (2d array (4,len(phi))): flattened tangent map on grid of toroidal angle
         """
-        t_span = (0,2*np.pi)
         y0 = np.array([1,0,0,1])
-        out = scipy.integrate.solve_ivp(self.rhs_fun,t_span,y0,
-                                vectorized=False,rtol=rtol,atol=atol,t_eval=phi)
+        t_span = (0,2*np.pi)
+        out = scipy.integrate.solve_ivp(self.rhs_fun,t_span,
+                            vectorized=False,rtol=rtol,atol=atol,t_eval=phi)
         if (out.status==0):
             return out.y
         else:
@@ -53,9 +53,10 @@ class TangentMap():
         Outputs:
             m (1d array (4)): matrix appearing on rhs of tangent map ODE
         """
-        self.magnetic_axis.points = np.array([phi/(2*np.pi)])
+        self.magnetic_axis.points = phi/(2*np.pi)
         self.magnetic_axis.update()
         self.biotsavart.set_points(self.magnetic_axis.gamma)
+        
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
@@ -81,12 +82,12 @@ class TangentMap():
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
         dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
-        m = np.zeros((4))
-        m[0] = BR/BP + R*(dBRdR/BP - BR*dBPdR/BP**2)
-        m[1] = R*(dBRdZ/BP - BR*dBPdZ/BP**2)
-        m[2] = BZ/BP + R*(dBZdR/BP - BZ*dBPdR/BP**2)
-        m[3] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
-        return m
+        m = np.zeros((4,len(phi)))
+        m[0,:] = BR/BP + R*(dBRdR/BP - BR*dBPdR/BP**2)
+        m[1,:] = R*(dBRdZ/BP - BR*dBPdZ/BP**2)
+        m[2,:] = BZ/BP + R*(dBZdR/BP - BZ*dBPdR/BP**2)
+        m[3,:] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
+        return np.squeeze(m)
         
     def rhs_fun(self,phi,M):
         """
@@ -103,7 +104,7 @@ class TangentMap():
         return np.squeeze(np.array([m[0]*M[0] + m[1]*M[2], m[0]*M[1] + m[1]*M[3], 
                                     m[2]*M[0] + m[3]*M[2], m[2]*M[1] + m[3]*M[3]]))
     
-    def d_iota_dmagneticaxiscoefficients(self,nphi=500):
+    def d_iota_d_magneticaxiscoeffs(self,nphi=500):
         """
         Compute derivative of iota wrt axis coefficients
         
@@ -115,7 +116,7 @@ class TangentMap():
             d_iota (1d array (ncoeffs)): derivative of iota wrt axis coefficients
         """    
         phi,dphi = np.linspace(2*np.pi,0,nphi,endpoint=False,retstep=True)
-        d_m = self.compute_d_m_dmagneticaxiscoefficients(phi)
+        d_m = self.compute_d_m_d_magneticaxiscoeffs(phi)
         lam = self.solve_adjoint_state(phi)
         M = np.flip(self.solve_state(np.flip(phi)),axis=1)
         iota = self.compute_iota()
@@ -434,10 +435,10 @@ class TangentMap():
             
         return d_m_by_dcoilcurrents
     
-    def compute_d_m_dmagneticaxiscoefficients(self,phi):
+    def compute_d_m_d_magneticaxiscoeffs(self,phi):
         """
         Computes the derivative of  matrix that appears on the rhs of the tangent map ode, 
-            e.g. M'(phi) = m(phi) rhs, with respect to axis coefficients for given phi. 
+            e.g. M'(phi) = m(phi) M(phi), with respect to axis coefficients for given phi. 
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
@@ -585,3 +586,398 @@ class TangentMap():
                 + d_R * (dBZdZ/BP - BZ*dBPdZ/BP**2)
             
         return d_m
+    
+    def res_axis(self,nphi=100,tol=1e-6):
+        """
+        Computes the residual between parameterization axis and "true" magnetic
+        axis
+        
+        Inputs:
+            nphi (int): number of gripdoints for evaluation of integral
+            tol (double): tolerance for axis solve
+        Outputs:
+            res_axis (double): residual between parameterization axis
+                and true axis 
+        """
+        phi, dphi = np.linspace(0,2*np.pi,nphi,endpoint=False,retstep=True)
+        sol, poly = self.compute_axis(phi,tol=tol)
+        self.magnetic_axis.points = phi/(2*np.pi)
+        self.magnetic_axis.update()
+        Rma = np.sqrt(self.magnetic_axis.gamma[:,0]**2 + self.magnetic_axis.gamma[:,1]**2)
+        Zma = self.magnetic_axis.gamma[:,2]
+        return 0.5*np.sum((sol[0,:]-Rma)**2 + (sol[1,:]-Zma)**2)*dphi
+
+    def d_res_axis_d_magneticaxiscoeffs(self,nphi=100,tol=1e-6):
+        """
+        Compute derivative of res_axis wrt axis coefficients
+        
+        Inputs:
+            nphi (int): number of gripdoints for evaluation of integral
+            tol (double): tolerance for axis solve
+        Outputs:
+            d_res_axis_d_magneticaxiscoeffs (1d array (ncoeffs)): derivative of 
+                residual between parameterization axis and true axis wrt axis 
+                coeffs
+        """
+        phi, dphi = np.linspace(0,2*np.pi,nphi,endpoint=False,retstep=True)
+        sol, poly = self.compute_axis(phi,tol=tol)
+        self.magnetic_axis.points = phi/(2*np.pi)
+        self.magnetic_axis.update()
+        Rma = np.sqrt(self.magnetic_axis.gamma[:,0]**2 + self.magnetic_axis.gamma[:,1]**2)
+        Zma = self.magnetic_axis.gamma[:,2]
+        d_Rma = (self.magnetic_axis.dgamma_by_dcoeff[...,0]*self.magnetic_axis.gamma[:,0,None] + 
+                 self.magnetic_axis.dgamma_by_dcoeff[...,1]*self.magnetic_axis.gamma[:,1,None]) \
+            / Rma[:,None]
+        d_Zma = self.magnetic_axis.dgamma_by_dcoeff[...,2]
+        
+        return np.sum((Rma[:,None]-sol[0,:,None])*d_Rma 
+                    + (Zma[:,None]-sol[1,:,None])*d_Zma,axis=0)*dphi
+        
+    def d_res_axis_d_coil_currents(self,nphi=100,tol=1e-6):
+        """
+        Compute derivative of res_axis wrt coil currents
+        
+        Inputs:
+            nphi (int): number of gripdoints for evaluation of integral
+            tol (double): tolerance for axis solve
+        Outputs:
+            d_res_axis_d_coil_currents (list of doubles): derivatives of 
+                residual between parameterization axis and true axis wrt coil
+                currents
+        """
+        phi,dphi = np.linspace(0,2*np.pi,nphi,endpoint=False,retstep=True)
+        y,poly = self.compute_axis(phi,tol=tol)
+        d_V_by_dcoilcurrents = self.compute_d_V_dcoilcurrents(phi,poly)
+        mu = self.compute_adjoint_axis(phi,poly,tol=tol)
+        d_res_axis_dcoilcurrents = []
+        for i in range(len(d_V_by_dcoilcurrents)):
+            d_V = d_V_by_dcoilcurrents[i]
+            mu_dot_d_V = mu[0,:]*d_V[0,...] + mu[1,:]*d_V[1,:]
+            d_res_axis = - np.sum(mu_dot_d_V)*dphi
+            d_res_axis_dcoilcurrents.append(d_res_axis)
+        d_res_axis_dcoilcurrents = \
+            self.stellarator.reduce_current_derivatives([ires for ires in d_res_axis_dcoilcurrents])
+    
+        return d_res_axis_dcoilcurrents
+    
+    def d_res_axis_d_coil_coeffs(self,nphi=100,tol=1e-6):
+        """
+        Compute derivative of res_axis wrt coil coefficients
+        
+        Inputs:
+            nphi (int): number of gripdoints for evaluation of integral
+            tol (double): tolerance for axis solve
+        Outputs:
+            d_res_axis_d_coil_currents (list of 1d arrays (ncoeffs)): derivatives of 
+                residual between parameterization axis and true axis wrt coil
+                coeffs
+        """
+        phi,dphi = np.linspace(0,2*np.pi,nphi,endpoint=False,retstep=True)    
+        y,poly = self.compute_axis(phi,tol=tol)
+        d_V_by_dcoilcoeffs = self.compute_d_V_dcoilcoeffs(phi,poly)
+        mu = self.compute_adjoint_axis(phi,poly,tol=tol)
+        d_res_axis_dcoilcoeffs = []
+        for i in range(len(d_V_by_dcoilcoeffs)):
+            d_V = d_V_by_dcoilcoeffs[i]
+            mu_dot_d_V = mu[0,...,None]*d_V[0,...] + mu[1,...,None]*d_V[1,...]
+            d_res_axis = - np.sum(mu_dot_d_V,axis=0)*dphi
+            d_res_axis_dcoilcoeffs.append(d_res_axis)
+        d_res_axis_dcoilcoeffs = self.stellarator.reduce_coefficient_derivatives([ires for ires in d_res_axis_dcoilcoeffs])
+        return d_res_axis_dcoilcoeffs
+
+    def compute_adjoint_axis(self,phi,poly,tol=1e-5,verbose=0,max_nodes=50000):
+        """
+        Computes adjoint variable required for computing derivative of 
+            axis_res metric
+            
+        Inputs:
+            phi (1d array): toroidal angle for evaluation of adjoint variable
+            poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
+                representing magnetic axis solution
+        """
+        self.magnetic_axis.points = phi/(2*np.pi)
+        self.magnetic_axis.update()
+        
+        axis = self.magnetic_axis.gamma
+        y0 = np.zeros((2,len(phi)))
+        y0[0,:] = np.sqrt(axis[:,0]**2 + axis[:,1]**2)
+        y0[1,:] = axis[:,2]
+        
+        out = scipy.integrate.solve_bvp(fun=lambda x,y : 
+                                        self.rhs_fun_adjoint(x,y,poly),
+                                        bc=self.bc_fun_axis,
+                                        x=phi,y=y0,fun_jac=self.jac_adjoint,
+                                        bc_jac=self.bc_jac,verbose=verbose,
+                                        tol=tol,max_nodes=max_nodes)
+        if (out.status==0):
+            # Evaluate polynomial on grid
+            return out.sol(phi)
+        else:
+            raise RuntimeError('Error ocurred in integration of axis.')
+
+    def compute_axis(self,phi,tol=1e-5,verbose=0,max_nodes=100000):
+        """
+        For biotsavart and magnetic_axis objects, compute rotational transform
+            from tangent map by solving initial value problem.
+        
+        Inputs:
+            phi (1d array): 1d array for evaluation of tangent map
+            tol (double): tolerance for bvp solution
+            verbose (int): verbosity for scipy.integrate.solve_bvp
+            max_nodes (int): max number of gridpoints for bvp solution
+        Outputs:
+            y (2d array (2,len(phi))): axis on grid of toroidal angle
+        """
+        self.magnetic_axis.points = phi/(2*np.pi)
+        self.magnetic_axis.update()
+
+        axis = self.magnetic_axis.gamma
+        y0 = np.zeros((2,len(phi)))
+        y0[0,:] = np.sqrt(axis[:,0]**2 + axis[:,1]**2)
+        y0[1,:] = axis[:,2]
+        
+        out = scipy.integrate.solve_bvp(fun=self.rhs_fun_axis,bc=self.bc_fun_axis,
+                                        x=phi,y=y0,fun_jac=self.compute_jac,
+                                        bc_jac=self.bc_jac,verbose=verbose,
+                                        tol=tol,max_nodes=max_nodes)
+        if (out.status==0):
+            # Evaluate polynomial on grid
+            return out.sol(phi), out.sol
+        else:
+            raise RuntimeError('Error ocurred in integration of axis.')
+        
+    def rhs_fun_axis(self,phi,axis):
+        """
+        Computes rhs of magnetic field line flow ode, i.e.
+            r'(\phi) = V(\phi)
+            
+        Inputs:
+            phi (1d array): toroidal angle for evaluation of rhs
+            axis (2d array (2,len(phi))): R and Z for evaluation of rhs
+        Outputs:
+            V (2d array (2,len(phi))): R and Z components of rhs
+        """
+        gamma = np.zeros((len(phi),3))
+        gamma[:,0] = axis[0,:]*np.cos(phi)
+        gamma[:,1] = axis[0,:]*np.sin(phi)
+        gamma[:,2] = axis[1,:]
+        self.biotsavart.set_points(gamma)
+
+        B = self.biotsavart.B
+        BX = B[...,0]
+        BY = B[...,1]
+        BZ = B[...,2]
+        X = self.biotsavart.points[:,0]
+        Y = self.biotsavart.points[:,1]
+        Z = self.biotsavart.points[:,2]
+        R = np.sqrt(X**2 + Y**2)
+        BR =  X*BX/R + Y*BY/R
+        BP = -Y*BX/R + X*BY/R
+        V = np.zeros((2,len(R)))
+        V[0,:] = R*BR/BP
+        V[1,:] = R*BZ/BP
+        return V
+    
+    def rhs_fun_adjoint(self,phi,eta,poly):
+        """
+        Compute rhs of adjoint problem for res_axis metric, i.e.
+            \mu'(\phi) = V(\phi)
+            
+        Inputs:
+            phi (1d array): toroidal angle for evaluation of rhs
+            eta (2d array (2,len(phi))): mu_R and mu_Z for evaluation of rhs
+            poly (instance of scipy.interpolate.PPoly cubic spline): polynomial
+                representing magnetic axis solution
+        Outputs:
+            V (2d array (2,len(phi))): R and Z components of rhs
+        """
+        self.magnetic_axis.points = phi/(2*np.pi)
+        self.magnetic_axis.update()
+        gamma_ma = self.magnetic_axis.gamma
+        R_ma = np.sqrt(gamma_ma[:,0]**2 + gamma_ma[:,1]**2)
+        Z_ma = gamma_ma[:,2]
+        
+        axis = poly(phi)
+        gamma = np.zeros((len(phi),3))
+        gamma[:,0] = axis[0,:]*np.cos(phi)
+        gamma[:,1] = axis[0,:]*np.sin(phi)
+        gamma[:,2] = axis[1,:]
+        self.biotsavart.set_points(gamma)
+
+        B = self.biotsavart.B
+        BX = B[...,0]
+        BY = B[...,1]
+        BZ = B[...,2]
+        X = self.biotsavart.points[:,0]
+        Y = self.biotsavart.points[:,1]
+        Z = self.biotsavart.points[:,2]
+        R = np.sqrt(X**2 + Y**2)
+        BR =  X*BX/R + Y*BY/R
+        BP = -Y*BX/R + X*BY/R
+        m = self.compute_m(phi)
+        V = np.zeros((2,len(R)))
+        V[0,:] = -m[0,:]*eta[0,:] - m[2,:]*eta[1,:] + axis[0,:] - R_ma
+        V[1,:] = -m[3,:]*eta[1,:] - m[1,:]*eta[0,:] + axis[1,:] - Z_ma
+        return V
+    
+    def jac_adjoint(self,phi,y):
+        """
+        Computes jacobian of rhs of adjoint equation (rhs_fun_adjoint)
+        
+        Inputs:
+            phi (1d array): toroidal angle for evaluation
+            y (2d array (2,len(phi))): mu_R and mu_Z for evaluation
+        Outputs:
+            jac (3d array (2,2,len(phi))): jacobian matrix on phi grid
+        """
+        m = self.compute_m(phi)
+        jac = np.zeros((2,2,len(phi)))
+        jac[0,0,:] = m[0,:]
+        jac[1,0,:] = m[1,:]
+        jac[0,1,:] = m[2,:]
+        jac[1,1,:] = m[3,:]
+        return -jac
+    
+    def compute_jac(self,phi,y):
+        """
+        Computes jacobian matrix for magnetic axis bvp (compute_axis) 
+        
+        Inputs:
+            phi (1d array): toroidal angle for evaluation
+            y (2d array (2,len(phi))): R and Z for evaluation
+        Outputs:
+            jac (3d array (2,2,len(phi))): jacobian matrix on phi grid
+        """
+        m = self.compute_m(phi)
+        jac = np.zeros((2,2,len(phi)))
+        jac[0,0,:] = m[0,:]
+        jac[0,1,:] = m[1,:]
+        jac[1,0,:] = m[2,:]
+        jac[1,1,:] = m[3,:]
+        return jac
+    
+    def bc_jac(self,ya,yb):
+        """
+        Jacobian for boundary condition function for magnetic axis bvp (bc_fun_axis)
+        
+        Inputs:
+            ya (1d array(2)): axis solution at phi = 0
+            yb (1d array(2)): axis solution at phi = 2\pi
+        Outputs:
+            jac (2d array(2,2), 2d array(2,2)): jacobian for boundary condition 
+                at 0 and 2\pi
+        """
+        return np.eye(2), -np.eye(2)
+        
+    def bc_fun_axis(self,axisa,axisb):
+        """
+        Boundary condition function for magnetic axis bvp (compute_axis)
+        
+        Inputs:
+            axisa (1d array(2)): Magnetic axis solution at phi = 0
+            axisb (1d array(2)): Magnetic axis solution at phi = 2*pi
+        """
+        return axisa - axisb
+    
+    def compute_d_V_dcoilcurrents(self,phi,poly):
+        """
+        Computes the derivative of the rhs of the 
+            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for 
+            given phi. 
+
+        Inputs:
+            phi (1d array): toroidal angles for evaluation
+        Outputs:
+            d_V_dcoilcurrents (list (ncoils) of 2d array (2,npoints)): derivative 
+                of V wrt coil currents
+        """
+        axis = poly(phi)
+        gamma = np.zeros((len(phi),3))
+        gamma[:,0] = axis[0,:]*np.cos(phi)
+        gamma[:,1] = axis[0,:]*np.sin(phi)
+        gamma[:,2] = axis[1,:]
+        self.biotsavart.set_points(gamma)
+        
+        B = self.biotsavart.B
+        BX = B[...,0]
+        BY = B[...,1]
+        BZ = B[...,2]
+        
+        X = self.biotsavart.points[:,0]
+        Y = self.biotsavart.points[:,1]
+        Z = self.biotsavart.points[:,2]
+        R = np.sqrt(X**2 + Y**2)
+        BR =  X*BX/R + Y*BY/R
+        BP = -Y*BX/R + X*BY/R
+        
+        # Shape: (ncoils,npoints,3)
+        dB_by_dcoilcurrents = self.biotsavart.dB_by_dcoilcurrents
+        
+        d_V_by_dcoilcurrents = []
+        for i in range(len(dB_by_dcoilcurrents)):
+            d_B = dB_by_dcoilcurrents[i]
+            d_BX = d_B[...,0]
+            d_BY = d_B[...,1]
+            d_BZ = d_B[...,2]
+                
+            d_BR =  (X * d_BX + Y * d_BY)/R
+            d_BP = (-Y * d_BX + X * d_BY)/R
+        
+            d_V = np.zeros((2,np.shape(d_BR)[0]))
+            d_V[0,...] = R * (d_BR/BP - BR*d_BP/BP**2)
+            d_V[1,...] = R * (d_BZ/BP - BZ*d_BP/BP**2)
+            d_V_by_dcoilcurrents.append(d_V)
+            
+        return d_V_by_dcoilcurrents
+    
+    def compute_d_V_dcoilcoeffs(self,phi,poly):
+        """
+        Computes the derivative of the rhs of the 
+            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for 
+            given phi. 
+
+        Inputs:
+            phi (1d array): toroidal angles for evaluation
+        Outputs:
+            d_V_dcoilcoeffs (list (ncoils) of 3d array (2,npoints,ncoeffs)): 
+                derivative of V wrt coil coeffs
+        """
+        axis = poly(phi)
+        gamma = np.zeros((len(phi),3))
+        gamma[:,0] = axis[0,:]*np.cos(phi)
+        gamma[:,1] = axis[0,:]*np.sin(phi)
+        gamma[:,2] = axis[1,:]
+        self.biotsavart.set_points(gamma)
+        
+        B = self.biotsavart.B
+        BX = B[...,0]
+        BY = B[...,1]
+        BZ = B[...,2]
+        
+        X = self.biotsavart.points[:,0]
+        Y = self.biotsavart.points[:,1]
+        Z = self.biotsavart.points[:,2]
+        R = np.sqrt(X**2 + Y**2)
+        BR =  X*BX/R + Y*BY/R
+        BP = -Y*BX/R + X*BY/R
+       
+        # Shape: (ncoils,npoints,nparams,3)
+        dB_by_dcoilcoeffs = self.biotsavart.dB_by_dcoilcoeffs
+        
+        d_V_by_dcoilcoeffs = []
+        for i in range(len(dB_by_dcoilcoeffs)):
+            d_B = dB_by_dcoilcoeffs[i]
+            d_BX = d_B[...,0]
+            d_BY = d_B[...,1]
+            d_BZ = d_B[...,2]
+                
+            d_BR =  (X[:,None] * d_BX + Y[:,None] * d_BY)/R[:,None]
+            d_BP = (-Y[:,None] * d_BX + X[:,None] * d_BY)/R[:,None]
+                    
+            d_V = np.zeros((2,np.shape(d_BR)[0],np.shape(d_BR)[1]))
+            d_V[0,...] = R[:,None] * (d_BR/BP[:,None] - BR[:,None]*d_BP/BP[:,None]**2)
+            d_V[1,...] = R[:,None] * (d_BZ/BP[:,None] - BZ[:,None]*d_BP/BP[:,None]**2)
+            d_V_by_dcoilcoeffs.append(d_V)
+            
+        return d_V_by_dcoilcoeffs
+

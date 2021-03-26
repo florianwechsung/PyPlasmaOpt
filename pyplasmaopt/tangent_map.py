@@ -6,12 +6,18 @@ class TangentMap():
     def __init__(self, stellarator, magnetic_axis=None, rtol=1e-12, atol=1e-12,
                 constrained=True,tol=1e-7,max_nodes=100000,verbose=0,nphi=1000):
         """
+        stellarator: instance of CoilCollection representing modular coils
+        magnetic_axis: instance of StelleratorSymmetricCylindricalFourierCurve
+            representing magnetic axis
         rtol (double): relative tolerance for IVP
         atol (double): absolute tolerance for IVP
         tol (double): tolerance for BVP
         maxnodes (int): maximum nodes for BVP
-        constrained (bool): if true, "true" magnetic axis is computed
+        constrained (bool): if true, "true" magnetic axis is computed rather than
+            using magnetic_axis
         verbose (int): verbosity for BVP
+        max_nodes (int): maximum number of grid points for BVP
+        nphi (int): number of grid points for integration along the axis
         """
         self.stellarator = stellarator
         self.biotsavart = BiotSavart(stellarator.coils, stellarator.currents)
@@ -30,10 +36,15 @@ class TangentMap():
         self.adjoint_tangent_poly = None
 
     def update_solutions(self):
-        phi = np.linspace(0,2*np.pi,self.nphi,endpoint=False)
-        phi_reverse = np.linspace(2*np.pi,0,self.nphi,endpoint=False)
+        """
+        Computes solutions for the magnetic axis, tangent map, and corresponding
+            adjoint solutions
+        """
+        phi = np.linspace(0,2*np.pi,self.nphi,endpoint=True)
+        phi_reverse = np.linspace(2*np.pi,0,self.nphi,endpoint=True)
         if (self.constrained):
             sol, self.axis_poly = self.compute_axis(phi)  
+            self.magnetic_axis = None
             sol, self.tangent_poly = self.compute_tangent(phi,self.axis_poly)
             sol, self.adjoint_tangent_poly = self.compute_adjoint_tangent(phi_reverse,
                                                                  self.axis_poly)
@@ -47,6 +58,9 @@ class TangentMap():
                                                                  self.axis_poly)
 
     def reset_solutions(self):
+        """
+        Reset solutions
+        """
         self.axis_poly = None
         self.tangent_poly = None
         self.adjoint_axis_poly = None
@@ -70,14 +84,14 @@ class TangentMap():
 
     def compute_tangent(self,phi,axis_poly=None):
         """
-        For biotsavart and magnetic_axis objects, compute rotational transform
-            from tangent map by solving initial value problem.
+        Compute tangent map by solving initial value problem.
         
         Inputs:
             phi (1d array): 1d array for evaluation of tangent map
             axis_poly: polynomial solution for axis
         Outputs:
-            y (2d array (4,len(phi))): flattened tangent map on grid of toroidal angle
+            y (2d array (4,len(phi))): flattened tangent map on grid of 
+                toroidal angle
         """
         if self.constrained:
             args = (axis_poly,)
@@ -97,7 +111,7 @@ class TangentMap():
     def compute_m(self,phi,axis=None):
         """
         Computes the matrix that appears on the rhs of the tangent map ODE, 
-            e.g. M'(phi) = m(phi) rhs, for given phi. 
+            e.g. M'(phi) = m(phi), for given phi. 
 
         Inputs:
             phi (double): toroidal angle for evaluation
@@ -115,6 +129,7 @@ class TangentMap():
             gamma[...,2] = axis[1,...]
             self.biotsavart.set_points(gamma)
         else:
+            print('Using magnetic axis')
             points = phi/(2*np.pi)
             if (np.ndim(points)==0):
                 points = np.array([points])
@@ -288,7 +303,7 @@ class TangentMap():
     
     def compute_adjoint_tangent(self,phi,axis_poly=None):
         """
-        For biotsavart and magnetic_axis objects, compute adjoint variable 
+        For biotsavart and magnetic_axis objects, compute adjoint tangent map
             by solving initial value probme. 
                 
         Inputs:
@@ -346,6 +361,7 @@ class TangentMap():
             gamma[...,2] = axis[1,...]
             self.biotsavart.set_points(gamma) 
         else:
+            print('using magnetic_axis')
             points = phi/(2*np.pi)
             self.magnetic_axis.points = np.asarray(points)
             self.magnetic_axis.update()
@@ -464,6 +480,7 @@ class TangentMap():
             gamma[...,2] = axis[1,...]
             self.biotsavart.set_points(gamma) 
         else:
+            print('using magnetic_axis')
             points = phi/(2*np.pi)
             self.magnetic_axis.points = np.asarray(points)
             self.magnetic_axis.update()
@@ -702,7 +719,7 @@ class TangentMap():
             
         return d_m
     
-    def compute_grad_m(self,phi,poly):
+    def compute_grad_m(self,phi,axis_poly):
         """
         Computes the derivative of  matrix that appears on the rhs of the 
             tangent map ode, e.g. M'(phi) = m(phi) M(phi), with respect, to 
@@ -710,12 +727,12 @@ class TangentMap():
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
-            poly : polynomial representation of axis solution
+            axis_poly : polynomial representation of axis solution
         Outputs:
-            d_m_d_R 
-            d_m_d_Z
+            d_m_d_R (1d array (len(phi))): derivative of m wrt to R
+            d_m_d_Z (1d array (len(phi))): derivative of m wrt to Z
         """
-        axis = poly(phi)
+        axis = axis_poly(phi)
         gamma = np.zeros((len(phi),3))
         gamma[:,0] = axis[0,:]*np.cos(phi)
         gamma[:,1] = axis[0,:]*np.sin(phi)
@@ -853,7 +870,7 @@ class TangentMap():
     def res_axis(self):
         """
         Computes the residual between parameterization axis and "true" magnetic
-        axis
+            axis
         
         Outputs:
             res_axis (double): residual between parameterization axis
@@ -952,15 +969,18 @@ class TangentMap():
         d_res_axis_dcoilcoeffs = self.stellarator.reduce_coefficient_derivatives([ires for ires in d_res_axis_dcoilcoeffs])
         return d_res_axis_dcoilcoeffs
 
-    def compute_adjoint_axis(self,phi,axis_poly,tangent_poly=None,adjoint_tangent_poly=None):
+    def compute_adjoint_axis(self,phi,axis_poly,tangent_poly=None,
+                             adjoint_tangent_poly=None):
         """
         Computes adjoint variable required for computing derivative of 
             axis_res metric
             
         Inputs:
             phi (1d array): toroidal angle for evaluation of adjoint variable
-            poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
+            axis_poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
                 representing magnetic axis solution
+            tangent_poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
+                representing tangent map solution
             adjoint_tangent_poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
                 representing adjoint variable for tangent map
         """
@@ -1015,7 +1035,7 @@ class TangentMap():
     def rhs_fun_axis(self,phi,axis):
         """
         Computes rhs of magnetic field line flow ode, i.e.
-            r'(\phi) = V(\phi)
+            r'(phi) = V(phi)
             
         Inputs:
             phi (1d array): toroidal angle for evaluation of rhs
@@ -1047,7 +1067,7 @@ class TangentMap():
     def rhs_fun_adjoint(self,phi,eta,axis_poly,tangent_poly=None,adjoint_poly=None):
         """
         Compute rhs of adjoint problem for res_axis metric, i.e.
-            \mu'(\phi) = V(\phi)
+            mu'(\phi) = V(phi)
             
         Inputs:
             phi (1d array): toroidal angle for evaluation of rhs
@@ -1077,7 +1097,9 @@ class TangentMap():
                 + lam[3,:]*(dmdZ[2,...]*M[1,...] + dmdZ[3,...]*M[3,...])
             iota = self.compute_iota()
             fac = -1/(4*np.pi*np.sin(2*np.pi*iota))
+            m = self.compute_m(phi,axis_poly(phi))
         else:
+            m = self.compute_m(phi)
             self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
             self.magnetic_axis.update()
             gamma_ma = self.magnetic_axis.gamma
@@ -1101,7 +1123,6 @@ class TangentMap():
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
-        m = self.compute_m(phi)
         V = np.zeros((2,len(R)))
         if (self.constrained):
             V[0,:] = -m[0,:]*eta[0,:] - m[2,:]*eta[1,:] - fac*lambda_dot_dmdR_times_M 
@@ -1149,7 +1170,8 @@ class TangentMap():
     
     def bc_jac(self,ya,yb):
         """
-        Jacobian for boundary condition function for magnetic axis bvp (bc_fun_axis)
+        Jacobian for boundary condition function for magnetic axis bvp 
+            (bc_fun_axis)
         
         Inputs:
             ya (1d array(2)): axis solution at phi = 0
@@ -1178,6 +1200,7 @@ class TangentMap():
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
+            axis_poly: polynomial representation of axis solution
         Outputs:
             d_V_dcoilcurrents (list (ncoils) of 2d array (2,npoints)): derivative 
                 of V wrt coil currents
@@ -1229,6 +1252,7 @@ class TangentMap():
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
+            axis_poly : polynomial representation of axis solution
         Outputs:
             d_V_dcoilcoeffs (list (ncoils) of 3d array (2,npoints,ncoeffs)): 
                 derivative of V wrt coil coeffs

@@ -336,7 +336,7 @@ class QuasiSymmetricField(PropertyManager):
         # np.set_printoptions(linewidth=1000, precision=4)
         # print( "Jac - Jac_Est", np.linalg.norm(jac-jac_est))
         if np.linalg.norm(self.__state) < 1e-13:
-            # info("First solve: use fsolve")
+            info("First solve: use fsolve")
             soln = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13)
         else:
             diff = 1
@@ -348,7 +348,7 @@ class QuasiSymmetricField(PropertyManager):
                 diff = np.linalg.norm(update)
                 count += 1
                 if count > 10:
-                    # warning("Newton failed: use fsolve")
+                    warning("Newton failed: use fsolve")
                     soln, _, ier, _ = fsolve(build_residual, self.__state, fprime=build_jacobian, xtol=1e-13, full_output=True)
                     if ier != 1:
                         raise RuntimeError("fsolve failed")

@@ -52,7 +52,7 @@ class NearAxisQuasiSymmetryObjective():
 
         self.J_coil_curvatures = [CurveCurvature(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_coil_torsions   = [CurveTorsion(coil, p=2) for coil in coils]
-        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_sobolevs = [SobolevTikhonov(coil, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)]) for coil in coils] + [SobolevTikhonov(ma, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)])]
         self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
         # self.J_distance = sgMinimumDistance(stellarator.coils, minimum_distance)
@@ -483,7 +483,7 @@ class SimpleNearAxisQuasiSymmetryObjective():
         self.J_coil_curvatures = CoilLpReduction([CurveCurvature(coil, length, p=2, root=True) for (coil, length) in zip(coils, self.coil_length_targets)], p=2, root=True)
         # self.J_coil_torsions   = [CurveTorsion(coil, p=4) for coil in coils]
         self.J_coil_torsions   = CoilLpReduction([CurveTorsion(coil, p=2, root=True) for coil in coils], p=2, root=True)
-        self.J_sobolevs = [SobolevTikhonov(coil, weights=[1., .1, .1, .1]) for coil in coils] + [SobolevTikhonov(ma, weights=[1., .1, .1, .1])]
+        self.J_sobolevs = [SobolevTikhonov(coil, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)]) for coil in coils] + [SobolevTikhonov(ma, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)])]
         self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
 

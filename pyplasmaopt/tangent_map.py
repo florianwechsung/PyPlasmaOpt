@@ -4,57 +4,77 @@ from pyplasmaopt.biotsavart import BiotSavart
 
 class TangentMap():
     def __init__(self, stellarator, magnetic_axis=None, rtol=1e-12, atol=1e-12,
-                constrained=True,tol=1e-7,max_nodes=100000,verbose=0,nphi=1000):
+                constrained=True,bvp_tol=1e-8,tol=1e-12,max_nodes=100000,
+                verbose=0,nphi_guess=100,nphi_integral=50000,
+                maxiter=50,axis_bvp=False,adjoint_axis_bvp=True,method='RK45'):
         """
         stellarator: instance of CoilCollection representing modular coils
         magnetic_axis: instance of StelleratorSymmetricCylindricalFourierCurve
             representing magnetic axis
         rtol (double): relative tolerance for IVP
         atol (double): absolute tolerance for IVP
-        tol (double): tolerance for BVP
-        maxnodes (int): maximum nodes for BVP
         constrained (bool): if true, "true" magnetic axis is computed rather than
             using magnetic_axis
-        verbose (int): verbosity for BVP
-        max_nodes (int): maximum number of grid points for BVP
-        nphi (int): number of grid points for integration along the axis
+        bvp_tol (double): tolerance for BVP 
+        tol (double): tolerance for Newton solve
+        max_nodes (int): maximum nodes for BVP
+        verbose (int): verbosity for BVP and Newton solves
+        nphi_guess (int): number of grid points for guess of axis solutions
+        nphi_integral (int): number of grid points for integration along the axis
+        maxiter (int): maximum number of Newton iterations for axis solve
+        axis_bvp (bool): if True, scipy.integrate.solve_bvp is used to solve for 
+            axis. If False, Newton method is used. 
+        adjoint_axis_bvp (bool): if True, scipy.integrate.solve_bvp is used to 
+            solve for adjoint axis. If False, Newton method is used.             
+        method (str): algorithm to use for scipy.integrate.solve_ivp
         """
         self.stellarator = stellarator
         self.biotsavart = BiotSavart(stellarator.coils, stellarator.currents)
         self.magnetic_axis = magnetic_axis
         self.rtol = rtol
         self.atol = atol
+        self.bvp_tol = bvp_tol
         self.tol = tol
         self.max_nodes = max_nodes
         self.constrained = constrained
         self.verbose = verbose
-        self.nphi = nphi
+        self.nphi_guess = nphi_guess
+        self.nphi_integral = nphi_integral
+        self.maxiter = maxiter
+        self.axis_bvp = axis_bvp
+        self.adjoint_axis_bvp = adjoint_axis_bvp
+        self.method = method 
         # Polynomial solutions for current solutions
         self.axis_poly = None
         self.tangent_poly = None
         self.adjoint_axis_poly = None
         self.adjoint_tangent_poly = None
 
-    def update_solutions(self):
+    def update_solutions(self,derivatives=True):
         """
         Computes solutions for the magnetic axis, tangent map, and corresponding
             adjoint solutions
+            
+        Inputs:
+            derivatives (bool): If True, adjoint solutions required for 
+                derivatives are computed.
         """
-        phi = np.linspace(0,2*np.pi,self.nphi,endpoint=True)
-        phi_reverse = np.linspace(2*np.pi,0,self.nphi,endpoint=True)
+        phi = np.linspace(0,2*np.pi,self.nphi_guess,endpoint=True)
+        phi_reverse = np.linspace(2*np.pi,0,self.nphi_guess,endpoint=True)
         if (self.constrained):
-            sol, self.axis_poly = self.compute_axis(phi)  
-            self.magnetic_axis = None
+            sol, self.axis_poly = self.compute_axis(phi)
             sol, self.tangent_poly = self.compute_tangent(phi,self.axis_poly)
-            sol, self.adjoint_tangent_poly = self.compute_adjoint_tangent(phi_reverse,
-                                                                 self.axis_poly)
-            sol, self.adjoint_axis_poly = self.compute_adjoint_axis(phi,
-                     self.axis_poly,self.tangent_poly,self.adjoint_tangent_poly)
+            if derivatives:
+                sol, self.adjoint_tangent_poly = self.compute_adjoint_tangent(phi_reverse,
+                                                                     self.axis_poly)
+                sol, self.adjoint_axis_poly = self.compute_adjoint_axis(phi,
+                         self.axis_poly,self.tangent_poly,self.adjoint_tangent_poly)
         else:
-            sol, self.axis_poly = self.compute_axis(phi)  
+            sol, self.axis_poly = self.compute_axis(phi)
             sol, self.tangent_poly = self.compute_tangent(phi)
-            sol, self.adjoint_tangent_poly = self.compute_adjoint_tangent(phi_reverse)
-            sol, self.adjoint_axis_poly = self.compute_adjoint_axis(phi,
+            if derivatives:
+                sol, self.adjoint_tangent_poly = self.compute_adjoint_tangent(phi_reverse)
+                sol, self.adjoint_axis_poly = self.compute_adjoint_axis(phi,
                                                                  self.axis_poly)
 
     def reset_solutions(self):
@@ -65,11 +85,11 @@ class TangentMap():
         self.tangent_poly = None
         self.adjoint_axis_poly = None
         self.adjoint_tangent_poly = None
-        
+
     def compute_iota(self):
         """
-        Compute rotational transform from tangent map. 
-        
+        Compute rotational transform from tangent map.
+
         Outputs:
             iota (double): value of rotational transform.
         """
@@ -80,38 +100,44 @@ class TangentMap():
         detM = M[0]*M[3] - M[1]*M[2]
         np.testing.assert_allclose(detM,1,rtol=1e-2)
         trM = M[0] + M[3]
-        return np.arccos(trM/2)/(2*np.pi)
+        if (np.abs(trM/2)>1):
+            raise RuntimeError('Incorrect value of trM.')
+        else:
+            return np.arccos(trM/2)/(2*np.pi)
 
-    def compute_tangent(self,phi,axis_poly=None):
+    def compute_tangent(self,phi,axis_poly=None,adjoint=False):
         """
         Compute tangent map by solving initial value problem.
-        
+
         Inputs:
             phi (1d array): 1d array for evaluation of tangent map
             axis_poly: polynomial solution for axis
+            adjoint (bool): if True, Jacobian matrix for adjoint axis integration
+                is computed
         Outputs:
-            y (2d array (4,len(phi))): flattened tangent map on grid of 
+            y (2d array (4,len(phi))): flattened tangent map on grid of
                 toroidal angle
         """
         if self.constrained:
-            args = (axis_poly,)
+            args = (adjoint,axis_poly)
         else:
-            args = None
-            
+            args = (adjoint,)
+
         y0 = np.array([1,0,0,1])
         t_span = (0,2*np.pi)
         out = scipy.integrate.solve_ivp(self.rhs_fun,t_span,y0,
                             vectorized=False,rtol=self.rtol,atol=self.atol,
-                                        t_eval=phi,args=args,dense_output=True)
+                                        t_eval=phi,args=args,dense_output=True,
+                                       method=self.method)
         if (out.status==0):
             return out.y, out.sol
         else:
             raise RuntimeError('Error ocurred in integration of tangent map.')
-            
+
     def compute_m(self,phi,axis=None):
         """
-        Computes the matrix that appears on the rhs of the tangent map ODE, 
-            e.g. M'(phi) = m(phi), for given phi. 
+        Computes the matrix that appears on the rhs of the tangent map ODE,
+            e.g. M'(phi) = m(phi), for given phi.
 
         Inputs:
             phi (double): toroidal angle for evaluation
@@ -127,16 +153,21 @@ class TangentMap():
             gamma[...,0] = axis[0,...]*np.cos(phi)
             gamma[...,1] = axis[0,...]*np.sin(phi)
             gamma[...,2] = axis[1,...]
-            self.biotsavart.set_points(gamma)
+            self.biotsavart.compute(gamma)
+            X = gamma[...,0]
+            Y = gamma[...,1]
+            Z = gamma[...,2]
         else:
-            print('Using magnetic axis')
             points = phi/(2*np.pi)
             if (np.ndim(points)==0):
                 points = np.array([points])
             self.magnetic_axis.points = points
             self.magnetic_axis.update()
-            self.biotsavart.set_points(self.magnetic_axis.gamma)
-        
+            self.biotsavart.compute(self.magnetic_axis.gamma)
+            X = self.magnetic_axis.gamma[...,0]
+            Y = self.magnetic_axis.gamma[...,1]
+            Z = self.magnetic_axis.gamma[...,2]
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
@@ -147,21 +178,18 @@ class TangentMap():
         dBXdZ = gradB[...,2,0]
         dBYdX = gradB[...,0,1]
         dBYdY = gradB[...,1,1]
-        dBYdZ = gradB[...,2,1]   
+        dBYdZ = gradB[...,2,1]
         dBZdX = gradB[...,0,2]
         dBZdY = gradB[...,1,2]
         dBZdZ = gradB[...,2,2]
-        X = self.biotsavart.points[...,0]
-        Y = self.biotsavart.points[...,1]
-        Z = self.biotsavart.points[...,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
         dBRdR = (X**2*dBXdX + X*Y * (dBYdX + dBXdY) + Y**2 * dBYdY)/(R**2)
         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
-        dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
-        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
+        dBRdZ =  X*dBXdZ/R + Y*dBYdZ/R
+        dBPdZ = -Y*dBXdZ/R + X*dBYdZ/R
         if (np.ndim(phi)==0):
             m = np.zeros((4,1))
         else:
@@ -171,8 +199,8 @@ class TangentMap():
         m[2,...] = BZ/BP + R*(dBZdR/BP - BZ*dBPdR/BP**2)
         m[3,...] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
         return np.squeeze(m)
-        
-    def rhs_fun(self,phi,M,axis_poly=None):
+
+    def rhs_fun(self,phi,M,adjoint=False,axis_poly=None):
         """
         Computes the RHS of the tangent map ode, e.g. M'(phi) = rhs
             for given phi and M
@@ -180,6 +208,8 @@ class TangentMap():
         Inputs:
             phi (double): toroidal angle for evaluation
             M (1d array (4)): current value of tangent map
+            adjoint (bool): if True, rhs is computed for Jacobian of adjoint
+                axis integration
             axis_poly (instance of scipy.interpolate.PPoly cubic spline): polynomial
                 representing magnetic axis solution
         Outputs:
@@ -189,26 +219,33 @@ class TangentMap():
             m = self.compute_m(phi,axis_poly(phi))
         else:
             m = self.compute_m(phi)
-        out = np.squeeze(np.array([m[0]*M[0] + m[1]*M[2], m[0]*M[1] + m[1]*M[3], 
-                                   m[2]*M[0] + m[3]*M[2], m[2]*M[1] + m[3]*M[3]]))
+        assert(np.ndim(phi)==0)
+
+        if adjoint:
+            out = -np.squeeze(np.array([m[0]*M[0] + m[2]*M[2], m[0]*M[1] + m[2]*M[3],
+                                   m[1]*M[0] + m[3]*M[2], m[1]*M[1] + m[3]*M[3]]))
+        else:
+            out = np.squeeze(np.array([m[0]*M[0] + m[1]*M[2], m[0]*M[1] + m[1]*M[3],
+                           m[2]*M[0] + m[3]*M[2], m[2]*M[1] + m[3]*M[3]]))
         return out
-    
+
     def d_iota_d_magneticaxiscoeffs(self):
         """
         Compute derivative of iota wrt axis coefficients
-                    
+
         Outputs:
             d_iota (1d array (ncoeffs)): derivative of iota wrt axis coefficients
-        """    
-        phi, dphi = np.linspace(2*np.pi,0,self.nphi,endpoint=False,retstep=True)
+        """
+        phi, dphi = np.linspace(2*np.pi,0,self.nphi_integral,endpoint=False,
+                                retstep=True)
         # Update solutions if necessary
         if (self.tangent_poly is None or self.adjoint_tangent_poly is None):
             self.update_solutions()
-            
+
         d_m = self.compute_d_m_d_magneticaxiscoeffs(phi)
         lam = self.adjoint_tangent_poly(phi)
         M = self.tangent_poly(phi)
-        
+
         iota = self.compute_iota()
         fac = -1/(4*np.pi*np.sin(2*np.pi*iota))
         lambda_dot_d_m_times_M = \
@@ -217,19 +254,20 @@ class TangentMap():
             + lam[2,:,None]*(d_m[2,...]*M[0,...,None] + d_m[3,...]*M[2,...,None]) \
             + lam[3,:,None]*(d_m[2,...]*M[1,...,None] + d_m[3,...]*M[3,...,None])
         d_iota = -fac*np.sum(lambda_dot_d_m_times_M,axis=(0))*dphi
-    
+
         return d_iota
-    
+
     def d_iota_dcoilcurrents(self):
         """
         Compute derivative of iota wrt coil currents.
-            
+
         Outputs:
-            d_iota (list of 1d arrays (ncurrents)): derivative of iota wrt 
-                coil currents 
-        """    
-        phi, dphi = np.linspace(2*np.pi,0,self.nphi,endpoint=False,retstep=True)
-        
+            d_iota (list of 1d arrays (ncurrents)): derivative of iota wrt
+                coil currents
+        """
+        phi, dphi = np.linspace(2*np.pi,0,self.nphi_integral,endpoint=False,
+                                retstep=True)
+
         if (self.tangent_poly is None):
             self.update_solutions()
         M = self.tangent_poly(phi)
@@ -238,7 +276,7 @@ class TangentMap():
         if self.constrained:
             mu = self.adjoint_axis_poly(phi)
             d_V_by_dcoilcurrents = self.compute_d_V_dcoilcurrents(phi,self.axis_poly)
-        
+
         iota = self.compute_iota()
         fac = -1/(4*np.pi*np.sin(2*np.pi*iota))
         d_iota_dcoilcurrents = []
@@ -254,26 +292,27 @@ class TangentMap():
                 d_V = d_V_by_dcoilcurrents[i]
                 mu_dot_d_V = mu[0,:]*d_V[0,...] + mu[1,:]*d_V[1,:]
                 d_iota += -np.sum(mu_dot_d_V)*dphi
-                
-            d_iota_dcoilcurrents.append(d_iota)
+
+            d_iota_dcoilcurrents.append(np.squeeze(d_iota))
         d_iota_dcoilcurrents = \
-            self.stellarator.reduce_current_derivatives([ires for ires in 
+            self.stellarator.reduce_current_derivatives([ires for ires in
                                                          d_iota_dcoilcurrents])
-    
+
         return d_iota_dcoilcurrents
 
     def d_iota_dcoilcoeffs(self):
         """
         Compute derivative of iota wrt coil coeffs.
-            
+
         Outputs:
             d_iota (list of 1d arrays (ncoeffs)): derivatives of iota wrt
                 coil coefficients
         """
-        phi,dphi = np.linspace(2*np.pi,0,self.nphi,endpoint=False,retstep=True)
+        phi,dphi = np.linspace(2*np.pi,0,self.nphi_integral,endpoint=False,
+                               retstep=True)
         if (self.tangent_poly is None):
             self.update_solutions()
-            
+
         M = self.tangent_poly(phi)
         lam = self.adjoint_tangent_poly(phi)
         iota = self.compute_iota()
@@ -300,12 +339,12 @@ class TangentMap():
             d_iota_dcoilcoeffs.append(d_iota)
         d_iota_dcoilcoeffs = self.stellarator.reduce_coefficient_derivatives([ires for ires in d_iota_dcoilcoeffs])
         return d_iota_dcoilcoeffs
-    
+
     def compute_adjoint_tangent(self,phi,axis_poly=None):
         """
         For biotsavart and magnetic_axis objects, compute adjoint tangent map
-            by solving initial value probme. 
-                
+            by solving initial value probme.
+
         Inputs:
             phi (1d array): toroidal angle for evaluation of adjoint variable
         """
@@ -317,12 +356,13 @@ class TangentMap():
             args = ()
         out = scipy.integrate.solve_ivp(self.adjoint_rhs_fun,t_span,y0,
                                 vectorized=False,rtol=self.rtol,atol=self.atol,
-                                       t_eval=phi,args=args,dense_output=True)
+                                       t_eval=phi,args=args,dense_output=True,
+                                       method=self.method)
         if (out.status==0):
             return out.y, out.sol
         else:
             raise RuntimeError('Error ocurred in integration of adjoint tangent map.')
-            
+
     def adjoint_rhs_fun(self,phi,M,axis_poly=None):
         """
         Computes the RHS of the adjoint tangent map ODE, e.g. lambda'(phi) = rhs
@@ -339,18 +379,18 @@ class TangentMap():
         else:
             m = self.compute_m(phi)
 
-        return -np.squeeze(np.array([m[0]*M[0] + m[2]*M[2], m[0]*M[1] + m[2]*M[3], 
+        return -np.squeeze(np.array([m[0]*M[0] + m[2]*M[2], m[0]*M[1] + m[2]*M[3],
                                      m[1]*M[0] + m[3]*M[2], m[1]*M[1] + m[3]*M[3]]))
 
     def compute_d_m_dcoilcoeffs(self,phi):
         """
-        Computes the derivative of matrix that appears on the rhs of the tangent map ode, 
-        e.g. M'(phi) = m(phi) rhs, with respect to coil coeffs for given phi. 
+        Computes the derivative of matrix that appears on the rhs of the tangent map ode,
+        e.g. M'(phi) = m(phi) rhs, with respect to coil coeffs for given phi.
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
         Outputs:
-            d_m_dcoilcoeffs (list (ncoils) of 3d array (npoints,4,ncoeffs)): derivative 
+            d_m_dcoilcoeffs (list (ncoils) of 3d array (npoints,4,ncoeffs)): derivative
                 of matrix appearing on rhs on ode wrt coil coeffs
         """
         if self.constrained:
@@ -359,33 +399,40 @@ class TangentMap():
             gamma[...,0] = axis[0,...]*np.cos(phi)
             gamma[...,1] = axis[0,...]*np.sin(phi)
             gamma[...,2] = axis[1,...]
-            self.biotsavart.set_points(gamma) 
+            self.biotsavart.compute(gamma)
+            self.biotsavart.compute_by_dcoilcoeff(gamma)
+            X = gamma[...,0]
+            Y = gamma[...,1]
+            Z = gamma[...,2]
         else:
-            print('using magnetic_axis')
             points = phi/(2*np.pi)
             self.magnetic_axis.points = np.asarray(points)
             self.magnetic_axis.update()
-            self.biotsavart.set_points(self.magnetic_axis.gamma)
-        
+            self.biotsavart.compute(self.magnetic_axis.gamma)
+            self.biotsavart.compute_by_dcoilcoeff(self.magnetic_axis.gamma)
+            X = self.magnetic_axis.gamma[...,0]
+            Y = self.magnetic_axis.gamma[...,1]
+            Z = self.magnetic_axis.gamma[...,2]
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
+
         gradB = self.biotsavart.dB_by_dX
         dBXdX = gradB[...,0,0]
         dBXdY = gradB[...,1,0]
         dBXdZ = gradB[...,2,0]
         dBYdX = gradB[...,0,1]
         dBYdY = gradB[...,1,1]
-        dBYdZ = gradB[...,2,1]   
+        dBYdZ = gradB[...,2,1]
         dBZdX = gradB[...,0,2]
         dBZdY = gradB[...,1,2]
         dBZdZ = gradB[...,2,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
@@ -393,8 +440,8 @@ class TangentMap():
         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
-        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
-        
+        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R
+
         R = R[:,None]
         BR = BR[:,None]
         BZ = BZ[:,None]
@@ -407,41 +454,41 @@ class TangentMap():
         dBRdZ = dBRdZ[:,None]
         dBPdZ = dBPdZ[:,None]
         dBZdZ = dBZdZ[:,None]
-       
+
         # Shape: (ncoils,npoints,nparams,3)
         dB_by_dcoilcoeffs = self.biotsavart.dB_by_dcoilcoeffs
         dgradB_by_dcoilcoeffs = self.biotsavart.d2B_by_dXdcoilcoeffs
-        
+
         d_m_by_dcoilcoeffs = []
         for i in range(len(dB_by_dcoilcoeffs)):
             d_B = dB_by_dcoilcoeffs[i]
             d_BX = d_B[...,0]
             d_BY = d_B[...,1]
             d_BZ = d_B[...,2]
-        
+
             d_gradB = dgradB_by_dcoilcoeffs[i]
             d_dBXdX = d_gradB[...,0,0]
             d_dBXdY = d_gradB[...,1,0]
             d_dBXdZ = d_gradB[...,2,0]
             d_dBYdX = d_gradB[...,0,1]
             d_dBYdY = d_gradB[...,1,1]
-            d_dBYdZ = d_gradB[...,2,1]   
+            d_dBYdZ = d_gradB[...,2,1]
             d_dBZdX = d_gradB[...,0,2]
             d_dBZdY = d_gradB[...,1,2]
-            d_dBZdZ = d_gradB[...,2,2]        
-        
+            d_dBZdZ = d_gradB[...,2,2]
+
             d_BR =  X * d_BX/R + Y * d_BY/R
-            d_dBRdR = (X**2*d_dBXdX 
-                    + X*Y * (d_dBYdX + d_dBXdY) 
+            d_dBRdR = (X**2*d_dBXdX
+                    + X*Y * (d_dBYdX + d_dBXdY)
                     + Y**2 * d_dBYdY)/(R**2)
             d_BP = -Y * d_BX/R + X * d_BY/R
-            d_dBPdR = (X*Y * (d_dBYdY-d_dBXdX) 
-                    + X**2 * d_dBYdX 
+            d_dBPdR = (X*Y * (d_dBYdY-d_dBXdX)
+                    + X**2 * d_dBYdX
                     - Y**2 * d_dBXdY)/(R**2)
             d_dBZdR =  d_dBZdX*X/R + d_dBZdY*Y/R
             d_dBRdZ =  d_dBXdZ*X/R + d_dBYdZ*Y/R
             d_dBPdZ = -d_dBXdZ*Y/R + d_dBYdZ*X/R
-        
+
             d_m = np.zeros((4,np.shape(d_BR)[0],np.shape(d_BR)[1]))
 #             d_m[...,0] = BR/BP + R*(dBRdR/BP - BR*dBPdR/BP**2)
             d_m[0,...] = d_BR/BP - BR*d_BP/(BP*BP) \
@@ -455,21 +502,21 @@ class TangentMap():
                 + R*(d_dBZdR/BP - dBZdR*d_BP/BP**2 - d_BZ*dBPdR/BP**2
                     - BZ*d_dBPdR/BP**2 + 2*BZ*dBPdR*d_BP/(BP**3))
 #             d_m[...,3] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
-            d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2 
+            d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2
                     - d_BZ*dBPdZ/BP**2 - BZ*d_dBPdZ/BP**2 + 2*BZ*dBPdZ*d_BP/BP**3)
             d_m_by_dcoilcoeffs.append(d_m)
-            
+
         return d_m_by_dcoilcoeffs
-    
+
     def compute_d_m_dcoilcurrents(self,phi):
         """
-        Computes the derivative of  matrix that appears on the rhs of the tangent map ode, 
-            e.g. M'(phi) = m(phi) rhs, with respect to coil coeffs for given phi. 
+        Computes the derivative of  matrix that appears on the rhs of the tangent map ode,
+            e.g. M'(phi) = m(phi) rhs, with respect to coil coeffs for given phi.
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
         Outputs:
-            d_m_dcoilcurrents (list (ncoils) of 2d array (4,npoints)): derivative 
+            d_m_dcoilcurrents (list (ncoils) of 2d array (4,npoints)): derivative
                 of matrix appearing on rhs on ode wrt coil currents
         """
         if self.constrained:
@@ -478,33 +525,38 @@ class TangentMap():
             gamma[...,0] = axis[0,...]*np.cos(phi)
             gamma[...,1] = axis[0,...]*np.sin(phi)
             gamma[...,2] = axis[1,...]
-            self.biotsavart.set_points(gamma) 
+            self.biotsavart.compute(gamma)
+            X = gamma[...,0]
+            Y = gamma[...,1]
+            Z = gamma[...,2]
         else:
-            print('using magnetic_axis')
             points = phi/(2*np.pi)
             self.magnetic_axis.points = np.asarray(points)
             self.magnetic_axis.update()
-            self.biotsavart.set_points(self.magnetic_axis.gamma)
-        
+            self.biotsavart.compute(self.magnetic_axis.gamma)
+            X = self.magnetic_axis.gamma[...,0]
+            Y = self.magnetic_axis.gamma[...,1]
+            Z = self.magnetic_axis.gamma[...,2]
+            
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
+
         gradB = self.biotsavart.dB_by_dX
         dBXdX = gradB[...,0,0]
         dBXdY = gradB[...,1,0]
         dBXdZ = gradB[...,2,0]
         dBYdX = gradB[...,0,1]
         dBYdY = gradB[...,1,1]
-        dBYdZ = gradB[...,2,1]   
+        dBYdZ = gradB[...,2,1]
         dBZdX = gradB[...,0,2]
         dBZdY = gradB[...,1,2]
         dBZdZ = gradB[...,2,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
@@ -512,42 +564,42 @@ class TangentMap():
         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
-        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
-       
+        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R
+
         # Shape: (ncoils,npoints,3)
         dB_by_dcoilcurrents = self.biotsavart.dB_by_dcoilcurrents
         dgradB_by_dcoilcurrents = self.biotsavart.d2B_by_dXdcoilcurrents
-        
+
         d_m_by_dcoilcurrents = []
         for i in range(len(dB_by_dcoilcurrents)):
             d_B = dB_by_dcoilcurrents[i]
             d_BX = d_B[...,0]
             d_BY = d_B[...,1]
             d_BZ = d_B[...,2]
-        
+
             d_gradB = dgradB_by_dcoilcurrents[i]
             d_dBXdX = d_gradB[...,0,0]
             d_dBXdY = d_gradB[...,1,0]
             d_dBXdZ = d_gradB[...,2,0]
             d_dBYdX = d_gradB[...,0,1]
             d_dBYdY = d_gradB[...,1,1]
-            d_dBYdZ = d_gradB[...,2,1]   
+            d_dBYdZ = d_gradB[...,2,1]
             d_dBZdX = d_gradB[...,0,2]
             d_dBZdY = d_gradB[...,1,2]
-            d_dBZdZ = d_gradB[...,2,2]        
-        
+            d_dBZdZ = d_gradB[...,2,2]
+
             d_BR =  (X * d_BX + Y * d_BY)/R
-            d_dBRdR = (X**2*d_dBXdX 
-                    + X*Y * (d_dBYdX + d_dBXdY) 
+            d_dBRdR = (X**2*d_dBXdX
+                    + X*Y * (d_dBYdX + d_dBXdY)
                     + Y**2 * d_dBYdY)/(R**2)
             d_BP = (-Y * d_BX + X * d_BY)/R
-            d_dBPdR = (X*Y * (d_dBYdY-d_dBXdX) 
-                    + X**2 * d_dBYdX 
+            d_dBPdR = (X*Y * (d_dBYdY-d_dBXdX)
+                    + X**2 * d_dBYdX
                     - Y**2 * d_dBXdY)/(R**2)
             d_dBZdR =  d_dBZdX*X/R + d_dBZdY*Y/R
             d_dBRdZ =  d_dBXdZ*X/R + d_dBYdZ*Y/R
             d_dBPdZ = -d_dBXdZ*Y/R + d_dBYdZ*X/R
-        
+
             d_m = np.zeros((4,np.shape(d_BR)[0]))
 #             d_m[...,0] = BR/BP + R*(dBRdR/BP - BR*dBPdR/BP**2)
             d_m[0,...] = d_BR/BP - BR*d_BP/BP**2 \
@@ -561,47 +613,52 @@ class TangentMap():
                 + R*(d_dBZdR/BP - dBZdR*d_BP/BP**2 - d_BZ*dBPdR/BP**2
                     - BZ*d_dBPdR/BP**2 + 2*BZ*dBPdR*d_BP/(BP**3))
 #             d_m[...,3] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
-            d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2 
+            d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2
                     - d_BZ*dBPdZ/BP**2 - BZ*d_dBPdZ/BP**2 + 2*BZ*dBPdZ*d_BP/BP**3)
             d_m_by_dcoilcurrents.append(d_m)
-            
+
         return d_m_by_dcoilcurrents
-    
+
     def compute_d_m_d_magneticaxiscoeffs(self,phi):
         """
-        Computes the derivative of  matrix that appears on the rhs of the tangent map ode, 
-            e.g. M'(phi) = m(phi) M(phi), with respect to axis coefficients for given phi. 
+        Computes the derivative of  matrix that appears on the rhs of the tangent map ode,
+            e.g. M'(phi) = m(phi) M(phi), with respect to axis coefficients for given phi.
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
         Outputs:
-            d_m_dcoilcoeffs (3d array (npoints,ncoeffs,4)): derivative 
+            d_m_dcoilcoeffs (3d array (npoints,ncoeffs,4)): derivative
                 of matrix appearing on rhs on ode wrt axis coeffs
         """
         points = phi/(2*np.pi)
         self.magnetic_axis.points = np.asarray(points)
         self.magnetic_axis.update()
-        self.biotsavart.set_points(self.magnetic_axis.gamma)
+        self.biotsavart.compute(self.magnetic_axis.gamma)
         
+        X = self.magnetic_axis.gamma[...,0]
+        Y = self.magnetic_axis.gamma[...,1]
+        Z = self.magnetic_axis.gamma[...,2]
+
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
+
         gradB = self.biotsavart.dB_by_dX
         dBXdX = gradB[...,0,0]
         dBXdY = gradB[...,1,0]
         dBXdZ = gradB[...,2,0]
         dBYdX = gradB[...,0,1]
         dBYdY = gradB[...,1,1]
-        dBYdZ = gradB[...,2,1]   
+        dBYdZ = gradB[...,2,1]
         dBZdX = gradB[...,0,2]
         dBZdY = gradB[...,1,2]
         dBZdZ = gradB[...,2,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
@@ -609,8 +666,8 @@ class TangentMap():
         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
-        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
-        
+        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R
+
         X = X[:,None]
         Y = Y[:,None]
         R = R[:,None]
@@ -624,7 +681,7 @@ class TangentMap():
         dBZdR = dBZdR[:,None]
         dBRdZ = dBRdZ[:,None]
         dBPdZ = dBPdZ[:,None]
-        dBZdZ = dBZdZ[:,None] 
+        dBZdZ = dBZdZ[:,None]
         dBXdX = dBXdX[:,None]
         dBXdY = dBXdY[:,None]
         dBXdZ = dBXdZ[:,None]
@@ -633,53 +690,53 @@ class TangentMap():
         dBYdZ = dBYdZ[:,None]
         dBZdX = dBZdX[:,None]
         dBZdY = dBZdY[:,None]
-       
+
         # Shape: (len(self.points), self.num_coeff(), 3)
         dgamma_by_dcoeff  = self.magnetic_axis.dgamma_by_dcoeff
-        
+
         d_X = dgamma_by_dcoeff[...,0]
         d_Y = dgamma_by_dcoeff[...,1]
         d_R = dgamma_by_dcoeff[...,0]*X/R + dgamma_by_dcoeff[...,1]*Y/R
         d_BX = dgamma_by_dcoeff[...,0]*gradB[...,None,0,0] \
              + dgamma_by_dcoeff[...,1]*gradB[...,None,1,0] \
-             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,0] 
+             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,0]
         d_BY = dgamma_by_dcoeff[...,0]*gradB[...,None,0,1] \
              + dgamma_by_dcoeff[...,1]*gradB[...,None,1,1] \
-             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,1] 
+             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,1]
         d_BZ = dgamma_by_dcoeff[...,0]*gradB[...,None,0,2] \
              + dgamma_by_dcoeff[...,1]*gradB[...,None,1,2] \
-             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,2] 
-        
+             + dgamma_by_dcoeff[...,2]*gradB[...,None,2,2]
+
         # Shape: ((len(points), 3, 3, 3))
         d2Bbs_by_dXdX = self.biotsavart.d2B_by_dXdX
-        
+
         d_dBXdX = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,0,0] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,0,0] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,0] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,0]
         d_dBXdY = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,1,0] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,1,0] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,0] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,0]
         d_dBXdZ = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,2,0] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,2,0] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,0] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,0]
         d_dBYdX = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,0,1] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,0,1] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,1] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,1]
         d_dBYdY = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,1,1] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,1,1] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,1] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,1]
         d_dBYdZ = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,2,1] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,2,1] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,1]  
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,1]
         d_dBZdX = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,0,2] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,0,2] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,2] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,0,2]
         d_dBZdY = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,1,2] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,1,2] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,2] 
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,1,2]
         d_dBZdZ = dgamma_by_dcoeff[...,0]*d2Bbs_by_dXdX[...,None,0,2,2] \
             +     dgamma_by_dcoeff[...,1]*d2Bbs_by_dXdX[...,None,1,2,2] \
-            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,2]       
+            +     dgamma_by_dcoeff[...,2]*d2Bbs_by_dXdX[...,None,2,2,2]
 
         d_BR =  (X * d_BX + d_X * BX + Y * d_BY + d_Y * BY)/R \
             - BR*d_R/R
@@ -713,16 +770,16 @@ class TangentMap():
                 - BZ*d_dBPdR/BP**2 + 2*BZ*dBPdR*d_BP/(BP**3)) \
             + d_R * (dBZdR/BP - BZ*dBPdR/BP**2)
 #             d_m[...,3] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
-        d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2 
+        d_m[3,...] = R*(d_dBZdZ/BP - dBZdZ*d_BP/BP**2
                 - d_BZ*dBPdZ/BP**2 - BZ*d_dBPdZ/BP**2 + 2*BZ*dBPdZ*d_BP/BP**3) \
                 + d_R * (dBZdZ/BP - BZ*dBPdZ/BP**2)
-            
+
         return d_m
-    
+
     def compute_grad_m(self,phi,axis_poly):
         """
-        Computes the derivative of  matrix that appears on the rhs of the 
-            tangent map ode, e.g. M'(phi) = m(phi) M(phi), with respect, to 
+        Computes the derivative of  matrix that appears on the rhs of the
+            tangent map ode, e.g. M'(phi) = m(phi) M(phi), with respect, to
             cylindrical R and Z.
 
         Inputs:
@@ -733,31 +790,37 @@ class TangentMap():
             d_m_d_Z (1d array (len(phi))): derivative of m wrt to Z
         """
         axis = axis_poly(phi)
-        gamma = np.zeros((len(phi),3))
-        gamma[:,0] = axis[0,:]*np.cos(phi)
-        gamma[:,1] = axis[0,:]*np.sin(phi)
-        gamma[:,2] = axis[1,:]
-        self.biotsavart.set_points(gamma)
-        
+        if (np.ndim(phi) > 0):
+            gamma = np.zeros((len(phi),3))
+        else:
+            gamma = np.zeros((1,3))
+        gamma[...,0] = axis[0,...]*np.cos(phi)
+        gamma[...,1] = axis[0,...]*np.sin(phi)
+        gamma[...,2] = axis[1,...]
+        self.biotsavart.compute(gamma)
+        X = gamma[...,0]
+        Y = gamma[...,1]
+        Z = gamma[...,2]
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
+
         gradB = self.biotsavart.dB_by_dX
         dBXdX = gradB[...,0,0]
         dBXdY = gradB[...,1,0]
         dBXdZ = gradB[...,2,0]
         dBYdX = gradB[...,0,1]
         dBYdY = gradB[...,1,1]
-        dBYdZ = gradB[...,2,1]   
+        dBYdZ = gradB[...,2,1]
         dBZdX = gradB[...,0,2]
         dBZdY = gradB[...,1,2]
         dBZdZ = gradB[...,2,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         dRdX = X/R
         dRdY = Y/R
@@ -767,8 +830,8 @@ class TangentMap():
         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
         dBZdR =  dBZdX*X/R + dBZdY*Y/R
         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
-        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
-               
+        dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R
+
         # Shape: ((len(points), 3, 3, 3))
         d2Bbs_by_dXdX = self.biotsavart.d2B_by_dXdX
         d2BXdX2 = d2Bbs_by_dXdX[...,0,0,0]
@@ -791,34 +854,34 @@ class TangentMap():
         d2BZdYdZ = d2Bbs_by_dXdX[...,1,2,2]
 
 #       dBRdR = (X**2*dBXdX + X*Y * (dBYdX + dBXdY) + Y**2 * dBYdY)/(R**2)
-#         d2BRdR2 = ((2 * X * dBXdX + X**2 * d2BXdX2 + Y * (dBYdX  + dBXdY) 
+#         d2BRdR2 = ((2 * X * dBXdX + X**2 * d2BXdX2 + Y * (dBYdX  + dBXdY)
 #             + X * Y * (d2BYdX2 + d2BXdXdY)  + Y**2 * d2BYdXdY) * np.cos(phi) \
-#             + (X**2 * d2BXdXdY + X * (dBYdX + dBXdY) + X * Y * (d2BYdXdY + d2BXdY2) 
+#             + (X**2 * d2BXdXdY + X * (dBYdX + dBXdY) + X * Y * (d2BYdXdY + d2BXdY2)
 #             + 2 * Y * dBYdY + Y**2 * d2BYdY2)*np.sin(phi))/(R**2) \
 #             - 2*dBRdR/R
-        d2BRdR2 = (X * Y**2 * d2BXdY2 + Y**3 * d2BYdY2 
+        d2BRdR2 = (X * Y**2 * d2BXdY2 + Y**3 * d2BYdY2
                    + X*(2*X*Y*d2BXdXdY + 2 * Y**2 * d2BYdXdY + X**2 * d2BXdX2
                        + X*Y*d2BYdX2))/R**3
-    
-        d2BRdRdZ = (X**2*d2BXdXdZ + X*Y * (d2BYdXdZ + d2BXdYdZ) 
+
+        d2BRdRdZ = (X**2*d2BXdXdZ + X*Y * (d2BYdXdZ + d2BXdYdZ)
                     + Y**2 * d2BYdYdZ)/(R**2)
 #         dBPdR = (X*Y * (dBYdY-dBXdX) + X**2 * dBYdX - Y**2 * dBXdY)/(R**2)
-#         d2BPdR2 = ((Y * (dBYdY-dBXdX) + X * Y * (d2BYdXdY - d2BXdX2) 
+#         d2BPdR2 = ((Y * (dBYdY-dBXdX) + X * Y * (d2BYdXdY - d2BXdX2)
 #                   + 2 * X * dBYdX + X**2 * d2BYdX2 - Y**2 * d2BXdXdY) * np.cos(phi) \
 #             + (X * (dBYdY-dBXdX) + X*Y* (d2BYdY2-d2BXdXdY) + X**2 * d2BYdXdY
 #               - 2 * Y * dBXdY - Y**2 * d2BXdY2) * np.sin(phi))/(R**2) \
 #             - 2*dBPdR/R
         d2BPdR2 = (-Y**3 * d2BXdY2 + X*Y*(Y*d2BYdY2 - 2*Y*d2BXdXdY + 2*X*d2BYdXdY
                                          - X * d2BXdX2 + X**3 * d2BYdX2))/R**3
-    
-        d2BPdRdZ = (X*Y * (d2BYdYdZ-d2BXdXdZ) + X**2 * d2BYdXdZ 
+
+        d2BPdRdZ = (X*Y * (d2BYdYdZ-d2BXdXdZ) + X**2 * d2BYdXdZ
                     - Y**2 * d2BXdYdZ)/(R**2)
 #         dBZdR =  dBZdX*X/R + dBZdY*Y/R
-#         d2BZdR2 = ((dBZdX + X * d2BZdX2 + Y * d2BZdXdY) * np.cos(phi) 
+#         d2BZdR2 = ((dBZdX + X * d2BZdX2 + Y * d2BZdXdY) * np.cos(phi)
 #                  + (X * d2BZdXdY + dBZdY + Y * d2BZdY2) * np.sin(phi))/R \
 #                 - dBZdR/R
         d2BZdR2 = (Y**2 * d2BZdY2 + 2*X*Y*d2BZdXdY + X**2 * d2BZdX2)/(R**2)
-    
+
         d2BZdRdZ = (d2BZdXdZ*X + d2BZdYdZ*Y)/R
 #         dBRdZ =  dBXdZ*X/R + dBYdZ*Y/R
 #         d2BRdRdZ = ((dBXdZ + X * d2BXdXdZ + Y * d2BYdXdZ) * np.cos(phi)
@@ -826,16 +889,16 @@ class TangentMap():
 #                   - dBRdZ/R
         d2BRdRdZ = (Y**2 * d2BYdYdZ + X**2 * d2BXdXdZ + X*Y*(d2BXdYdZ + d2BYdXdZ))/(R**2)
         d2BRdZ2 = (d2BXdZ2*X + d2BYdZ2*Y)/R
-#         dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R 
+#         dBPdZ = -dBXdZ*Y/R + dBYdZ*X/R
 #         d2BPdRdZ = ((- Y * d2BXdXdZ + dBYdZ + X * d2BYdXdZ)*np.cos(phi)
 #                   + (- dBXdZ + Y * d2BXdYdZ + X * d2BYdYdZ)*np.sin(phi))/R \
 #                   - dBPdZ/R
         d2BPdRdZ = (-Y**2 * d2BXdYdZ + X*(Y*d2BYdYdZ-Y*d2BXdXdZ+X*d2BYdXdZ))/(R**2)
-        d2BPdZ2 = (-d2BXdZ2*Y + d2BYdZ2*X)/R 
-        
+        d2BPdZ2 = (-d2BXdZ2*Y + d2BYdZ2*X)/R
+
         dmdR = np.zeros((4,len(R)))
         dmdZ = np.zeros((4,len(Z)))
-                
+
 #       m[...,0] = BR/BP + R*(dBRdR/BP - BR*dBPdR/BP**2)
         dmdR[0,...] = dBRdR/BP - BR*dBPdR/BP**2 \
             + R*(d2BRdR2/BP - dBRdR*dBPdR/BP**2 - dBRdR*dBPdR/BP**2
@@ -843,7 +906,7 @@ class TangentMap():
             + (dBRdR/BP - BR*dBPdR/BP**2)
         dmdZ[0,...] = dBRdZ/BP - BR*dBPdZ/BP**2 \
             + R*(d2BRdRdZ/BP - dBRdR*dBPdZ/BP**2 - dBRdZ*dBPdR/BP**2
-                - BR*d2BPdRdZ/BP**2 + 2*BR*dBPdR*dBPdZ/BP**3) 
+                - BR*d2BPdRdZ/BP**2 + 2*BR*dBPdR*dBPdZ/BP**3)
 #       m[...,1] = R*(dBRdZ/BP - BR*dBPdZ/BP**2)
         dmdR[1,...] = R*(d2BRdRdZ/BP - dBRdZ*dBPdR/BP**2 - dBRdR*dBPdZ/BP**2
                 - BR*d2BPdRdZ/BP**2 + 2*BR*dBPdZ*dBPdR/BP**3) \
@@ -859,28 +922,29 @@ class TangentMap():
             + R*(d2BZdRdZ/BP - dBPdZ*dBZdR/BP**2 - dBZdZ*dBPdR/BP**2
                 - BZ*d2BPdRdZ/BP**2 + 2 * BZ * dBPdR * dBPdZ/BP**3)
 #       m[...,3] = R*(dBZdZ/BP - BZ*dBPdZ/BP**2)
-        dmdR[3,...] = R*(d2BZdRdZ/BP - dBZdZ*dBPdR/BP**2 
+        dmdR[3,...] = R*(d2BZdRdZ/BP - dBZdZ*dBPdR/BP**2
                 - dBZdR*dBPdZ/BP**2 - BZ*d2BPdRdZ/BP**2 + 2*BZ*dBPdZ*dBPdR/BP**3) \
                 + (dBZdZ/BP - BZ*dBPdZ/BP**2)
         dmdZ[3,...] = R*(d2BZdZ2/BP - dBZdZ*dBPdZ/BP**2
                 - dBZdZ*dBPdZ/BP**2 - BZ*d2BPdZ2/BP**2 + 2*BZ*dBPdZ*dBPdZ/BP**3)
-            
+
         return dmdR, dmdZ
-    
+
     def res_axis(self):
         """
         Computes the residual between parameterization axis and "true" magnetic
             axis
-        
+
         Outputs:
             res_axis (double): residual between parameterization axis
-                and true axis 
+                and true axis
         """
-        phi, dphi = np.linspace(0,2*np.pi,self.nphi,endpoint=False,retstep=True)
+        phi, dphi = np.linspace(0,2*np.pi,self.nphi_integral,endpoint=False,
+                                retstep=True)
         if self.axis_poly is None:
             self.update_solutions()
         axis = self.axis_poly(phi)
-        
+
         self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
         self.magnetic_axis.update()
         Rma = np.sqrt(self.magnetic_axis.gamma[:,0]**2 + self.magnetic_axis.gamma[:,1]**2)
@@ -890,42 +954,42 @@ class TangentMap():
     def d_res_axis_d_magneticaxiscoeffs(self):
         """
         Compute derivative of res_axis wrt axis coefficients
-        
+
         Outputs:
-            d_res_axis_d_magneticaxiscoeffs (1d array (ncoeffs)): derivative of 
-                residual between parameterization axis and true axis wrt axis 
+            d_res_axis_d_magneticaxiscoeffs (1d array (ncoeffs)): derivative of
+                residual between parameterization axis and true axis wrt axis
                 coeffs
         """
-        phi, dphi = np.linspace(0,2*np.pi,self.nphi,endpoint=False,retstep=True)
-        
+        phi, dphi = np.linspace(0,2*np.pi,self.nphi_integral,endpoint=False,retstep=True)
+
         if self.axis_poly is None:
             self.update_solutions()
         axis = self.axis_poly(phi)
-        
+
         self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
         self.magnetic_axis.update()
-        
+
         Rma = np.sqrt(self.magnetic_axis.gamma[:,0]**2 + self.magnetic_axis.gamma[:,1]**2)
         Zma = self.magnetic_axis.gamma[:,2]
-        d_Rma = (self.magnetic_axis.dgamma_by_dcoeff[...,0]*self.magnetic_axis.gamma[:,0,None] + 
+        d_Rma = (self.magnetic_axis.dgamma_by_dcoeff[...,0]*self.magnetic_axis.gamma[:,0,None] +
                  self.magnetic_axis.dgamma_by_dcoeff[...,1]*self.magnetic_axis.gamma[:,1,None]) \
             / Rma[:,None]
         d_Zma = self.magnetic_axis.dgamma_by_dcoeff[...,2]
-        
-        return np.sum((Rma[:,None]-axis[0,:,None])*d_Rma 
+
+        return np.sum((Rma[:,None]-axis[0,:,None])*d_Rma
                     + (Zma[:,None]-axis[1,:,None])*d_Zma,axis=0)*dphi
-        
+
     def d_res_axis_d_coil_currents(self):
         """
         Compute derivative of res_axis wrt coil currents
-        
+
         Outputs:
-            d_res_axis_d_coil_currents (list of doubles): derivatives of 
+            d_res_axis_d_coil_currents (list of doubles): derivatives of
                 residual between parameterization axis and true axis wrt coil
                 currents
         """
-        phi,dphi = np.linspace(0,2*np.pi,self.nphi,endpoint=False,retstep=True)
-        
+        phi,dphi = np.linspace(0,2*np.pi,self.nphi_integral,endpoint=False,retstep=True)
+
         if (self.axis_poly is None or self.adjoint_axis_poly is None):
             self.update_solutions()
         axis = self.axis_poly(phi)
@@ -940,25 +1004,25 @@ class TangentMap():
             d_res_axis_dcoilcurrents.append(d_res_axis)
         d_res_axis_dcoilcurrents = \
             self.stellarator.reduce_current_derivatives([ires for ires in d_res_axis_dcoilcurrents])
-    
+
         return d_res_axis_dcoilcurrents
-    
+
     def d_res_axis_d_coil_coeffs(self):
         """
         Compute derivative of res_axis wrt coil coefficients
-        
+
         Outputs:
-            d_res_axis_d_coil_currents (list of 1d arrays (ncoeffs)): derivatives of 
+            d_res_axis_d_coil_currents (list of 1d arrays (ncoeffs)): derivatives of
                 residual between parameterization axis and true axis wrt coil
                 coeffs
         """
-        phi,dphi = np.linspace(0,2*np.pi,self.nphi,endpoint=False,retstep=True)    
-        
+        phi,dphi = np.linspace(0,2*np.pi,self.nphi_integral,endpoint=False,retstep=True)
+
         if (self.axis_poly is None or self.adjoint_axis_poly is None):
             self.update_solutions()
         axis = self.axis_poly(phi)
         mu = self.adjoint_axis_poly(phi)
-        
+
         d_V_by_dcoilcoeffs = self.compute_d_V_dcoilcoeffs(phi,self.axis_poly)
         d_res_axis_dcoilcoeffs = []
         for i in range(len(d_V_by_dcoilcoeffs)):
@@ -972,9 +1036,9 @@ class TangentMap():
     def compute_adjoint_axis(self,phi,axis_poly,tangent_poly=None,
                              adjoint_tangent_poly=None):
         """
-        Computes adjoint variable required for computing derivative of 
+        Computes adjoint variable required for computing derivative of
             axis_res metric
-            
+
         Inputs:
             phi (1d array): toroidal angle for evaluation of adjoint variable
             axis_poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
@@ -984,91 +1048,185 @@ class TangentMap():
             adjoint_tangent_poly (instance of scipy.interpolate.PPoly cubic spline): polyomial
                 representing adjoint variable for tangent map
         """
-        y0 = axis_poly(phi)
         if (self.constrained):
             fun = lambda x,y : self.rhs_fun_adjoint(x,y,axis_poly,tangent_poly,
                                                     adjoint_tangent_poly)
         else:
             fun = lambda x,y : self.rhs_fun_adjoint(x,y,axis_poly)
-        fun_jac = lambda x,y : self.jac_adjoint(x,y,axis_poly)
-        out = scipy.integrate.solve_bvp(fun=fun,
-                                        bc=self.bc_fun_axis,
-                                        x=phi,y=y0,fun_jac=fun_jac,
-                                        bc_jac=self.bc_jac,verbose=self.verbose,
-                                        tol=self.tol,max_nodes=self.max_nodes)
-        if (out.status==0):
-            # Evaluate polynomial on grid
-            return out.sol(phi), out.sol
+        if self.adjoint_axis_bvp:
+            if self.adjoint_axis_poly is not None:
+                y0 = self.adjoint_axis_poly(phi)
+            else:
+                y0 = axis_poly(phi)
+
+            fun_jac = lambda x, y : self.jac_adjoint(x,y,axis_poly)
+            out = scipy.integrate.solve_bvp(fun=fun,
+                                            bc=self.bc_fun_axis,
+                                            x=phi,y=y0,fun_jac=fun_jac,
+                                            bc_jac=self.bc_jac,verbose=self.verbose,
+                                            tol=self.bvp_tol,max_nodes=self.max_nodes)
+            # Now check solution
+            out_check = scipy.integrate.solve_ivp(fun,(0,2*np.pi),out.sol(0),
+                        vectorized=False,rtol=self.rtol,atol=self.atol,
+                                    t_eval=phi,dense_output=True,
+                                           method=self.method)
+            yend = out_check.sol(2*np.pi)
+            print('Residual in adjoint axis: ',np.linalg.norm(out.sol(0)-yend))
+            
+            if (out.status==0):
+                # Evaluate polynomial on grid
+                return out.sol(phi), out.sol
+            else:
+                raise RuntimeError('Error ocurred in integration of axis.')
         else:
-            raise RuntimeError('Error ocurred in integration of axis.')
+            if (self.adjoint_axis_poly is not None):
+                y0 = self.adjoint_axis_poly(0)
+            else:
+                y0 = axis_poly(0)
+                
+            t_span = (0,2*np.pi)
+            niter = 0
+            for niter in range(self.maxiter):
+                out = scipy.integrate.solve_ivp(fun,t_span,y0,
+                            vectorized=False,rtol=self.rtol,atol=self.atol,
+                                        t_eval=phi,dense_output=True,
+                                               method=self.method)
+                yend = out.sol(2*np.pi)
+                if (self.verbose):
+                    print('Norm: ',np.linalg.norm(yend-y0))
+#                 if (np.linalg.norm(yend-y0))/np.linalg.norm(y0) < self.tol:
+                if (np.abs(yend[0]-y0[0]) < self.tol and np.abs(yend[1]-y0[1]) < self.tol):
+                    if (self.verbose):
+                        print('yend: ',yend)
+                        print('y0: ',y0)
+                        print('Newton iteration converged')
+                    return out.y, out.sol
+                tangent_sol, tangent_poly = self.compute_tangent(np.array([2*np.pi]),axis_poly,adjoint=True)
+                U = np.zeros((2,2))
+                U[0,0] = tangent_sol[0]
+                U[0,1] = tangent_sol[1]
+                U[1,0] = tangent_sol[2]
+                U[1,1] = tangent_sol[3]
+                mat = np.eye(2) - U
+                step = np.linalg.solve(mat,yend-y0)
+                y0 += step
+            raise RuntimeError('Exceeded maxiter in compute_adjoint_axis.')            
 
     def compute_axis(self,phi):
         """
         For biotsavart and magnetic_axis objects, compute rotational transform
             from tangent map by solving initial value problem.
-        
+
         Inputs:
             phi (1d array): 1d array for evaluation of tangent map
         Outputs:
             y (2d array (2,len(phi))): axis on grid of toroidal angle
-        """
-        if (self.axis_poly is not None):
-            y0 = self.axis_poly(phi)
-        else:
-            self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
-            self.magnetic_axis.update()
-            axis = self.magnetic_axis.gamma
-            y0 = np.zeros((2,len(phi)))
-            y0[0,:] = np.sqrt(axis[:,0]**2 + axis[:,1]**2)
-            y0[1,:] = axis[:,2]
-        
-        out = scipy.integrate.solve_bvp(fun=self.rhs_fun_axis,bc=self.bc_fun_axis,
-                                        x=phi,y=y0,fun_jac=self.compute_jac,
+        """    
+        if self.axis_bvp:
+            if (self.axis_poly is not None):
+                y0 = self.axis_poly(phi)
+            else:
+                self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
+                self.magnetic_axis.update()
+                axis = self.magnetic_axis.gamma
+                y0 = np.zeros((2,len(phi)))
+                y0[0,:] = np.sqrt(axis[:,0]**2 + axis[:,1]**2)
+                y0[1,:] = axis[:,2]
+            out = scipy.integrate.solve_bvp(fun=self.rhs_fun_axis,
+                                        bc=self.bc_fun_axis,
+                                        x=phi,y=y0,
+                                        fun_jac=self.compute_jac,
                                         bc_jac=self.bc_jac,verbose=self.verbose,
-                                        tol=self.tol,max_nodes=self.max_nodes)
-        if (out.status==0):
-            # Evaluate polynomial on grid
-            return out.sol(phi), out.sol
+                                        tol=self.bvp_tol,max_nodes=self.max_nodes)
+            if (out.status==0):
+                # Evaluate polynomial on grid
+                return out.sol(phi), out.sol
+            else:
+                raise RuntimeError('Error ocurred in integration of axis.')
         else:
-            raise RuntimeError('Error ocurred in integration of axis.')
-        
+            if (self.axis_poly is not None):
+                y0 = self.axis_poly(0)
+            else:
+                self.magnetic_axis.points = np.asarray([0])
+                self.magnetic_axis.update()
+                axis = self.magnetic_axis.gamma
+                y0 = np.zeros((2,))
+                y0[0] = np.sqrt(axis[...,0]**2 + axis[...,1]**2)
+                y0[1] = axis[...,2]
+            t_span = (0,2*np.pi)
+            niter = 0
+            for niter in range(self.maxiter):
+                out = scipy.integrate.solve_ivp(self.rhs_fun_axis,t_span,y0,
+                            vectorized=False,rtol=self.rtol,atol=self.atol,
+                                        t_eval=phi,dense_output=True,
+                                               method=self.method)
+                yend = out.sol(2*np.pi)
+                if self.verbose:
+                    print('Norm: ',np.linalg.norm(yend-y0))
+#                 if (np.linalg.norm(yend-y0))/np.linalg.norm(y0) < self.tol:
+                if (np.abs(yend[0]-y0[0]) < self.tol and np.abs(yend[1]-y0[1]) < self.tol):
+                    if self.verbose:
+                        print('yend: ',yend)
+                        print('y0: ',y0)
+                        print('Newton iteration converged')
+                    return out.y, out.sol
+                tangent_sol, tangent_poly = self.compute_tangent(np.array([2*np.pi]),out.sol)
+                U = np.zeros((2,2))
+                U[0,0] = tangent_sol[0]
+                U[0,1] = tangent_sol[1]
+                U[1,0] = tangent_sol[2]
+                U[1,1] = tangent_sol[3]
+                mat = np.eye(2) - U
+                step = np.linalg.solve(mat,yend-y0)
+                y0 += step
+            
+            raise RuntimeError('Exceeded maxiter in compute_axis.')
+
     def rhs_fun_axis(self,phi,axis):
         """
         Computes rhs of magnetic field line flow ode, i.e.
             r'(phi) = V(phi)
-            
+
         Inputs:
             phi (1d array): toroidal angle for evaluation of rhs
             axis (2d array (2,len(phi))): R and Z for evaluation of rhs
         Outputs:
             V (2d array (2,len(phi))): R and Z components of rhs
         """
-        gamma = np.zeros((len(phi),3))
-        gamma[:,0] = axis[0,:]*np.cos(phi)
-        gamma[:,1] = axis[0,:]*np.sin(phi)
-        gamma[:,2] = axis[1,:]
-        self.biotsavart.set_points(gamma)
+        if np.ndim(phi)>0:
+            gamma = np.zeros((len(phi),3))
+        else:
+            gamma = np.zeros((1,3))
+            
+        gamma[...,0] = axis[0,...]*np.cos(phi)
+        gamma[...,1] = axis[0,...]*np.sin(phi)
+        gamma[...,2] = axis[1,...]
+        X = gamma[...,0]
+        Y = gamma[...,1]
+        Z = gamma[...,2]
+
+        self.biotsavart.compute(gamma)
 
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
-        V = np.zeros((2,len(R)))
-        V[0,:] = R*BR/BP
-        V[1,:] = R*BZ/BP
+        if (np.ndim(phi)>0):
+            V = np.zeros((2,len(phi)))
+        else:
+            V = np.zeros((2,))
+        V[0,...] = R*BR/BP
+        V[1,...] = R*BZ/BP
         return V
-    
+
     def rhs_fun_adjoint(self,phi,eta,axis_poly,tangent_poly=None,adjoint_poly=None):
         """
         Compute rhs of adjoint problem for res_axis metric, i.e.
             mu'(\phi) = V(phi)
-            
+
         Inputs:
             phi (1d array): toroidal angle for evaluation of rhs
             eta (2d array (2,len(phi))): mu_R and mu_Z for evaluation of rhs
@@ -1077,7 +1235,7 @@ class TangentMap():
             tangent_poly (instance of scipy.interpolate.PPoly cubic spline): polynomial
                 representing tangent map solution
             adjoint_poly (instance of scipy.interpolate.PPoly cubic spline): polynomial
-                representing "lambda" adjoint solution 
+                representing "lambda" adjoint solution
         Outputs:
             V (2d array (2,len(phi))): R and Z components of rhs
         """
@@ -1086,56 +1244,65 @@ class TangentMap():
             lam = adjoint_poly(phi)
             dmdR, dmdZ = self.compute_grad_m(phi,axis_poly)
             lambda_dot_dmdR_times_M = \
-                  lam[0,:]*(dmdR[0,...]*M[0,...] + dmdR[1,...]*M[2,...]) \
-                + lam[1,:]*(dmdR[0,...]*M[1,...] + dmdR[1,...]*M[3,...]) \
-                + lam[2,:]*(dmdR[2,...]*M[0,...] + dmdR[3,...]*M[2,...]) \
-                + lam[3,:]*(dmdR[2,...]*M[1,...] + dmdR[3,...]*M[3,...])
+                  lam[0,...]*(dmdR[0,...]*M[0,...] + dmdR[1,...]*M[2,...]) \
+                + lam[1,...]*(dmdR[0,...]*M[1,...] + dmdR[1,...]*M[3,...]) \
+                + lam[2,...]*(dmdR[2,...]*M[0,...] + dmdR[3,...]*M[2,...]) \
+                + lam[3,...]*(dmdR[2,...]*M[1,...] + dmdR[3,...]*M[3,...])
             lambda_dot_dmdZ_times_M = \
-                  lam[0,:]*(dmdZ[0,...]*M[0,...] + dmdZ[1,...]*M[2,...]) \
-                + lam[1,:]*(dmdZ[0,...]*M[1,...] + dmdZ[1,...]*M[3,...]) \
-                + lam[2,:]*(dmdZ[2,...]*M[0,...] + dmdZ[3,...]*M[2,...]) \
-                + lam[3,:]*(dmdZ[2,...]*M[1,...] + dmdZ[3,...]*M[3,...])
+                  lam[0,...]*(dmdZ[0,...]*M[0,...] + dmdZ[1,...]*M[2,...]) \
+                + lam[1,...]*(dmdZ[0,...]*M[1,...] + dmdZ[1,...]*M[3,...]) \
+                + lam[2,...]*(dmdZ[2,...]*M[0,...] + dmdZ[3,...]*M[2,...]) \
+                + lam[3,...]*(dmdZ[2,...]*M[1,...] + dmdZ[3,...]*M[3,...])
             iota = self.compute_iota()
             fac = -1/(4*np.pi*np.sin(2*np.pi*iota))
             m = self.compute_m(phi,axis_poly(phi))
         else:
             m = self.compute_m(phi)
-            self.magnetic_axis.points = np.asarray(phi/(2*np.pi))
+            if np.ndim(phi) == 0:
+                self.magnetic_axis.points = np.array([phi/(2*np.pi)])
+            else:
+                self.magnetic_axis.points = phi/(2*np.pi)
             self.magnetic_axis.update()
             gamma_ma = self.magnetic_axis.gamma
-            R_ma = np.sqrt(gamma_ma[:,0]**2 + gamma_ma[:,1]**2)
-            Z_ma = gamma_ma[:,2]
-        
+            R_ma = np.sqrt(gamma_ma[...,0]**2 + gamma_ma[...,1]**2)
+            Z_ma = gamma_ma[...,2]
+
         axis = axis_poly(phi)
-        gamma = np.zeros((len(phi),3))
-        gamma[:,0] = axis[0,:]*np.cos(phi)
-        gamma[:,1] = axis[0,:]*np.sin(phi)
-        gamma[:,2] = axis[1,:]
-        self.biotsavart.set_points(gamma)
+        if (np.ndim(phi)>0):
+            gamma = np.zeros((len(phi),3))
+        else:
+            gamma = np.zeros((1,3))
+        gamma[...,0] = axis[0,...]*np.cos(phi)
+        gamma[...,1] = axis[0,...]*np.sin(phi)
+        gamma[...,2] = axis[1,...]
+        X = gamma[...,0]
+        Y = gamma[...,1]
+        Z = gamma[...,2]
+        self.biotsavart.compute(gamma)
 
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
-        V = np.zeros((2,len(R)))
-        if (self.constrained):
-            V[0,:] = -m[0,:]*eta[0,:] - m[2,:]*eta[1,:] - fac*lambda_dot_dmdR_times_M 
-            V[1,:] = -m[3,:]*eta[1,:] - m[1,:]*eta[0,:] - fac*lambda_dot_dmdZ_times_M           
+        if (np.ndim(phi)>0):
+            V = np.zeros((2,len(phi)))
         else:
-            V[0,:] = -m[0,:]*eta[0,:] - m[2,:]*eta[1,:] + axis[0,:] - R_ma
-            V[1,:] = -m[3,:]*eta[1,:] - m[1,:]*eta[0,:] + axis[1,:] - Z_ma
+            V = np.zeros((2))
+        if (self.constrained):
+            V[0,...] = -m[0,...]*eta[0,...] - m[2,...]*eta[1,...] - fac*lambda_dot_dmdR_times_M
+            V[1,...] = -m[3,...]*eta[1,...] - m[1,...]*eta[0,...] - fac*lambda_dot_dmdZ_times_M
+        else:
+            V[0,...] = -m[0,...]*eta[0,...] - m[2,...]*eta[1,...] + axis[0,...] - R_ma
+            V[1,...] = -m[3,...]*eta[1,...] - m[1,...]*eta[0,...] + axis[1,...] - Z_ma
         return V
-    
+
     def jac_adjoint(self,phi,y,axis_poly):
         """
         Computes jacobian of rhs of adjoint equation (rhs_fun_adjoint)
-        
+
         Inputs:
             phi (1d array): toroidal angle for evaluation
             y (2d array (2,len(phi))): mu_R and mu_Z for evaluation
@@ -1149,11 +1316,11 @@ class TangentMap():
         jac[0,1,:] = m[2,:]
         jac[1,1,:] = m[3,:]
         return -jac
-    
+
     def compute_jac(self,phi,y):
         """
-        Computes jacobian matrix for magnetic axis bvp (compute_axis) 
-        
+        Computes jacobian matrix for magnetic axis bvp (compute_axis)
+
         Inputs:
             phi (1d array): toroidal angle for evaluation
             y (2d array (2,len(phi))): R and Z for evaluation
@@ -1167,42 +1334,42 @@ class TangentMap():
         jac[1,0,...] = m[2,...]
         jac[1,1,...] = m[3,...]
         return jac
-    
+
     def bc_jac(self,ya,yb):
         """
-        Jacobian for boundary condition function for magnetic axis bvp 
+        Jacobian for boundary condition function for magnetic axis bvp
             (bc_fun_axis)
-        
+
         Inputs:
             ya (1d array(2)): axis solution at phi = 0
             yb (1d array(2)): axis solution at phi = 2\pi
         Outputs:
-            jac (2d array(2,2), 2d array(2,2)): jacobian for boundary condition 
+            jac (2d array(2,2), 2d array(2,2)): jacobian for boundary condition
                 at 0 and 2\pi
         """
         return np.eye(2), -np.eye(2)
-        
+
     def bc_fun_axis(self,axisa,axisb):
         """
         Boundary condition function for magnetic axis bvp (compute_axis)
-        
+
         Inputs:
             axisa (1d array(2)): Magnetic axis solution at phi = 0
             axisb (1d array(2)): Magnetic axis solution at phi = 2*pi
         """
         return axisa - axisb
-    
+
     def compute_d_V_dcoilcurrents(self,phi,axis_poly):
         """
-        Computes the derivative of the rhs of the 
-            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for 
-            given phi. 
+        Computes the derivative of the rhs of the
+            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for
+            given phi.
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
             axis_poly: polynomial representation of axis solution
         Outputs:
-            d_V_dcoilcurrents (list (ncoils) of 2d array (2,npoints)): derivative 
+            d_V_dcoilcurrents (list (ncoils) of 2d array (2,npoints)): derivative
                 of V wrt coil currents
         """
         axis = axis_poly(phi)
@@ -1210,51 +1377,55 @@ class TangentMap():
         gamma[:,0] = axis[0,:]*np.cos(phi)
         gamma[:,1] = axis[0,:]*np.sin(phi)
         gamma[:,2] = axis[1,:]
-        self.biotsavart.set_points(gamma)
+        self.biotsavart.compute(gamma)
         
+        X = gamma[:,0]
+        Y = gamma[:,1]
+        Z = gamma[:,2]
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
-        
+
         # Shape: (ncoils,npoints,3)
         dB_by_dcoilcurrents = self.biotsavart.dB_by_dcoilcurrents
-        
+
         d_V_by_dcoilcurrents = []
         for i in range(len(dB_by_dcoilcurrents)):
             d_B = dB_by_dcoilcurrents[i]
             d_BX = d_B[...,0]
             d_BY = d_B[...,1]
             d_BZ = d_B[...,2]
-                
+
             d_BR =  (X * d_BX + Y * d_BY)/R
             d_BP = (-Y * d_BX + X * d_BY)/R
-        
+
             d_V = np.zeros((2,np.shape(d_BR)[0]))
             d_V[0,...] = R * (d_BR/BP - BR*d_BP/BP**2)
             d_V[1,...] = R * (d_BZ/BP - BZ*d_BP/BP**2)
             d_V_by_dcoilcurrents.append(d_V)
-            
+
         return d_V_by_dcoilcurrents
-    
+
     def compute_d_V_dcoilcoeffs(self,phi,axis_poly):
         """
-        Computes the derivative of the rhs of the 
-            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for 
-            given phi. 
+        Computes the derivative of the rhs of the
+            axis ode, e.g. r'(phi) = V(phi), with respect to coil coeffs for
+            given phi.
 
         Inputs:
             phi (1d array): toroidal angles for evaluation
             axis_poly : polynomial representation of axis solution
         Outputs:
-            d_V_dcoilcoeffs (list (ncoils) of 3d array (2,npoints,ncoeffs)): 
+            d_V_dcoilcoeffs (list (ncoils) of 3d array (2,npoints,ncoeffs)):
                 derivative of V wrt coil coeffs
         """
         axis = axis_poly(phi)
@@ -1262,37 +1433,40 @@ class TangentMap():
         gamma[:,0] = axis[0,:]*np.cos(phi)
         gamma[:,1] = axis[0,:]*np.sin(phi)
         gamma[:,2] = axis[1,:]
-        self.biotsavart.set_points(gamma)
-        
+        X = gamma[:,0]
+        Y = gamma[:,1]
+        Z = gamma[:,2]
+        self.biotsavart.compute(gamma)
+        self.biotsavart.compute_by_dcoilcoeff(gamma)
+
         B = self.biotsavart.B
         BX = B[...,0]
         BY = B[...,1]
         BZ = B[...,2]
-        
-        X = self.biotsavart.points[:,0]
-        Y = self.biotsavart.points[:,1]
-        Z = self.biotsavart.points[:,2]
+
+#         X = self.biotsavart.points[:,0]
+#         Y = self.biotsavart.points[:,1]
+#         Z = self.biotsavart.points[:,2]
         R = np.sqrt(X**2 + Y**2)
         BR =  X*BX/R + Y*BY/R
         BP = -Y*BX/R + X*BY/R
-       
+
         # Shape: (ncoils,npoints,nparams,3)
         dB_by_dcoilcoeffs = self.biotsavart.dB_by_dcoilcoeffs
-        
+
         d_V_by_dcoilcoeffs = []
         for i in range(len(dB_by_dcoilcoeffs)):
             d_B = dB_by_dcoilcoeffs[i]
             d_BX = d_B[...,0]
             d_BY = d_B[...,1]
             d_BZ = d_B[...,2]
-                
+
             d_BR =  (X[:,None] * d_BX + Y[:,None] * d_BY)/R[:,None]
             d_BP = (-Y[:,None] * d_BX + X[:,None] * d_BY)/R[:,None]
-                    
+
             d_V = np.zeros((2,np.shape(d_BR)[0],np.shape(d_BR)[1]))
             d_V[0,...] = R[:,None] * (d_BR/BP[:,None] - BR[:,None]*d_BP/BP[:,None]**2)
             d_V[1,...] = R[:,None] * (d_BZ/BP[:,None] - BZ[:,None]*d_BP/BP[:,None]**2)
             d_V_by_dcoilcoeffs.append(d_V)
-            
-        return d_V_by_dcoilcoeffs
 
+        return d_V_by_dcoilcoeffs

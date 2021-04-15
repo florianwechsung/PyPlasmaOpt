@@ -1,5 +1,4 @@
 from simsopt.geo.biotsavart import BiotSavart
-from simsopt.geo.objectives import MinimumDistance as sgMinimumDistance
 from .quasi_symmetric_field import QuasiSymmetricField
 from .objective import BiotSavartQuasiSymmetricFieldDifference, CurveLength, CurveTorsion, CurveCurvature, SobolevTikhonov, UniformArclength, MinimumDistance, CoilLpReduction
 from .curve import GaussianSampler, UniformSampler
@@ -55,7 +54,6 @@ class NearAxisQuasiSymmetryObjective():
         self.J_sobolevs = [SobolevTikhonov(coil, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)]) for coil in coils] + [SobolevTikhonov(ma, weights=[0., 0., (2*np.pi)**(-2), (2*np.pi)**(-3)])]
         self.J_arclengths = [UniformArclength(coil, length) for (coil, length) in zip(coils, self.coil_length_targets)]
         self.J_distance = MinimumDistance(stellarator.coils, minimum_distance)
-        # self.J_distance = sgMinimumDistance(stellarator.coils, minimum_distance)
 
         self.iota_target        = iota_target
         self.coil_length_weight = coil_length_weight

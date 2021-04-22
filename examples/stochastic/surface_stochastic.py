@@ -6,9 +6,15 @@ from simsopt.geo.surfacexyztensorfourier import SurfaceXYZTensorFourier
 from simsopt.geo.surfaceobjectives import Area, boozer_surface_residual, ToroidalFlux
 from simsopt.geo.boozersurface import BoozerSurface
 from simsopt.geo.biotsavart import BiotSavart
-from mayavi import mlab
-mlab.options.offscreen = True
 
+def plot(s, filename):
+    return
+    from mayavi import mlab
+    mlab.options.offscreen = True
+    s.plot(show=False)
+    mlab.view(azimuth=45, elevation=45, distance=8)
+    mlab.savefig(filename, magnification=4)
+    mlab.close()
 
 import argparse
 
@@ -104,14 +110,14 @@ for i in range(nsurfaces):
     # compute surface first using LBFGS exact and an area constraint
     if i == 0:
         res = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(tol=1e-10, maxiter=3000, constraint_weight=100., iota=iota, G=G)
-        print(f"iota={res['iota']:.3f}, tf={tf.J():.3f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
+        print(f"iota={res['iota']:.3f}, tf={tf.J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
     # s.plot(show=True)
     # else:
     #     s, iota, _ = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(tol=1e-10, maxiter=300, constraint_weight=100., iota=iota)
     #     print(f"iota={iota:.3f}, tf={tf.J():.3f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, iota, bs, derivatives=0)):.3e}")
     # s.plot()
     res = boozer_surface.minimize_boozer_penalty_constraints_ls(tol=1e-10, maxiter=100, constraint_weight=100., iota=res['iota'], G=res['G'], method='manual')
-    print(f"iota={res['iota']:.3f}, tf={tf.J():.3f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
+    print(f"iota={res['iota']:.3f}, tf={tf.J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
     print(s.gamma()[0, 0, :])
     surfaces.append(s)
     allres.append(res)
@@ -184,13 +190,13 @@ def compute_surface_for_perturbed_coils(bs_pert, res, s_ig, s, ar_target, bfgs_f
     if bfgs_first:
         res = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(
             tol=1e-10, maxiter=1000, constraint_weight=100., iota=res['iota'], G=res['G'])
-        print(f"iota={res['iota']:.10f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}")
+        print(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}")
     # res = boozer_surface.minimize_boozer_penalty_constraints_ls(
     #     tol=1e-10, maxiter=100, constraint_weight=100., iota=res['iota'], G=res['G'])
     # print(f"iota={res['iota']:.10f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}")
     res = boozer_surface.minimize_boozer_penalty_constraints_ls(
         tol=1e-9, maxiter=200, constraint_weight=1e2, iota=res['iota'], G=res['G'], method='manual', linear_solver='svd')
-    print(f"iota={res['iota']:.10f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}, iter={res['iter']}")
+    print(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}, iter={res['iter']}")
     # res = boozer_surface.solve_residual_equation_exactly_newton(iota=res['iota'], G=res['G'])
     # print(f"iota={res['iota']:.10f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}")
     if np.linalg.norm(res['gradient']) > 1e-8:
@@ -231,10 +237,7 @@ for i in range(nsurfaces):
     try:
         res, s_ig, s, ar_target = allres[i], surfaces_full[i], surfaces_is[i], target_areas[i]
         res_is.append(compute_surface_for_perturbed_coils(bs, res, s_ig, s, ar_target))
-        s.plot(show=False)
-        mlab.view(azimuth=45, elevation=45, distance=8)
-        mlab.savefig(savedir + f"plot_is_{i}.png", magnification=4)
-        mlab.close()
+        plot(s, savedir + f"plot_is_{i}.png")
     except Exception as ex:
         print(ex)
         break
@@ -300,10 +303,7 @@ for i in range(N):
             oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
             oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
             oos_iotas[j, i] = res_oos['iota']
-            surfaces_oos[j].plot(show=False)
-            mlab.view(azimuth=45, elevation=45, distance=8)
-            mlab.savefig(savedir + f"plot_oos_{j}_{i}.png", magnification=4)
-            mlab.close()
+            plot(surfaces_oos[j], savedir + f"plot_oos_{j}_{i}.png")
         except Exception as ex:
             print(ex)
             continue

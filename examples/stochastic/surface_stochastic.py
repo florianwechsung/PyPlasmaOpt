@@ -84,7 +84,7 @@ sold = None
 surfaces_is = []
 allres = []
 
-nsurfaces = 20 if forplotting else 2
+nsurfaces = 20 if forplotting else 8
 target_areas = np.asarray([1.0 + i*1.0 for i in range(nsurfaces)])
 # target_fluxes = np.asarray([((i+1)*2.650e-02)**2 for i in range(nsurfaces)])
 l = 0.0167

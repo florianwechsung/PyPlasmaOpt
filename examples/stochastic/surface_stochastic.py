@@ -284,7 +284,7 @@ for i in range(N):
                 s = surfaces_oos[j]
                 s.set_dofs(surfaces_oos[j-1].get_dofs())
                 s.extend_via_normal(-l)
-                res_oos = compute_surface(bs_pert, res_oos, sfull, target_areas[j], bfgs_first=20, exact=False)
+                res_oos = compute_surface(bs_pert, res_oos, sfull, target_areas[j], bfgs_first=20, exact=True)
             oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
             oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
             oos_iotas[j, i] = res_oos['iota']

@@ -6,6 +6,10 @@ from simsopt.geo.surfacexyztensorfourier import SurfaceXYZTensorFourier
 from simsopt.geo.surfaceobjectives import Area, boozer_surface_residual, ToroidalFlux
 from simsopt.geo.boozersurface import BoozerSurface
 from simsopt.geo.biotsavart import BiotSavart
+import sys
+import shutil
+import os
+import logging as lg
 
 def plot(s, filename):
     return
@@ -40,22 +44,23 @@ outdir = get_dir(args.n, args.ig, args.order)
 
 it = -1
 
-print(outdir)
+info(outdir)
 
-import sys
 sys.argv = sys.argv[:1] + [str(s) for s in np.loadtxt(outdir + 'argv.txt', dtype=np.dtype('<U26'))] 
 from objective_stochastic import stochastic_get_objective
 obj, args = stochastic_get_objective()
+savedir = outdir + "/surfaces2/"
+shutil.rmtree(savedir, ignore_errors=True)
+os.makedirs(savedir)
+logger = lg.getLogger('PyPlasmaOpt')
+logger.removeHandler(logger.handlers[1])
+
+set_file_logger(savedir + 'surfacelog.txt')
 obj.noutsamples = 0 if forplotting else 20
 x = np.load(outdir + "xiterates.npy")[it, :]
-print(f'||dJ||={np.load(outdir + "dJvals.npy")[it, 0]}')
+info(f'||dJ||={np.load(outdir + "dJvals.npy")[it, 0]}')
 obj.outdir = outdir
 obj.update(x)
-savedir = outdir + "/surfaces2/"
-import shutil
-shutil.rmtree(savedir, ignore_errors=True)
-import os
-os.makedirs(savedir)
 # obj.callback(x)
 # obj.plot(f'coils-{it}.png')
 
@@ -99,7 +104,7 @@ for i in range(nsurfaces):
     tf = ToroidalFlux(s, bs_tf)
     ar = Area(s)
     # ar_target = ar.J()
-    print('Area', ar.J())
+    info(f'Area={ar.J():.4f}')
     ar_target = target_areas[i]
     boozer_surface = BoozerSurface(bs, s, ar, ar_target) 
     # boozer_surface = BoozerSurface(bs, s, tf, tf_target) 
@@ -107,15 +112,15 @@ for i in range(nsurfaces):
     # compute surface first using LBFGS exact and an area constraint
     if i == 0:
         res = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(tol=1e-10, maxiter=3000, constraint_weight=100., iota=iota, G=G)
-        print(f"iota={res['iota']:.3f}, sqrt(tf)={np.sqrt(tf.J()):.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
+        info(f"iota={res['iota']:.3f}, sqrt(tf)={np.sqrt(tf.J()):.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
     # s.plot(show=True)
     # else:
     #     s, iota, _ = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(tol=1e-10, maxiter=300, constraint_weight=100., iota=iota)
-    #     print(f"iota={iota:.3f}, tf={tf.J():.3f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, iota, bs, derivatives=0)):.3e}")
+    #     info(f"iota={iota:.3f}, tf={tf.J():.3f}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, iota, bs, derivatives=0)):.3e}")
     # s.plot()
     res = boozer_surface.minimize_boozer_penalty_constraints_ls(tol=1e-10, maxiter=100, constraint_weight=100., iota=res['iota'], G=res['G'], method='manual')
-    print(f"iota={res['iota']:.3f}, sqrt(tf)={np.sqrt(tf.J()):.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
-    print(s.gamma()[0, 0, :])
+    info(f"iota={res['iota']:.3f}, sqrt(tf)={np.sqrt(tf.J()):.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs, derivatives=0)):.3e}")
+    info(s.gamma()[0, 0, :])
     surfaces_is.append(s)
     allres.append(res)
     sold = s
@@ -157,13 +162,13 @@ def compute_surface(bs_pert, res, s, ar_target, bfgs_first=0, exact=False):
     if bfgs_first > 0:
         res = boozer_surface.minimize_boozer_penalty_constraints_LBFGS(
             tol=1e-10, maxiter=bfgs_first, constraint_weight=100., iota=res['iota'], G=res['G'])
-        print(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}")
+        info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}")
     res = boozer_surface.minimize_boozer_penalty_constraints_ls(
         tol=1e-10, maxiter=100, constraint_weight=1e2, iota=res['iota'], G=res['G'], method='manual', linear_solver='lu', lam=1e-4)
-    print(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}, iter={res['iter']}")
+    info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}, iter={res['iter']}")
     if exact:
         res = boozer_surface.solve_residual_equation_exactly_newton(iota=res['iota'], G=res['G'])
-        print(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}")
+        info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}")
         if np.linalg.norm(res['residual']) > 1e-9:
             raise RuntimeError('norm of residual too large')
     else:
@@ -199,7 +204,7 @@ def compute_non_quasisymmetry_L2(s, bs):
 
 
 # non_qs = [compute_non_quasisymmetry(surfaces_full[j], bs) for j in range(nsurfaces)]
-# print(non_qs)
+# info(non_qs)
 res_is = []
 for i in range(nsurfaces):
     partial_to_full(surfaces_is[i], surfaces_is_full[i])
@@ -207,7 +212,7 @@ for i in range(nsurfaces):
         res_is.append(compute_surface(bs, allres[i], surfaces_is_full[i], target_areas[i]))
         plot(s, savedir + f"plot_is_{i}.png")
     except Exception as ex:
-        print(ex)
+        info(ex)
         break
 
 nsurfaces_success = len(res_is)
@@ -228,9 +233,9 @@ for j in range(nsurfaces_success):
     is_non_qs_L2[j], is_qs_L2[j] = compute_non_quasisymmetry_L2(res_is[j]['s'], bs)
     is_non_qs_l2[j], is_qs_l2[j] = compute_non_quasisymmetry_l2(res_is[j]['s'], bs)
 
-print("is_iotas", is_iotas)
-print("is_non_qs_L2", is_non_qs_L2)
-print("is_qs_L2", is_qs_L2)
+info("is_iotas     %s" % is_iotas)
+info("is_non_qs_L2 %s" % is_non_qs_L2)
+info("is_qs_L2     %s" % is_qs_L2)
 np.save(savedir + "/is_non_qs_L2.npy", is_non_qs_L2)
 np.save(savedir + "/is_non_qs_l2.npy", is_non_qs_l2)
 np.save(savedir + "/is_qs_L2.npy", is_qs_L2)
@@ -244,7 +249,7 @@ oos_qs_L2 = np.full((nsurfaces, N), np.nan)
 oos_qs_l2 = np.full((nsurfaces, N), np.nan)
 oos_iotas = np.full((nsurfaces, N), np.nan)
 for i in range(N):
-    print(f"Sample {i}")
+    info(f"Sample {i}")
     bs_pert = obj.stochastic_qs_objective_out_of_sample.J_BSvsQS_perturbed[i].biotsavart
     ma_points = (2*(nfp*ntor)+1) * 10
     madata_pert = find_magnetic_axis(bs_pert, ma_points, np.linalg.norm(ma.gamma()[0, 0:2]), output='cartesian')
@@ -254,7 +259,7 @@ for i in range(N):
     ncont = 10
     alphas = np.linspace(0, 1., ncont, endpoint=True)
     for j in range(nsurfaces_success):
-        print(f"Surface {j}")
+        info(f"Surface {j}")
         # if j == 0:
         #     s = surfaces_oos[j]
         #     s.fit_to_curve(ma, l, flip_theta=True)
@@ -265,7 +270,7 @@ for i in range(N):
         try:
             # res_oos = compute_surface(bs_pert, res_is[j], s, target_areas[j], bfgs_first=1000 if (j==0) else 20, exact=False)
             # partial_to_full(s, sfull)
-            # print(sfull.gamma()[0, 0, :])
+            # info(sfull.gamma()[0, 0, :])
             if j == 0:
                 sfull = surfaces_oos_full[j]
                 res_oos = res_is[j]
@@ -285,16 +290,16 @@ for i in range(N):
             oos_iotas[j, i] = res_oos['iota']
             plot(surfaces_oos[j], savedir + f"plot_oos_{j}_{i}.png")
         except Exception as ex:
-            print(ex)
+            info(ex)
             break
 
 
-np.set_printoptions(edgeitems=30, linewidth=200, formatter=dict(float=lambda x: "%.5e" % x))
-print("Non-QS    ", is_non_qs_L2)
-print("Non-QS OOS", np.mean(oos_non_qs_L2, axis=1))
-print("Non-QS OOS", oos_non_qs_L2)
-print("oos_iotas", oos_iotas)
-print("is_iotas", is_iotas)
+np.set_infooptions(edgeitems=30, linewidth=200, formatter=dict(float=lambda x: "%.5e" % x))
+info("Non-QS     %s" % is_non_qs_L2)
+info("Non-QS OOS %s" % np.mean(oos_non_qs_L2, axis=1))
+info("Non-QS OOS %s" % oos_non_qs_L2)
+info("oos_iotas  %s" % oos_iotas)
+info("is_iotas   %s" % is_iotas)
 
 np.save(savedir + "/oos_non_qs_L2.npy", oos_non_qs_L2)
 np.save(savedir + "/oos_non_qs_l2.npy", oos_non_qs_l2)

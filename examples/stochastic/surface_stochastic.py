@@ -76,7 +76,7 @@ bs = BiotSavart(coils, currents)
 
 nfp = 3
 stellsym = True
-ntor = 10
+ntor = 5
 mpol = 5
 nphi = (2-stellsym)*ntor + 1
 ntheta = 2*mpol + 1
@@ -90,9 +90,10 @@ surfaces_is = []
 allres = []
 
 nsurfaces = 20 if forplotting else 8
-target_areas = np.asarray([1.0 + i*1.0 for i in range(nsurfaces)])
+target_areas = np.asarray([0.6 + 1.2*i for i in range(nsurfaces)])
 # target_fluxes = np.asarray([((i+1)*2.650e-02)**2 for i in range(nsurfaces)])
-l = 0.0167
+# l = 0.0167/2
+l = 0.02
 for i in range(nsurfaces):
     s = SurfaceXYZTensorFourier(mpol=mpol, ntor=ntor, nfp=nfp, stellsym=stellsym, quadpoints_phi=phis, quadpoints_theta=thetas)
     if sold is None:
@@ -128,10 +129,10 @@ for i in range(nsurfaces):
 surfaces_oos = []
 surfaces_oos_full = []
 surfaces_is_full = []
-# phis_full = np.linspace(0, 1, 2*(nfp*ntor)+1, endpoint=false)
-# thetas_full = np.linspace(0, 1, 2*(mpol)+1, endpoint=false)
-phis_full = np.linspace(0, 1, 2*(nfp*ntor)+1, endpoint=false)
-thetas_full = np.linspace(0, 1, 2*(mpol)+1, endpoint=false)
+# phis_full = np.linspace(0, 1, 2*(nfp*ntor)+1, endpoint=False)
+# thetas_full = np.linspace(0, 1, 2*(mpol)+1, endpoint=False)
+phis_full = np.linspace(0, 1, 2*(nfp*ntor)+1, endpoint=False)
+thetas_full = np.linspace(0, 1, 2*(mpol)+1, endpoint=False)
 for i in range(nsurfaces):
     surfaces_oos.append(SurfaceXYZTensorFourier(
         mpol=mpol, ntor=ntor, nfp=nfp, stellsym=stellsym, quadpoints_phi=phis, quadpoints_theta=thetas))
@@ -164,16 +165,18 @@ def compute_surface(bs_pert, res, s, ar_target, bfgs_first=0, exact=False):
             tol=1e-10, maxiter=bfgs_first, constraint_weight=100., iota=res['iota'], G=res['G'])
         info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}")
     res = boozer_surface.minimize_boozer_penalty_constraints_ls(
-        tol=1e-10, maxiter=100, constraint_weight=1e2, iota=res['iota'], G=res['G'], method='manual', linear_solver='lu', lam=1e-4)
+        tol=1e-12, maxiter=500, constraint_weight=1e2, iota=res['iota'], G=res['G'], method='trf', linear_solver='lu', lam=1e-1)
     info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}, ||gradient||={np.linalg.norm(res['gradient']):.3e}, iter={res['iter']}")
     if exact:
         res = boozer_surface.solve_residual_equation_exactly_newton(iota=res['iota'], G=res['G'])
         info(f"iota={res['iota']:.10f}, tf={ToroidalFlux(s, bs_pert).J():.3e}, area={ar.J():.3f}, ||residual||={np.linalg.norm(boozer_surface_residual(s, res['iota'], res['G'], bs_pert, derivatives=0)):.3e}")
         if np.linalg.norm(res['residual']) > 1e-9:
-            raise RuntimeError('norm of residual too large')
+            raise RuntimeError("norm of residual too large")
     else:
         if np.linalg.norm(res['gradient']) > 1e-8:
-            raise RuntimeError('norm of gradient too large')
+            raise RuntimeError("norm of gradient too large")
+    if abs(res['iota']+0.4) > 1. or np.isnan(res['iota']):
+        raise RuntimeError("unreasonable iota")
     return res
 
 
@@ -256,45 +259,85 @@ for i in range(N):
     ma_pert = CurveRZFourier(ma_points, ma.order, 1, False)
     ma_pert.least_squares_fit(madata_pert)
     sample_origs = [[s.copy() for s in c.sample] for c in bs_pert.coils]
-    ncont = 10
-    alphas = np.linspace(0, 1., ncont, endpoint=True)
-    for j in range(nsurfaces_success):
+    ncont = 5
+    alphas = np.linspace(0, 1., ncont+1, endpoint=True)[1:]
+    success = True
+    info('Try going outside-in')
+    for j in reversed(range(0, nsurfaces_success)):
         info(f"Surface {j}")
-        # if j == 0:
-        #     s = surfaces_oos[j]
-        #     s.fit_to_curve(ma, l, flip_theta=True)
-        # else:
-        #     s = surfaces_oos[j]
-        #     s.set_dofs(surfaces_oos[j-1].get_dofs())
-        #     s.extend_via_normal(-l)
         try:
-            # res_oos = compute_surface(bs_pert, res_is[j], s, target_areas[j], bfgs_first=1000 if (j==0) else 20, exact=False)
-            # partial_to_full(s, sfull)
-            # info(sfull.gamma()[0, 0, :])
-            if j == 0:
-                sfull = surfaces_oos_full[j]
+            s = surfaces_oos_full[j]
+            if j == nsurfaces_success-1:
+                s.set_dofs(surfaces_is_full[j].get_dofs())
+            else:
+                s.set_dofs(surfaces_oos_full[j+1].get_dofs())
+                s.extend_via_normal(+l)
+            res_oos = res_is[j]
+            try:
+                res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
+                local_success = True
+            except Exception as ex:
+                warning(ex)
+                info('Try continuation from exact coils')
                 res_oos = res_is[j]
-                sfull.set_dofs(surfaces_is_full[j].get_dofs())
+                s.set_dofs(surfaces_is_full[j].get_dofs())
                 for k in range(ncont):
+                    info(f'Continutation: {k+1}/{ncont}')
                     for ci in range(len(bs_pert.coils)):
                         bs_pert.coils[ci].sample = [alphas[k] * s for s in sample_origs[ci]]
                         bs_pert.coils[ci].invalidate_cache()
-                    res_oos = compute_surface(bs_pert, res_oos, sfull, target_areas[j], bfgs_first=False, exact=True)
-            else:
-                s = surfaces_oos[j]
-                s.set_dofs(surfaces_oos[j-1].get_dofs())
-                s.extend_via_normal(-l)
-                res_oos = compute_surface(bs_pert, res_oos, sfull, target_areas[j], bfgs_first=20, exact=True)
+                    res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
             oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
             oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
             oos_iotas[j, i] = res_oos['iota']
-            plot(surfaces_oos[j], savedir + f"plot_oos_{j}_{i}.png")
+            plot(surfaces_oos_full[j], savedir + f"plot_oos_{j}_{i}.png")
         except Exception as ex:
-            info(ex)
+            warning(ex)
+            success = False
+            break
+    for ci in range(len(bs_pert.coils)):
+        bs_pert.coils[ci].sample = [s.copy() for s in sample_origs[ci]]
+        bs_pert.coils[ci].invalidate_cache()
+    if success:
+        continue
+    info('Try going inside-out')
+    for j in range(0, nsurfaces_success):
+        info(f"Surface {j}")
+        if not np.isnan(oos_iotas[j, i]) and not np.isnan(oos_non_qs_l2[j, i]):
+            info(f'Found iota and non_qs already, no computation necessary')
+            continue
+        try:
+            if j == 0:
+                s = surfaces_oos_full[j]
+                s.fit_to_curve(ma_pert, l/2, flip_theta=True)
+            else:
+                s = surfaces_oos_full[j]
+                s.set_dofs(surfaces_oos_full[j-1].get_dofs())
+                s.extend_via_normal(-l)
+            try:
+                res_oos = res_is[j]
+                res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
+            except Exception as ex:
+                warning(ex)
+                info('Try continuation from exact coils')
+                res_oos = res_is[j]
+                s.set_dofs(surfaces_is_full[j].get_dofs())
+                for k in range(ncont):
+                    info(f'Continutation: {k+1}/{ncont}')
+                    for ci in range(len(bs_pert.coils)):
+                        bs_pert.coils[ci].sample = [alphas[k] * s for s in sample_origs[ci]]
+                        bs_pert.coils[ci].invalidate_cache()
+                    res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
+            oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
+            oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
+            oos_iotas[j, i] = res_oos['iota']
+            plot(surfaces_oos_full[j], savedir + f"plot_oos_{j}_{i}.png")
+        except Exception as ex:
+            warning(ex)
             break
 
 
-np.set_infooptions(edgeitems=30, linewidth=200, formatter=dict(float=lambda x: "%.5e" % x))
+np.set_printoptions(edgeitems=30, linewidth=200, formatter=dict(float=lambda x: "%.5e" % x))
 info("Non-QS     %s" % is_non_qs_L2)
 info("Non-QS OOS %s" % np.mean(oos_non_qs_L2, axis=1))
 info("Non-QS OOS %s" % oos_non_qs_L2)

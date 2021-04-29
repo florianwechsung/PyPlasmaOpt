@@ -2,11 +2,21 @@ import numpy as np
 import scipy
 from pyplasmaopt import *
 
-def compute_iota(bs, ma):
+def compute_on_axis(bs, ma):
     ma_points = 300
     madata_pert = find_magnetic_axis(bs, ma_points, np.linalg.norm(ma.gamma()[0, 0:2]), output='cartesian')
     ma_pert = CurveRZFourier(ma_points, 15, 1, False)
     ma_pert.least_squares_fit(madata_pert)
+    # B = bs.set_points(ma_pert.gamma()).B()
+    # absB = np.linalg.norm(B, axis=1)
+    # l = ma_pert.incremental_arclength()
+
+    # qs_l2 = np.mean(absB)
+    # qs_L2 = np.mean(absB*l)/np.mean(l)
+
+    # non_qs_l2 = np.mean((absB-qs_l2)**2)**0.5
+    # non_qs_L2 = np.mean((absB-qs_L2)**2*l)**0.5
+
     t = TangentMap(bs, ma_pert, rtol=1e-12, atol=1e-12,
                bvp_tol=1e-8, tol=1e-12,
                verbose=0, nphi_guess=100,

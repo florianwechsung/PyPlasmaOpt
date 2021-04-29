@@ -6,6 +6,7 @@ from simsopt.geo.surfacexyztensorfourier import SurfaceXYZTensorFourier
 from simsopt.geo.surfaceobjectives import Area, boozer_surface_residual, ToroidalFlux
 from simsopt.geo.boozersurface import BoozerSurface
 from simsopt.geo.biotsavart import BiotSavart
+from tangent_map import TangentMap, compute_iota
 import sys
 import shutil
 import os
@@ -225,6 +226,7 @@ is_non_qs_l2 = np.full((nsurfaces, ), np.nan)
 is_qs_L2 = np.full((nsurfaces, ), np.nan)
 is_qs_l2 = np.full((nsurfaces, ), np.nan)
 is_iotas = np.full((nsurfaces, ), np.nan)
+is_iota_axis = [compute_iota(bs, ma)]
 surface_dofs = [r['s'].get_dofs() for r in res_is]
 if forplotting:
     np.save(outdir + "/surfacedofsforplotting.npy", surface_dofs)
@@ -244,6 +246,7 @@ np.save(savedir + "/is_non_qs_l2.npy", is_non_qs_l2)
 np.save(savedir + "/is_qs_L2.npy", is_qs_L2)
 np.save(savedir + "/is_qs_l2.npy", is_qs_l2)
 np.save(savedir + "/is_iotas.npy", is_iotas)
+np.save(savedir + "/is_iota_axis.npy", is_iota_axis)
 obj.compute_out_of_sample()
 N = obj.noutsamples
 oos_non_qs_L2 = np.full((nsurfaces, N), np.nan)
@@ -251,6 +254,7 @@ oos_non_qs_l2 = np.full((nsurfaces, N), np.nan)
 oos_qs_L2 = np.full((nsurfaces, N), np.nan)
 oos_qs_l2 = np.full((nsurfaces, N), np.nan)
 oos_iotas = np.full((nsurfaces, N), np.nan)
+oos_iota_axis = np.full((N,), np.nan)
 for i in range(N):
     info(f"Sample {i}")
     bs_pert = obj.stochastic_qs_objective_out_of_sample.J_BSvsQS_perturbed[i].biotsavart
@@ -258,6 +262,9 @@ for i in range(N):
     madata_pert = find_magnetic_axis(bs_pert, ma_points, np.linalg.norm(ma.gamma()[0, 0:2]), output='cartesian')
     ma_pert = CurveRZFourier(ma_points, ma.order, 1, False)
     ma_pert.least_squares_fit(madata_pert)
+    tiota = compute_iota(bs_pert, ma)
+    oos_iota_axis[i] = tiota
+    print(f"iota from tangent map={tiota:.3e}")
     sample_origs = [[s.copy() for s in c.sample] for c in bs_pert.coils]
     ncont = 5
     alphas = np.linspace(0, 1., ncont+1, endpoint=True)[1:]
@@ -287,6 +294,8 @@ for i in range(N):
                         bs_pert.coils[ci].sample = [alphas[k] * s for s in sample_origs[ci]]
                         bs_pert.coils[ci].invalidate_cache()
                     res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
+            if j == 0 and abs(abs(res_oos['iota'])-tiota) > 1e-2:
+                raise RuntimeError('iota on surface closest to axes to different from iota on axis')
             oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
             oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
             oos_iotas[j, i] = res_oos['iota']
@@ -328,6 +337,8 @@ for i in range(N):
                         bs_pert.coils[ci].sample = [alphas[k] * s for s in sample_origs[ci]]
                         bs_pert.coils[ci].invalidate_cache()
                     res_oos = compute_surface(bs_pert, res_oos, s, target_areas[j], bfgs_first=20, exact=True)
+            if j == 0 and abs(abs(res_oos['iota'])-tiota) > 1e-2:
+                raise RuntimeError('iota on surface closest to axes to different from iota on axis')
             oos_non_qs_L2[j, i], oos_qs_L2[j, i] = compute_non_quasisymmetry_L2(res_oos['s'], bs_pert)
             oos_non_qs_l2[j, i], oos_qs_l2[j, i] = compute_non_quasisymmetry_l2(res_oos['s'], bs_pert)
             oos_iotas[j, i] = res_oos['iota']
@@ -344,8 +355,10 @@ info("Non-QS OOS %s" % oos_non_qs_L2)
 info("oos_iotas  %s" % oos_iotas)
 info("is_iotas   %s" % is_iotas)
 
+
 np.save(savedir + "/oos_non_qs_L2.npy", oos_non_qs_L2)
 np.save(savedir + "/oos_non_qs_l2.npy", oos_non_qs_l2)
 np.save(savedir + "/oos_qs_L2.npy", oos_qs_L2)
 np.save(savedir + "/oos_qs_l2.npy", oos_qs_l2)
 np.save(savedir + "/oos_iotas.npy", oos_iotas)
+np.save(savedir + "/oos_iota_axis.npy", oos_iota_axis)

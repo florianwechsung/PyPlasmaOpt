@@ -34,6 +34,7 @@ class NearAxisQuasiSymmetryObjective():
         iota = qsf.iota
         self.ninsamples = ninsamples
         self.noutsamples = noutsamples
+        self.sigma_perturb = sigma_perturb
 
         self.J_BSvsQS          = BiotSavartQuasiSymmetricFieldDifference(qsf, bs)
         coils = stellarator._base_coils

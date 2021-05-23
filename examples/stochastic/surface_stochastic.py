@@ -29,10 +29,12 @@ parser.add_argument("--n", type=int, default=1)
 parser.add_argument("--ig", type=int, default=0)
 parser.add_argument("--order", type=int, default=6)
 parser.add_argument("--sigma", type=str, default="0p01")
+parser.add_argument("--sigma-oos", type=float, default=-1)
 parser.add_argument("--forplotting", dest="forplotting", default=False, action="store_true")
 args, _ = parser.parse_known_args()
 forplotting = args.forplotting
 
+sigma_oos = args.sigma_oos
 sigma = args.sigma
 def get_dir(n, ig, ntcoils):
     ppp = 20 if ntcoils < 10 else 15
@@ -50,7 +52,7 @@ info(outdir)
 sys.argv = sys.argv[:1] + [str(s) for s in np.loadtxt(outdir + 'argv.txt', dtype=np.dtype('<U26'))] 
 from objective_stochastic import stochastic_get_objective
 obj, args = stochastic_get_objective()
-savedir = outdir + "/surfaces2/"
+savedir = outdir + f"/surfaces_sigmaoos_{str(sigma_oos).replace('.', 'p')}/"
 shutil.rmtree(savedir, ignore_errors=True)
 os.makedirs(savedir)
 logger = lg.getLogger('PyPlasmaOpt')
@@ -186,6 +188,7 @@ def compute_surface(bs_pert, res, s, ar_target, bfgs_first=0, exact=False):
     crosssectional_area_est = abs(s.volume())/np.mean(ma.incremental_arclength())
     tf = ToroidalFlux(s, bs_pert).J()
     tf_est = crosssectional_area_est
+    print(s.area()/tf**0.5)
     if abs(tf-tf_est)/tf_est > .2:
         raise RuntimeError(f"unreasonable toroidal flux (was {tf} but expected {tf_est}")
     return res
@@ -268,6 +271,8 @@ np.save(savedir + "/is_non_qs_l2.npy", is_non_qs_l2)
 np.save(savedir + "/is_qs_L2.npy", is_qs_L2)
 np.save(savedir + "/is_qs_l2.npy", is_qs_l2)
 np.save(savedir + "/is_iotas.npy", is_iotas)
+if sigma_oos > 0:
+    obj.sampler.L *= sigma_oos/obj.sigma_perturb
 obj.compute_out_of_sample()
 N = obj.noutsamples
 oos_non_qs_L2 = np.full((nsurfaces+1, N), np.nan)

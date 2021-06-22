@@ -1,4 +1,5 @@
 from pyplasmaopt import *
+from simsopt.geo.curvexyzfourier import CurveXYZFourier
 import numpy as np
 import os
 import argparse
@@ -32,7 +33,7 @@ def get_ncsx_data(Nt_coils=25, ppp=10, case='orig'):
 
     nfp = 3
     num_coils = 3
-    coils = [FourierCurve(Nt_coils*ppp, Nt_coils) for i in range(num_coils)]
+    coils = [CurveXYZFourier(Nt_coils*ppp, Nt_coils) for i in range(num_coils)]
     for ic in range(num_coils):
         dofs = coils[ic].dofs
         dofs[0][0] = coil_data[0, 6*ic + 1]

@@ -138,7 +138,7 @@ def find_magnetic_axis(biotsavart, n, rguess, output='cylindrical'):
         z = rz[n:]
         xyz = np.hstack((r*np.cos(phi), r*np.sin(phi), z))
         biotsavart.set_points(xyz)
-        B = biotsavart.B(compute_derivatives=0)
+        B = biotsavart.B()
         Bx = B[:, 0].reshape((n, 1))
         By = B[:, 1].reshape((n, 1))
         Bz = B[:, 2].reshape((n, 1))
@@ -154,8 +154,8 @@ def find_magnetic_axis(biotsavart, n, rguess, output='cylindrical'):
         z = rz[n:]
         xyz = np.hstack((r*np.cos(phi), r*np.sin(phi), z))
         biotsavart.set_points(xyz)
-        B = biotsavart.B(compute_derivatives=1)
         GradB = biotsavart.dB_by_dX()
+        B = biotsavart.B()
         Bx = B[:, 0].reshape((n, 1))
         By = B[:, 1].reshape((n, 1))
         Bz = B[:, 2].reshape((n, 1))
@@ -219,22 +219,28 @@ def full_orbit_rhs_batch(xyzvxyz, m, q, biotsavart, active_idxs):
     p = xyzvxyz[np.ix_([0, 1, 2], active_idxs)].T
     v = xyzvxyz[np.ix_([3, 4, 5], active_idxs)]
     biotsavart.set_points(p)
-    Bs = biotsavart.B(compute_derivatives=0)
+    Bs = biotsavart.B()
     rhs = np.zeros_like(xyzvxyz)
     rhs[np.ix_([0, 1, 2], active_idxs)] = v
     rhs[np.ix_([3, 4, 5], active_idxs)] = (q/m) * np.cross(v.T, Bs, axis=1).T
     return rhs.flatten()
 
+nevals = [0]
+# @profile
 def guiding_center_rhs_batch(xyzv, vtotal, mus, m, q, biotsavart, active_idxs):
+    nevals[0] = nevals[0] + 1
     bs = xyzv.shape[0]//4
     xyzv = xyzv.reshape((4, bs))
     xyzs = xyzv[:3, :].T
     res = np.zeros_like(xyzv)
     biotsavart.set_points(xyzs[active_idxs, :])
-    Bs = biotsavart.B(compute_derivatives=1)
-    GradBs = biotsavart.dB_by_dX(compute_derivatives=1)
-    AbsBs = np.linalg.norm(Bs, axis=1)
-    GradAbsBs = (Bs[:, None, 0]*GradBs[:, :, 0] + Bs[:, None, 1]*GradBs[:, :, 1] + Bs[:, None, 2]*GradBs[:, :, 2])/AbsBs[:, None]
+    GradAbsBs = biotsavart.GradAbsB()
+    Bs = biotsavart.B()
+    AbsBs = biotsavart.AbsB()
+    # GradBs = biotsavart.dB_by_dX()
+    # Bs = biotsavart.B()
+    # AbsBs = np.linalg.norm(Bs, axis=1)
+    # GradAbsBs = (Bs[:, None, 0]*GradBs[:, :, 0] + Bs[:, None, 1]*GradBs[:, :, 1] + Bs[:, None, 2]*GradBs[:, :, 2])/AbsBs[:, None]
     BcrossGradAbsBs = np.asarray([
         (Bs[:, 1] * GradAbsBs[:, 2]) - (Bs[:, 2] * GradAbsBs[:, 1]),
         (Bs[:, 2] * GradAbsBs[:, 0]) - (Bs[:, 0] * GradAbsBs[:, 2]),
@@ -253,6 +259,7 @@ def guiding_center_rhs_batch(xyzv, vtotal, mus, m, q, biotsavart, active_idxs):
     return res.flatten()
 
 
+# @profile
 def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4, seed=1, mass=1.67e-27, charge=1, Ekinev=9000, umin=-1, umax=+1, critical_distance=0.3):
     assert mode in ['gyro', 'orbit']
 
@@ -263,7 +270,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
 
     vtotal = sqrt(2*Ekin/m) # Ekin = 0.5 * m * v^2 <=> v = sqrt(2*Ekin/m)
     info_all_sync(f"|v| = {vtotal:.2E} m/s")
-    max_step = 1.0/vtotal
+    max_step = 0.1/vtotal
 
 
     np.random.seed(seed)
@@ -277,8 +284,9 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     # xyz_inits = xyz_inits[6:9,:]
     nparticles = len(us)
 
+    print("xyz_inits", xyz_inits)
     biotsavart.set_points(xyz_inits)
-    Bs = biotsavart.B(compute_derivatives=0)
+    Bs = biotsavart.B()
     AbsBs = np.linalg.norm(Bs, axis=1)
     info_all_sync(f"Mean(|B|) = {np.mean(AbsBs):.2E} T")
 
@@ -288,6 +296,11 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     vtangs = us * vtotal
     vperp2s = vtotal**2 - vtangs**2
     mus = vperp2s/(2*AbsBs)
+
+
+
+
+
     from scipy.integrate import solve_ivp, RK45, OdeSolution, DOP853
     tspan = [0, tmax]
     active_idxs = list(range(0, nparticles))
@@ -297,7 +310,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
         yinit[3, :] = vtangs
         rhs = lambda t, xyzvs: guiding_center_rhs_batch(xyzvs, vtotal, mus, m, q, biotsavart, active_idxs)
         # solver = RK45(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-        solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-10, atol=1e-10)
+        solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-11, atol=1e-11)
     else:
         rhs = lambda t, xyzvyz: full_orbit_rhs_batch(xyzvyz, m, q, biotsavart, active_idxs)
         eB = Bs/AbsBs[:, None]
@@ -312,7 +325,7 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
             yinit[:3, i] = xyz_inits[i] + rg * ez[i, :]
             yinit[3:, i] = -sqrt(vperp2s[i]) * Bperp[i, :] + vtangs[i] * eB[i, :]
             # solver = RK45(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-6, atol=1e-6)
-            solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-12, atol=1e-12)
+            solver = DOP853(rhs, tspan[0], yinit.flatten(), tspan[-1], max_step=max_step, rtol=1e-10, atol=1e-10)
     ts = [0]
     denseoutputs = []
     t = tspan[0]
@@ -354,4 +367,5 @@ def trace_particles_on_axis(axis, biotsavart, nparticles, mode='gyro', tmax=1e-4
     res_x = []
     for i in range(nparticles):
         res_x.append(res[:, :3, i])
+    print('nevals', nevals[0])
     return res_x, loss_time, us

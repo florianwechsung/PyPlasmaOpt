@@ -60,7 +60,7 @@ def run_tracing(bs, ma=None, nparticles=401, tmax=1e-2, seed=1, outdir="", filen
         axis = ma.gamma()
 
     mode = 'gyro'
-    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=energy, umin=-1, umax=1, critical_distance=0.4)
+    res, res_t, us = trace_particles_on_axis(axis, bs, nparticles, mode=mode, tmax=tmax, seed=seed, Ekinev=energy, umin=-1, umax=1, critical_distance=0.3)
     # plot_stellarator(coil_collection, extra_data=[axis] + res)
     return res, res_t, us
 
@@ -72,7 +72,7 @@ if args.case in titles:
     info(f"title = {title}")
     coils, currents = get_ncsx_data(Nt_coils=5, ppp=24, case=title)
     stellarator = CoilCollection(coils, currents, nfp=3, stellarator_symmetry=True)
-    plot_stellarator(stellarator)
+    # plot_stellarator(stellarator)
     bs0 = BiotSavart(stellarator.coils, stellarator.currents)
 
     particleseed = comm.rank
@@ -96,8 +96,8 @@ if args.case in titles:
         res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])
         us = np.asarray([i for o in comm.allgather(local_us) for i in o])
         info(f"res.shape={res.shape}, res_t.shape={res_t.shape}, us.shape={us.shape}")
-        if comm.rank == 0:
-            plot_stellarator(stellarator, extra_data=res)
+        # if comm.rank == 0:
+        #     plot_stellarator(stellarator, extra_data=res)
         res_t_list.append(res_t)
         us_list.append(us)
         labels.append(filename)
@@ -121,20 +121,19 @@ info_all_sync(f"f(x) = {obj.res}")
 # plot_stellarator(obj.stellarator)
 
 
-# particleseed = comm.rank
-particleseed = 14+comm.rank
+particleseed = comm.rank
+# particleseed = 14+comm.rank
 res_t_list = []
 us_list = []
 labels = []
 rg = np.random.Generator(PCG64(0, 9999, mode="sequence"))
 sampler = obj.sampler
 ma = obj.ma
-for i in [None] + list(range(5)):
+for i in [None] + list(range(10)):
     if i is None:
         J = obj.J_BSvsQS
         info_all_sync(f'Quasi symmetry: {J.J_H1()+J.J_L2()}')
         bs = J.biotsavart
-        continue
     else:
         perturbed_coils = [RandomlyPerturbedCurve(coil, sampler, randomgen=rg) for coil in obj.stellarator.coils]
         bs    = BiotSavart(perturbed_coils, obj.stellarator.currents)
@@ -142,20 +141,16 @@ for i in [None] + list(range(5)):
         J = BiotSavartQuasiSymmetricFieldDifference(obj.qsf, bs, value_only=True)
         info_all_sync(f'Quasi symmetry: {J.J_H1()+J.J_L2()}')
         bs = J.biotsavart
-        if not i == 1:
-            continue
     filename = f"tracing_it_{it}_{energy:.0f}eV_coilseed_{i}"
     local_res, local_res_t, local_us = run_tracing(bs, ma=ma, nparticles=nparticles, tmax=tmax, seed=particleseed, outdir=outdir, filename=filename)
     res = np.asarray([i for o in comm.allgather(local_res) for i in o])
     res_t = np.asarray([i for o in comm.allgather(local_res_t) for i in o])
     us = np.asarray([i for o in comm.allgather(local_us) for i in o])
     info(f"res.shape={res.shape}, res_t.shape={res_t.shape}, us.shape={us.shape}")
-    if comm.rank == 0:
-        plot_stellarator(obj.stellarator, axis=ma, extra_data=res)
+    # if comm.rank == 0:
+    #     plot_stellarator(obj.stellarator, axis=ma, extra_data=res)
     res_t_list.append(res_t)
     us_list.append(us)
     labels.append(filename)
     if comm.rank == 0:
         np.save(f"{outdir}{filename}.npy", np.asarray([res_t, us]))
-        np.save(f"/tmp/robert.npy", res)
-        info(res.shape)

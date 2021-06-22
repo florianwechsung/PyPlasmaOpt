@@ -34,7 +34,7 @@ def taylor_test(obj, x, order=6):
     elif order == 6:
         shifts = [-3, -2, -1, 1, 2, 3]
         weights = [-1/60, 3/20, -3/4, 3/4, -3/20, 1/60]
-    for i in range(10, 40):
+    for i in range(12, 40):
         eps = 0.5**i
         obj.update(x + shifts[0]*eps*h)
         fd = weights[0] * obj.res
@@ -77,14 +77,14 @@ if obj.mode == "cvar":
 obj.update(x)
 obj.callback(x)
 #obj.save_to_matlab('matlab_init')
-if False:
+if True:
     taylor_test(obj, x, order=1)
     taylor_test(obj, x, order=2)
     taylor_test(obj, x, order=4)
     taylor_test(obj, x, order=6)
     import sys; sys.exit()
 
-maxiter = 5000
+maxiter = 40000
 
 def J_scipy(x):
     try:
@@ -120,7 +120,7 @@ while iters < maxiter and restarts < 10:
         info("####################################################################################################")
         restarts += 1
     if obj.mode == "cvar" and restarts < 6:
-        miter = min(1000, maxiter-iters)
+        miter = min(2000, maxiter-iters)
     else:
         miter = min(10000, maxiter-iters)
     if args.optim == 'pylbfgs':
@@ -271,3 +271,4 @@ if comm.rank == 0:
 
 if True:
     taylor_test(obj, xmin, order=4)
+    taylor_test(obj, xmin, order=6)

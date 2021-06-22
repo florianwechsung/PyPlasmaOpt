@@ -52,7 +52,7 @@ info(outdir)
 sys.argv = sys.argv[:1] + [str(s) for s in np.loadtxt(outdir + 'argv.txt', dtype=np.dtype('<U26'))] 
 from objective_stochastic import stochastic_get_objective
 obj, args = stochastic_get_objective()
-savedir = outdir + f"/surfaces_sigmaoos_{str(sigma_oos).replace('.', 'p')}/"
+savedir = outdir + f"/surfaces_sigmaoos_{str(sigma_oos).replace('.', 'p')}_5_5_batch/"
 shutil.rmtree(savedir, ignore_errors=True)
 os.makedirs(savedir)
 logger = lg.getLogger('PyPlasmaOpt')

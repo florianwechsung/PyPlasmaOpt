@@ -1,0 +1,3 @@
+[submodule "simsopt"]
+	path = simsopt
+	url = git@github.com:hiddenSymmetries/simsopt.git
